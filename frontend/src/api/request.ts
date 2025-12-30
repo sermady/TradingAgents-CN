@@ -1,6 +1,6 @@
 import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import router from '@/router'
@@ -467,7 +467,7 @@ export const testApiConnection = async (): Promise<boolean> => {
     const response = await request.get('/api/health', {
       timeout: 5000,
       skipErrorHandler: true
-    })
+    } as RequestConfig)
 
     console.log('🔍 [API_TEST] 健康检查成功:', response.data)
     return true
@@ -495,8 +495,7 @@ export class ApiClient {
     url: string,
     params?: any,
     config?: RequestConfig
-  ): Promise<ApiResponse<T>> {
-    // 响应拦截器已经返回 response.data，所以这里直接返回
+  ): Promise<any> {
     return await request.get(url, { params, ...config })
   }
 
@@ -505,8 +504,7 @@ export class ApiClient {
     url: string,
     data?: any,
     config?: RequestConfig
-  ): Promise<ApiResponse<T>> {
-    // 响应拦截器已经返回 response.data，所以这里直接返回
+  ): Promise<any> {
     return await request.post(url, data, config)
   }
 
@@ -515,8 +513,7 @@ export class ApiClient {
     url: string,
     data?: any,
     config?: RequestConfig
-  ): Promise<ApiResponse<T>> {
-    // 响应拦截器已经返回 response.data，所以这里直接返回
+  ): Promise<any> {
     return await request.put(url, data, config)
   }
 
@@ -524,8 +521,7 @@ export class ApiClient {
   static async delete<T = any>(
     url: string,
     config?: RequestConfig
-  ): Promise<ApiResponse<T>> {
-    // 响应拦截器已经返回 response.data，所以这里直接返回
+  ): Promise<any> {
     return await request.delete(url, config)
   }
 
@@ -534,8 +530,7 @@ export class ApiClient {
     url: string,
     data?: any,
     config?: RequestConfig
-  ): Promise<ApiResponse<T>> {
-    // 响应拦截器已经返回 response.data，所以这里直接返回
+  ): Promise<any> {
     return await request.patch(url, data, config)
   }
 
@@ -574,7 +569,7 @@ export class ApiClient {
     const blobData = await request.get(url, {
       responseType: 'blob',
       ...config
-    })
+    }) as unknown as BlobPart
 
     const blob = new Blob([blobData])
     const downloadUrl = window.URL.createObjectURL(blob)

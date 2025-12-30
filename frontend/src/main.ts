@@ -124,10 +124,11 @@ const initApp = async () => {
     } else {
       console.log('⚠️ API连接失败，跳过认证检查')
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.warn('⚠️ 应用初始化失败，但应用将继续启动:', error)
     // 如果是网络错误，不影响应用启动
-    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+    const err = error as { code?: string; message?: string }
+    if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
       console.log('📱 离线模式：应用将在没有后端连接的情况下启动')
     }
   } finally {
