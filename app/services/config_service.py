@@ -1073,12 +1073,12 @@ class ConfigService:
                             "response_time": response_time,
                             "details": None
                         }
-                    except:
+                    except Exception as api_error:
                         return {
                         "success": False,
                         "message": f"API测试失败: HTTP {response.status_code}",
                         "response_time": response_time,
-                        "details": None
+                        "details": str(api_error)
                     }
 
         except requests.exceptions.Timeout:
