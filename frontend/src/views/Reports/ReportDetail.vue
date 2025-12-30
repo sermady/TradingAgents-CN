@@ -307,9 +307,11 @@ const llmConfigs = ref<LLMConfig[]>([]) // 存储所有模型配置
 // 获取模型配置列表
 const fetchLLMConfigs = async () => {
   try {
-    const response = await configApi.getSystemConfig()
+    const response = await configApi.getSystemConfig() as any
     if (response.success && response.data?.llm_configs) {
       llmConfigs.value = response.data.llm_configs
+    } else if (response.llm_configs) {
+      llmConfigs.value = response.llm_configs
     }
   } catch (error) {
     console.error('获取模型配置失败:', error)
@@ -519,7 +521,7 @@ const applyToTrading = async () => {
     const positions = accountRes.data.positions
 
     // 查找当前持仓
-    const currentPosition = positions.find(p => p.code === report.value.stock_symbol)
+    const currentPosition = positions.find((p: any) => p.code === report.value.stock_symbol)
 
     // 获取当前实时价格
     let currentPrice = 10 // 默认价格
@@ -614,7 +616,7 @@ const applyToTrading = async () => {
             ]),
             h(ElInputNumber, {
               modelValue: tradeForm.price,
-              'onUpdate:modelValue': (val: number) => { tradeForm.price = val },
+              'onUpdate:modelValue': (val: number | undefined) => { if (val !== undefined) tradeForm.price = val },
               min: 0.01,
               max: 9999,
               precision: 2,
@@ -630,7 +632,7 @@ const applyToTrading = async () => {
             ]),
             h(ElInputNumber, {
               modelValue: tradeForm.quantity,
-              'onUpdate:modelValue': (val: number) => { tradeForm.quantity = val },
+              'onUpdate:modelValue': (val: number | undefined) => { if (val !== undefined) tradeForm.quantity = val },
               min: 100,
               max: maxQuantity,
               step: 100,
@@ -803,7 +805,7 @@ const getModelDescription = (modelInfo: string) => {
   return `${modelInfo} - AI 大语言模型`
 }
 
-const getModuleDisplayName = (moduleName: string) => {
+const getModuleDisplayName = (moduleName: string | number) => {
   // 统一与单股分析的中文标签映射（完整的13个报告）
   const nameMap: Record<string, string> = {
     // 分析师团队 (4个)
@@ -836,7 +838,8 @@ const getModuleDisplayName = (moduleName: string) => {
     detailed_analysis: '📄 详细分析'
   }
   // 未匹配到时，做一个友好的回退：下划线转空格
-  return nameMap[moduleName] || moduleName.replace(/_/g, ' ')
+  const name = String(moduleName)
+  return nameMap[name] || name.replace(/_/g, ' ')
 }
 
 const renderMarkdown = (content: string) => {
