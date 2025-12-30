@@ -110,6 +110,36 @@ class StartupValidator:
             example="xxx",
             help_url="https://tushare.pro/register?reg=tacn"
         ),
+        ConfigItem(
+            key="OPENAI_API_KEY",
+            level=ConfigLevel.RECOMMENDED,
+            description="OpenAI API密钥（可选，GPT-4等高级模型）",
+            example="sk-xxx",
+            help_url="https://platform.openai.com/"
+        ),
+    ]
+    
+    # 可选配置项（用于功能验证）
+    OPTIONAL_CONFIGS = [
+        ConfigItem(
+            key="HOST",
+            level=ConfigLevel.OPTIONAL,
+            description="API服务监听地址",
+            example="0.0.0.0"
+        ),
+        ConfigItem(
+            key="PORT",
+            level=ConfigLevel.OPTIONAL,
+            description="API服务监听端口",
+            example="8000",
+            validator=lambda v: v.isdigit() and 1 <= int(v) <= 65535
+        ),
+        ConfigItem(
+            key="DEBUG",
+            level=ConfigLevel.OPTIONAL,
+            description="调试模式",
+            example="false"
+        ),
     ]
     
     def __init__(self):
@@ -162,7 +192,7 @@ class StartupValidator:
         Returns:
             ValidationResult: 验证结果
         """
-        logger.info("🔍 开始验证启动配置...")
+        logger.info("开始验证启动配置...")
         
         # 验证必需配置
         self._validate_required_configs()
@@ -170,8 +200,14 @@ class StartupValidator:
         # 验证推荐配置
         self._validate_recommended_configs()
         
+        # 验证可选配置（仅验证格式，不要求必须存在）
+        self._validate_optional_configs()
+        
         # 检查安全配置
         self._check_security_configs()
+        
+        # 检查网络连通性
+        self._check_network_connectivity()
         
         # 设置验证结果
         self.result.success = len(self.result.missing_required) == 0 and len(self.result.invalid_configs) == 0
@@ -202,13 +238,24 @@ class StartupValidator:
 
             if not value:
                 self.result.missing_recommended.append(config)
-                logger.warning(f"⚠️  缺少推荐配置: {config.key}")
+                logger.warning(f"缺少推荐配置: {config.key}")
             elif not self._is_valid_api_key(value):
                 # API Key 存在但是占位符，视为未配置
                 self.result.missing_recommended.append(config)
-                logger.warning(f"⚠️  {config.key} 配置为占位符，视为未配置")
+                logger.warning(f"{config.key} 配置为占位符，视为未配置")
             else:
-                logger.debug(f"✅ {config.key}: 已配置")
+                logger.debug(f"{config.key}: 已配置")
+    
+    def _validate_optional_configs(self):
+        """验证可选配置（仅验证格式）"""
+        for config in self.OPTIONAL_CONFIGS:
+            value = os.getenv(config.key)
+            
+            if value and config.validator and not config.validator(value):
+                self.result.invalid_configs.append((config, "配置值格式不正确"))
+                logger.warning(f"配置格式错误: {config.key}")
+            elif value:
+                logger.debug(f"{config.key}: {value}")
     
     def _check_security_configs(self):
         """检查安全配置"""
@@ -243,9 +290,55 @@ class StartupValidator:
         # 检查是否在生产环境使用DEBUG模式
         debug = os.getenv("DEBUG", "true").lower() in ("true", "1", "yes", "on")
         if not debug:
-            logger.info("ℹ️  生产环境模式")
+            logger.info("生产环境模式")
         else:
-            logger.info("ℹ️  开发环境模式（DEBUG=true）")
+            logger.info("开发环境模式（DEBUG=true）")
+    
+    def _check_network_connectivity(self):
+        """检查网络连通性和依赖服务"""
+        logger.debug("检查网络连通性...")
+        
+        # 检查MongoDB连接配置
+        mongo_host = os.getenv("MONGODB_HOST", "")
+        mongo_port = os.getenv("MONGODB_PORT", "")
+        
+        if mongo_host and mongo_port:
+            try:
+                import socket
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(2)
+                result = sock.connect_ex((mongo_host, int(mongo_port)))
+                sock.close()
+                
+                if result == 0:
+                    logger.debug(f"MongoDB连接检测: {mongo_host}:{mongo_port} 可达")
+                else:
+                    self.result.warnings.append(
+                        f"无法连接到MongoDB {mongo_host}:{mongo_port}，请检查服务是否启动"
+                    )
+            except Exception as e:
+                logger.debug(f"MongoDB连接检测失败: {e}")
+        
+        # 检查Redis连接配置
+        redis_host = os.getenv("REDIS_HOST", "")
+        redis_port = os.getenv("REDIS_PORT", "")
+        
+        if redis_host and redis_port:
+            try:
+                import socket
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(2)
+                result = sock.connect_ex((redis_host, int(redis_port)))
+                sock.close()
+                
+                if result == 0:
+                    logger.debug(f"Redis连接检测: {redis_host}:{redis_port} 可达")
+                else:
+                    self.result.warnings.append(
+                        f"无法连接到Redis {redis_host}:{redis_port}，请检查服务是否启动"
+                    )
+            except Exception as e:
+                logger.debug(f"Redis连接检测失败: {e}")
     
     def _print_validation_result(self):
         """输出验证结果"""
