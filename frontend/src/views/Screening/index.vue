@@ -486,11 +486,11 @@ const performScreening = async () => {
     // 明确指定：不加任何技术指标相关条件
 
     const payload = {
-      market: 'CN',
+      market: 'CN' as const,
       date: undefined,
-      adj: 'qfq',
-      conditions: { logic: 'AND', children },
-      order_by: [{ field: 'market_cap', direction: 'desc' }],
+      adj: 'qfq' as const,
+      conditions: { logic: 'AND' as const, children },
+      order_by: [{ field: 'market_cap', direction: 'desc' as const }],
       limit: 500,
       offset: 0,
     }
@@ -560,6 +560,7 @@ const generateMockResults = (): StockInfo[] => {
 
   return mockStocks.map(stock => ({
     ...stock,
+    symbol: stock.code,  // 添加symbol字段
     market: filters.market
   }))
 }
@@ -640,7 +641,11 @@ const isFavorited = (code: string) => favoriteSet.value.has(code)
 
 const toggleFavorite = async (stock: StockInfo) => {
   try {
-    const code = stock.code
+    const code = stock.symbol || stock.code || ''
+    if (!code) {
+      ElMessage.warning('股票代码不存在')
+      return
+    }
     if (favoriteSet.value.has(code)) {
       // 取消自选
       const res = await favoritesApi.remove(code)
