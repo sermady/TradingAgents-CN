@@ -35,6 +35,9 @@ class AKShareProvider(BaseStockDataProvider):
     
     def _initialize_akshare(self):
         """初始化AKShare连接"""
+        import threading
+        self._request_lock = threading.Lock()  # 添加线程锁保护
+        
         try:
             import akshare as ak
             import requests
@@ -55,6 +58,10 @@ class AKShareProvider(BaseStockDataProvider):
             if not hasattr(requests, '_akshare_headers_patched'):
                 original_get = requests.get
                 last_request_time = {'time': 0}  # 使用字典以便在闭包中修改
+                
+                # 在闭包中引用实例的锁是不行的，因为这是类方法被patch到模块上
+                # 我们需要一个全局锁或者闭包内的锁
+                request_lock = threading.Lock()
 
                 def patched_get(url, **kwargs):
                     """
@@ -65,11 +72,12 @@ class AKShareProvider(BaseStockDataProvider):
                     # 添加请求延迟，避免被反爬虫封禁
                     # 只对东方财富网的请求添加延迟
                     if 'eastmoney.com' in url:
-                        current_time = time.time()
-                        time_since_last_request = current_time - last_request_time['time']
-                        if time_since_last_request < 0.5:  # 至少间隔0.5秒
-                            time.sleep(0.5 - time_since_last_request)
-                        last_request_time['time'] = time.time()
+                        with request_lock:  # 使用锁保护时间检查和更新
+                            current_time = time.time()
+                            time_since_last_request = current_time - last_request_time['time']
+                            if time_since_last_request < 0.5:  # 至少间隔0.5秒
+                                time.sleep(0.5 - time_since_last_request)
+                            last_request_time['time'] = time.time()
 
                     # 如果是东方财富网的请求，且 curl_cffi 可用，使用它来绕过反爬虫
                     if use_curl_cffi and 'eastmoney.com' in url:
@@ -157,7 +165,7 @@ class AKShareProvider(BaseStockDataProvider):
             # 配置超时和重试
             self._configure_timeout()
 
-            logger.info("✅ AKShare连接成功")
+            logger.info("[SUCCESS] AKShare连接成功")
         except ImportError as e:
             logger.error(f"❌ AKShare未安装: {e}")
             self.connected = False
@@ -257,11 +265,11 @@ class AKShareProvider(BaseStockDataProvider):
                 })
 
             df = pd.DataFrame(news_data)
-            self.logger.info(f"✅ {symbol} 直接调用 API 获取新闻成功: {len(df)} 条")
+            self.logger.info(f"[SUCCESS] {symbol} 直接调用 API 获取新闻成功: {len(df)} 条")
             return df
 
         except Exception as e:
-            self.logger.error(f"❌ {symbol} 直接调用 API 失败: {e}")
+            self.logger.error(f"[ERROR] {symbol} 直接调用 API 失败: {e}")
             return None
 
     def _configure_timeout(self):
@@ -269,7 +277,7 @@ class AKShareProvider(BaseStockDataProvider):
         try:
             import socket
             socket.setdefaulttimeout(60)  # 60秒超时
-            logger.info("🔧 AKShare超时配置完成: 60秒")
+            logger.info("[INFO] AKShare超时配置完成: 60秒")
         except Exception as e:
             logger.warning(f"⚠️ AKShare超时配置失败: {e}")
     
@@ -285,7 +293,7 @@ class AKShareProvider(BaseStockDataProvider):
         # AKShare 是基于网络爬虫的库，不需要传统的"连接"测试
         # 只要库已经导入成功，就认为可用
         # 实际的网络请求会在具体调用时进行，并有各自的错误处理
-        logger.info("✅ AKShare连接测试成功（库已加载）")
+        logger.info("[SUCCESS] AKShare连接测试成功（库已加载）")
         return True
     
     def get_stock_list_sync(self) -> Optional[pd.DataFrame]:
@@ -301,7 +309,7 @@ class AKShareProvider(BaseStockDataProvider):
                 logger.warning("⚠️ AKShare股票列表为空")
                 return None
 
-            logger.info(f"✅ AKShare股票列表获取成功: {len(stock_df)}只股票")
+            logger.info(f"[SUCCESS] AKShare股票列表获取成功: {len(stock_df)}只股票")
             return stock_df
 
         except Exception as e:
@@ -340,7 +348,7 @@ class AKShareProvider(BaseStockDataProvider):
                     "source": "akshare"
                 })
 
-            logger.info(f"✅ AKShare股票列表获取成功: {len(stock_list)}只股票")
+            logger.info(f"[SUCCESS] AKShare股票列表获取成功: {len(stock_list)}只股票")
             return stock_list
 
         except Exception as e:
@@ -386,11 +394,112 @@ class AKShareProvider(BaseStockDataProvider):
                 "sync_status": "success"
             }
             
-            logger.debug(f"✅ {code}基础信息获取成功")
+            logger.debug(f"[SUCCESS] {code}基础信息获取成功")
             return basic_info
             
         except Exception as e:
             logger.error(f"❌ 获取{code}基础信息失败: {e}")
+            return None
+
+    def _get_stock_list_cached_sync(self):
+        """获取缓存的股票列表（同步版本，避免事件循环依赖）"""
+        from datetime import datetime, timedelta
+
+        if self._stock_list_cache is not None and self._cache_time is not None:
+            if datetime.now() - self._cache_time < timedelta(hours=1):
+                return self._stock_list_cache
+
+        try:
+            stock_list = self.ak.stock_info_a_code_name()
+            if stock_list is not None and not stock_list.empty:
+                self._stock_list_cache = stock_list
+                self._cache_time = datetime.now()
+                logger.info(f"[SUCCESS] 股票列表缓存更新: {len(stock_list)} 只股票")
+                return stock_list
+        except Exception as e:
+            logger.error(f"❌ 获取股票列表失败: {e}")
+
+        return None
+
+    def _get_stock_info_detail_sync(self, code: str) -> Dict[str, Any]:
+        """获取股票详细信息（同步版本，避免事件循环依赖）"""
+        try:
+            try:
+                stock_info = self.ak.stock_individual_info_em(symbol=code)
+                if stock_info is not None and not stock_info.empty:
+                    info = {"code": code}
+
+                    name_row = stock_info[stock_info['item'] == '股票简称']
+                    if not name_row.empty:
+                        info['name'] = str(name_row['value'].iloc[0])
+
+                    industry_row = stock_info[stock_info['item'] == '所属行业']
+                    if not industry_row.empty:
+                        info['industry'] = str(industry_row['value'].iloc[0])
+
+                    area_row = stock_info[stock_info['item'] == '所属地区']
+                    if not area_row.empty:
+                        info['area'] = str(area_row['value'].iloc[0])
+
+                    list_date_row = stock_info[stock_info['item'] == '上市时间']
+                    if not list_date_row.empty:
+                        info['list_date'] = str(list_date_row['value'].iloc[0])
+
+                    return info
+            except Exception as e:
+                logger.debug(f"获取{code}个股详细信息失败: {e}")
+
+            try:
+                stock_list = self._get_stock_list_cached_sync()
+                if stock_list is not None and not stock_list.empty:
+                    stock_row = stock_list[stock_list['code'] == code]
+                    if not stock_row.empty:
+                        return {
+                            "code": code,
+                            "name": str(stock_row['name'].iloc[0]),
+                            "industry": "未知",
+                            "area": "未知",
+                        }
+            except Exception as e:
+                logger.debug(f"从股票列表获取{code}信息失败: {e}")
+
+            return {"code": code, "name": f"股票{code}", "industry": "未知", "area": "未知"}
+        except Exception as e:
+            logger.debug(f"获取{code}详细信息失败: {e}")
+            return {"code": code, "name": f"股票{code}", "industry": "未知", "area": "未知"}
+
+    def get_stock_basic_info_sync(self, code: str) -> Optional[Dict[str, Any]]:
+        """获取股票基础信息（同步版本，避免事件循环依赖）"""
+        if not self.connected:
+            return None
+
+        try:
+            logger.debug(f"📊 获取{code}基础信息(同步)...")
+
+            stock_info = self._get_stock_info_detail_sync(code)
+            if not stock_info:
+                logger.warning(f"⚠️ 未找到{code}的基础信息")
+                return None
+
+            basic_info = {
+                "code": code,
+                "name": stock_info.get("name", f"股票{code}"),
+                "area": stock_info.get("area", "未知"),
+                "industry": stock_info.get("industry", "未知"),
+                "market": self._determine_market(code),
+                "list_date": stock_info.get("list_date", ""),
+                "full_symbol": self._get_full_symbol(code),
+                "market_info": self._get_market_info(code),
+                "data_source": "akshare",
+                "last_sync": datetime.now(timezone.utc),
+                "sync_status": "success",
+            }
+
+            logger.debug(f"[SUCCESS] {code}基础信息获取成功(同步)")
+            return basic_info
+
+        except Exception as e:
+            logger.error(f"❌ 获取{code}基础信息(同步)失败: {e}")
             return None
     
     async def _get_stock_list_cached(self):
@@ -411,7 +520,7 @@ class AKShareProvider(BaseStockDataProvider):
             if stock_list is not None and not stock_list.empty:
                 self._stock_list_cache = stock_list
                 self._cache_time = datetime.now()
-                logger.info(f"✅ 股票列表缓存更新: {len(stock_list)} 只股票")
+                logger.info(f"[SUCCESS] 股票列表缓存更新: {len(stock_list)} 只股票")
                 return stock_list
         except Exception as e:
             logger.error(f"❌ 获取股票列表失败: {e}")
@@ -893,6 +1002,64 @@ class AKShareProvider(BaseStockDataProvider):
         except:
             return ""
 
+    def get_historical_data_sync(
+        self,
+        code: str,
+        start_date: str,
+        end_date: str,
+        period: str = "daily"
+    ) -> Optional[pd.DataFrame]:
+        """
+        获取历史行情数据（同步版本）
+        直接调用 AKShare 函数，不涉及 asyncio
+
+        Args:
+            code: 股票代码
+            start_date: 开始日期 (YYYY-MM-DD)
+            end_date: 结束日期 (YYYY-MM-DD)
+            period: 周期 (daily, weekly, monthly)
+        """
+        if not self.connected:
+            return None
+
+        try:
+            logger.debug(f"📊 获取{code}历史数据(同步): {start_date} 到 {end_date}")
+
+            # 转换周期格式
+            period_map = {
+                "daily": "daily",
+                "weekly": "weekly",
+                "monthly": "monthly"
+            }
+            ak_period = period_map.get(period, "daily")
+
+            # 格式化日期
+            start_date_formatted = start_date.replace('-', '')
+            end_date_formatted = end_date.replace('-', '')
+
+            # 直接调用 AKShare
+            hist_df = self.ak.stock_zh_a_hist(
+                symbol=code,
+                period=ak_period,
+                start_date=start_date_formatted,
+                end_date=end_date_formatted,
+                adjust="qfq"  # 前复权
+            )
+
+            if hist_df is None or hist_df.empty:
+                logger.warning(f"⚠️ {code}历史数据(同步)为空")
+                return None
+
+            # 标准化列名
+            hist_df = self._standardize_historical_columns(hist_df, code)
+
+            logger.debug(f"✅ {code}历史数据(同步)获取成功: {len(hist_df)}条记录")
+            return hist_df
+
+        except Exception as e:
+            logger.error(f"❌ 获取{code}历史数据(同步)失败: {e}")
+            return None
+
     async def get_historical_data(
         self,
         code: str,
@@ -1074,6 +1241,59 @@ class AKShareProvider(BaseStockDataProvider):
             logger.error(f"❌ 获取{code}财务数据失败: {e}")
             return {}
 
+    def get_financial_data_sync(self, code: str) -> Dict[str, Any]:
+        """获取财务数据（同步版本，避免事件循环依赖）"""
+        if not self.connected:
+            return {}
+
+        try:
+            logger.debug(f"💰 获取{code}财务数据(同步)...")
+
+            financial_data: Dict[str, Any] = {}
+
+            try:
+                main_indicators = self.ak.stock_financial_abstract(symbol=code)
+                if main_indicators is not None and not main_indicators.empty:
+                    financial_data['main_indicators'] = main_indicators.to_dict('records')
+                    logger.debug(f"✅ {code}主要财务指标获取成功(同步)")
+            except Exception as e:
+                logger.debug(f"获取{code}主要财务指标失败(同步): {e}")
+
+            try:
+                balance_sheet = self.ak.stock_balance_sheet_by_report_em(symbol=code)
+                if balance_sheet is not None and not balance_sheet.empty:
+                    financial_data['balance_sheet'] = balance_sheet.to_dict('records')
+                    logger.debug(f"✅ {code}资产负债表获取成功(同步)")
+            except Exception as e:
+                logger.debug(f"获取{code}资产负债表失败(同步): {e}")
+
+            try:
+                income_statement = self.ak.stock_profit_sheet_by_report_em(symbol=code)
+                if income_statement is not None and not income_statement.empty:
+                    financial_data['income_statement'] = income_statement.to_dict('records')
+                    logger.debug(f"✅ {code}利润表获取成功(同步)")
+            except Exception as e:
+                logger.debug(f"获取{code}利润表失败(同步): {e}")
+
+            try:
+                cash_flow = self.ak.stock_cash_flow_sheet_by_report_em(symbol=code)
+                if cash_flow is not None and not cash_flow.empty:
+                    financial_data['cash_flow'] = cash_flow.to_dict('records')
+                    logger.debug(f"✅ {code}现金流量表获取成功(同步)")
+            except Exception as e:
+                logger.debug(f"获取{code}现金流量表失败(同步): {e}")
+
+            if financial_data:
+                logger.debug(f"✅ {code}财务数据获取完成(同步): {len(financial_data)}个数据集")
+            else:
+                logger.warning(f"⚠️ {code}未获取到任何财务数据(同步)")
+
+            return financial_data
+
+        except Exception as e:
+            logger.error(f"❌ 获取{code}财务数据失败(同步): {e}")
+            return {}
+
     async def get_market_status(self) -> Dict[str, Any]:
         """
         获取市场状态信息
@@ -1132,6 +1352,15 @@ class AKShareProvider(BaseStockDataProvider):
 
                 # 标准化股票代码
                 symbol_6 = symbol.zfill(6)
+                
+                # 策略 1: 优先尝试使用 curl_cffi 直接调用 API (绕过反爬虫)
+                news_df = self._get_stock_news_direct(symbol=symbol_6, limit=limit)
+                
+                if news_df is not None and not news_df.empty:
+                    return news_df
+
+                # 策略 2: 如果直接调用失败，回退到 AKShare 原生接口
+                self.logger.info(f"⚠️ {symbol} 直接调用 API 失败或未返回数据，回退到 AKShare 原生接口")
 
                 # 获取东方财富个股新闻，添加重试机制
                 max_retries = 3
@@ -1206,37 +1435,33 @@ class AKShareProvider(BaseStockDataProvider):
                 # 标准化股票代码
                 symbol_6 = symbol.zfill(6)
 
-                # 检测是否在 Docker 环境中
-                is_docker = os.path.exists('/.dockerenv') or os.environ.get('DOCKER_CONTAINER') == 'true'
-
                 # 获取东方财富个股新闻，添加重试机制
                 max_retries = 3
                 retry_delay = 1  # 秒
                 news_df = None
 
-                # 如果在 Docker 环境中，尝试使用 curl_cffi 直接调用 API
-                if is_docker:
-                    try:
-                        from curl_cffi import requests as curl_requests
-                        self.logger.debug(f"🐳 检测到 Docker 环境，使用 curl_cffi 直接调用 API")
+                # 策略 1: 优先尝试使用 curl_cffi 直接调用 API (绕过反爬虫)
+                # 不再限制只在 Docker 环境中使用，因为 curl_cffi 在本地也更稳定
+                try:
+                    # 检查 curl_cffi 是否可用
+                    import importlib.util
+                    if importlib.util.find_spec("curl_cffi"):
+                        self.logger.debug(f"🔧 检测到 curl_cffi，尝试直接调用 API")
                         news_df = await asyncio.to_thread(
                             self._get_stock_news_direct,
                             symbol=symbol_6,
                             limit=limit
                         )
                         if news_df is not None and not news_df.empty:
-                            self.logger.info(f"✅ {symbol} Docker 环境直接调用 API 成功")
+                            self.logger.info(f"✅ {symbol} 直接调用 API 成功")
                         else:
-                            self.logger.warning(f"⚠️ {symbol} Docker 环境直接调用 API 失败，回退到 AKShare")
+                            self.logger.warning(f"⚠️ {symbol} 直接调用 API 失败或无数据，回退到 AKShare")
                             news_df = None  # 回退到 AKShare
-                    except ImportError:
-                        self.logger.warning(f"⚠️ curl_cffi 未安装，回退到 AKShare")
-                        news_df = None
-                    except Exception as e:
-                        self.logger.warning(f"⚠️ {symbol} Docker 环境直接调用 API 异常: {e}，回退到 AKShare")
-                        news_df = None
+                except Exception as e:
+                    self.logger.warning(f"⚠️ {symbol} 直接调用 API 异常: {e}，回退到 AKShare")
+                    news_df = None
 
-                # 如果直接调用失败或不在 Docker 环境，使用 AKShare
+                # 策略 2: 如果直接调用失败，使用 AKShare 原生接口
                 if news_df is None:
                     for attempt in range(max_retries):
                         try:

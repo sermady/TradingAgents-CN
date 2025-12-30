@@ -370,9 +370,19 @@ async def create_database_indexes(db):
 
 async def close_database():
     """关闭数据库连接"""
-    global mongo_client, mongo_db, redis_client, redis_pool
+    global mongo_client, mongo_db, redis_client, redis_pool, _sync_mongo_client, _sync_mongo_db
 
     await db_manager.close_connections()
+
+    # 关闭同步 MongoDB 客户端（用于 get_mongo_db_sync）
+    if _sync_mongo_client is not None:
+        try:
+            _sync_mongo_client.close()
+        except Exception as e:
+            logger.warning(f"⚠️ 关闭同步MongoDB客户端失败: {e}")
+        finally:
+            _sync_mongo_client = None
+            _sync_mongo_db = None
 
     # 清空全局变量
     mongo_client = None
@@ -412,7 +422,9 @@ def get_mongo_db_sync() -> Database:
             maxPoolSize=settings.MONGO_MAX_CONNECTIONS,
             minPoolSize=settings.MONGO_MIN_CONNECTIONS,
             maxIdleTimeMS=30000,
-            serverSelectionTimeoutMS=5000
+            serverSelectionTimeoutMS=settings.MONGO_SERVER_SELECTION_TIMEOUT_MS,
+            connectTimeoutMS=settings.MONGO_CONNECT_TIMEOUT_MS,
+            socketTimeoutMS=settings.MONGO_SOCKET_TIMEOUT_MS,
         )
 
     _sync_mongo_db = _sync_mongo_client[settings.MONGO_DB]

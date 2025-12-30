@@ -123,7 +123,11 @@ class TushareProvider(BaseStockDataProvider):
                         test_data = self.api.stock_basic(list_status='L', limit=1)
                         self.logger.info(f"✅ [步骤3.1] API 调用成功，返回数据: {len(test_data) if test_data is not None else 0} 条")
                     except Exception as e:
-                        self.logger.warning(f"⚠️ [步骤3.1] 数据库 Token 测试失败: {e}，尝试降级到 .env 配置...")
+                        error_msg = str(e)
+                        if "您的token不对" in error_msg or "token" in error_msg.lower():
+                            self.logger.warning(f"⚠️ [步骤3.1] 数据库 Token 无效: {error_msg}，尝试降级到 .env 配置...")
+                        else:
+                            self.logger.warning(f"⚠️ [步骤3.1] 数据库 Token 测试失败: {e}，尝试降级到 .env 配置...")
                         test_data = None
 
                     if test_data is not None and not test_data.empty:
@@ -149,7 +153,16 @@ class TushareProvider(BaseStockDataProvider):
                         test_data = self.api.stock_basic(list_status='L', limit=1)
                         self.logger.info(f"✅ [步骤4.1] API 调用成功，返回数据: {len(test_data) if test_data is not None else 0} 条")
                     except Exception as e:
-                        self.logger.error(f"❌ [步骤4.1] .env Token 测试失败: {e}")
+                        error_msg = str(e)
+                        if "您的token不对" in error_msg or "token" in error_msg.lower():
+                            self.logger.error(f"❌ [步骤4.1] .env Token 无效: {error_msg}")
+                            # 提供更详细的错误建议
+                            self.logger.error("❌ [建议] 请检查以下内容：")
+                            self.logger.error("   1. TUSHARE_TOKEN 是否正确（可在 https://tushare.pro 注册获取）")
+                            self.logger.error("   2. Token 是否已过期（个人用户需定期续费）")
+                            self.logger.error("   3. Token 是否有足够权限（需开通相应数据接口权限）")
+                        else:
+                            self.logger.error(f"❌ [步骤4.1] .env Token 测试失败: {e}")
                         return False
 
                     if test_data is not None and not test_data.empty:
@@ -322,6 +335,33 @@ class TushareProvider(BaseStockDataProvider):
             self.logger.error(f"❌ 获取股票列表失败: {e}")
             return None
     
+    def get_stock_basic_info_sync(self, symbol: str = None) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
+        """获取股票基础信息（同步版本）"""
+        if not self.is_available():
+            return None
+        
+        try:
+            if symbol:
+                # 获取单个股票信息
+                ts_code = self._normalize_ts_code(symbol)
+                # 直接调用 API
+                df = self.api.stock_basic(
+                    ts_code=ts_code,
+                    fields='ts_code,symbol,name,area,industry,market,exchange,list_date,is_hs,act_name,act_ent_type'
+                )
+                
+                if df is None or df.empty:
+                    return None
+                
+                return self.standardize_basic_info(df.iloc[0].to_dict())
+            else:
+                # 获取所有股票信息
+                return self.get_stock_list_sync()
+                
+        except Exception as e:
+            self.logger.error(f"❌ 获取股票基础信息(同步)失败 symbol={symbol}: {e}")
+            return None
+
     async def get_stock_basic_info(self, symbol: str = None) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
         """获取股票基础信息"""
         if not self.is_available():
@@ -508,6 +548,68 @@ class TushareProvider(BaseStockDataProvider):
         error_msg_lower = error_msg.lower()
         return any(keyword in error_msg_lower for keyword in rate_limit_keywords)
     
+    def get_historical_data_sync(
+        self,
+        symbol: str,
+        start_date: Union[str, date],
+        end_date: Union[str, date] = None,
+        period: str = "daily"
+    ) -> Optional[pd.DataFrame]:
+        """
+        获取历史数据（同步版本）
+        直接调用 Tushare API，不涉及 asyncio，适合在线程池中运行
+
+        Args:
+            symbol: 股票代码
+            start_date: 开始日期
+            end_date: 结束日期
+            period: 数据周期 (daily/weekly/monthly)
+        """
+        if not self.is_available():
+            return None
+
+        try:
+            ts_code = self._normalize_ts_code(symbol)
+
+            # 格式化日期
+            start_str = self._format_date(start_date)
+            end_str = self._format_date(end_date) if end_date else datetime.now().strftime('%Y%m%d')
+
+            # 周期映射
+            freq_map = {
+                "daily": "D",
+                "weekly": "W",
+                "monthly": "M"
+            }
+            freq = freq_map.get(period, "D")
+
+            # 直接调用 ts.pro_bar (它是同步阻塞的)
+            df = ts.pro_bar(
+                ts_code=ts_code,
+                api=self.api,
+                start_date=start_str,
+                end_date=end_str,
+                freq=freq,
+                adj='qfq'  # 前复权
+            )
+
+            if df is None or df.empty:
+                self.logger.warning(
+                    f"⚠️ Tushare API (Sync) 返回空数据: symbol={symbol}, ts_code={ts_code}, "
+                    f"period={period}, start={start_str}, end={end_str}"
+                )
+                return None
+
+            # 数据标准化
+            df = self._standardize_historical_data(df)
+
+            self.logger.info(f"✅ 获取{period}历史数据(同步): {symbol} {len(df)}条记录 (前复权 qfq)")
+            return df
+            
+        except Exception as e:
+            self.logger.error(f"❌ 获取历史数据(同步)失败 symbol={symbol}: {e}")
+            return None
+
     async def get_historical_data(
         self,
         symbol: str,
@@ -648,6 +750,36 @@ class TushareProvider(BaseStockDataProvider):
         except Exception as e:
             self.logger.error(f"❌ 查找最新交易日期失败: {e}")
             return None
+
+    def find_latest_trade_date_sync(self) -> Optional[str]:
+        """查找最新交易日期（同步版本，避免事件循环依赖）"""
+        if not self.is_available():
+            return None
+
+        try:
+            today = datetime.now()
+            for delta in range(0, 10):
+                check_date = (today - timedelta(days=delta)).strftime('%Y%m%d')
+
+                try:
+                    df = self.api.daily_basic(
+                        trade_date=check_date,
+                        fields='ts_code',
+                        limit=1,
+                    )
+
+                    if df is not None and not df.empty:
+                        formatted_date = f"{check_date[:4]}-{check_date[4:6]}-{check_date[6:8]}"
+                        self.logger.info(f"✅ 找到最新交易日期(同步): {formatted_date}")
+                        return formatted_date
+                except Exception:
+                    continue
+
+            return None
+
+        except Exception as e:
+            self.logger.error(f"❌ 查找最新交易日期失败(同步): {e}")
+            return None
     
     async def get_financial_data(self, symbol: str, report_type: str = "quarterly",
                                 period: str = None, limit: int = 4) -> Optional[Dict[str, Any]]:
@@ -666,103 +798,88 @@ class TushareProvider(BaseStockDataProvider):
         if not self.is_available():
             return None
 
+        # 在异步上下文中通过线程池执行同步实现，避免事件循环冲突
+        return await asyncio.to_thread(
+            self.get_financial_data_sync,
+            symbol,
+            report_type,
+            period,
+            limit,
+        )
+
+    def get_financial_data_sync(
+        self,
+        symbol: str,
+        report_type: str = "quarterly",
+        period: str = None,
+        limit: int = 4,
+    ) -> Optional[Dict[str, Any]]:
+        """获取财务数据（同步版本，避免事件循环依赖）"""
+        if not self.is_available():
+            return None
+
         try:
             ts_code = self._normalize_ts_code(symbol)
-            self.logger.debug(f"📊 获取Tushare财务数据: {ts_code}, 类型: {report_type}")
+            self.logger.debug(f"📊 获取Tushare财务数据(同步): {ts_code}, 类型: {report_type}")
 
-            # 构建查询参数
             query_params = {
                 'ts_code': ts_code,
-                'limit': limit
+                'limit': limit,
             }
-
-            # 如果指定了报告期，添加期间参数
             if period:
                 query_params['period'] = period
 
-            financial_data = {}
+            financial_data: Dict[str, Any] = {}
 
-            # 1. 获取利润表数据 (income statement)
             try:
-                income_df = await asyncio.to_thread(
-                    self.api.income,
-                    **query_params
-                )
+                income_df = self.api.income(**query_params)
                 if income_df is not None and not income_df.empty:
                     financial_data['income_statement'] = income_df.to_dict('records')
-                    self.logger.debug(f"✅ {ts_code} 利润表数据获取成功: {len(income_df)} 条记录")
-                else:
-                    self.logger.debug(f"⚠️ {ts_code} 利润表数据为空")
+                    self.logger.debug(f"✅ {ts_code} 利润表数据获取成功(同步): {len(income_df)} 条记录")
             except Exception as e:
-                self.logger.warning(f"❌ 获取{ts_code}利润表数据失败: {e}")
+                self.logger.warning(f"❌ 获取{ts_code}利润表数据失败(同步): {e}")
 
-            # 2. 获取资产负债表数据 (balance sheet)
             try:
-                balance_df = await asyncio.to_thread(
-                    self.api.balancesheet,
-                    **query_params
-                )
+                balance_df = self.api.balancesheet(**query_params)
                 if balance_df is not None and not balance_df.empty:
                     financial_data['balance_sheet'] = balance_df.to_dict('records')
-                    self.logger.debug(f"✅ {ts_code} 资产负债表数据获取成功: {len(balance_df)} 条记录")
-                else:
-                    self.logger.debug(f"⚠️ {ts_code} 资产负债表数据为空")
+                    self.logger.debug(f"✅ {ts_code} 资产负债表数据获取成功(同步): {len(balance_df)} 条记录")
             except Exception as e:
-                self.logger.warning(f"❌ 获取{ts_code}资产负债表数据失败: {e}")
+                self.logger.warning(f"❌ 获取{ts_code}资产负债表数据失败(同步): {e}")
 
-            # 3. 获取现金流量表数据 (cash flow statement)
             try:
-                cashflow_df = await asyncio.to_thread(
-                    self.api.cashflow,
-                    **query_params
-                )
-                if cashflow_df is not None and not cashflow_df.empty:
-                    financial_data['cashflow_statement'] = cashflow_df.to_dict('records')
-                    self.logger.debug(f"✅ {ts_code} 现金流量表数据获取成功: {len(cashflow_df)} 条记录")
-                else:
-                    self.logger.debug(f"⚠️ {ts_code} 现金流量表数据为空")
+                cash_df = self.api.cashflow(**query_params)
+                if cash_df is not None and not cash_df.empty:
+                    financial_data['cashflow_statement'] = cash_df.to_dict('records')
+                    self.logger.debug(f"✅ {ts_code} 现金流量表数据获取成功(同步): {len(cash_df)} 条记录")
             except Exception as e:
-                self.logger.warning(f"❌ 获取{ts_code}现金流量表数据失败: {e}")
+                self.logger.warning(f"❌ 获取{ts_code}现金流量表数据失败(同步): {e}")
 
-            # 4. 获取财务指标数据 (financial indicators)
             try:
-                indicator_df = await asyncio.to_thread(
-                    self.api.fina_indicator,
-                    **query_params
-                )
+                indicator_df = self.api.fina_indicator(**query_params)
                 if indicator_df is not None and not indicator_df.empty:
                     financial_data['financial_indicators'] = indicator_df.to_dict('records')
-                    self.logger.debug(f"✅ {ts_code} 财务指标数据获取成功: {len(indicator_df)} 条记录")
-                else:
-                    self.logger.debug(f"⚠️ {ts_code} 财务指标数据为空")
+                    self.logger.debug(f"✅ {ts_code} 财务指标数据获取成功(同步): {len(indicator_df)} 条记录")
             except Exception as e:
-                self.logger.warning(f"❌ 获取{ts_code}财务指标数据失败: {e}")
+                self.logger.warning(f"❌ 获取{ts_code}财务指标数据失败(同步): {e}")
 
-            # 5. 获取主营业务构成数据 (可选)
             try:
-                mainbz_df = await asyncio.to_thread(
-                    self.api.fina_mainbz,
-                    **query_params
-                )
+                mainbz_df = self.api.fina_mainbz(**query_params)
                 if mainbz_df is not None and not mainbz_df.empty:
                     financial_data['main_business'] = mainbz_df.to_dict('records')
-                    self.logger.debug(f"✅ {ts_code} 主营业务构成数据获取成功: {len(mainbz_df)} 条记录")
-                else:
-                    self.logger.debug(f"⚠️ {ts_code} 主营业务构成数据为空")
+                    self.logger.debug(f"✅ {ts_code} 主营业务构成数据获取成功(同步): {len(mainbz_df)} 条记录")
             except Exception as e:
-                self.logger.debug(f"获取{ts_code}主营业务构成数据失败: {e}")  # 主营业务数据不是必需的，保持debug级别
+                self.logger.debug(f"获取{ts_code}主营业务构成数据失败(同步): {e}")
 
-            if financial_data:
-                # 标准化财务数据
-                standardized_data = self._standardize_tushare_financial_data(financial_data, ts_code)
-                self.logger.info(f"✅ {ts_code} Tushare财务数据获取完成: {len(financial_data)} 个数据集")
-                return standardized_data
-            else:
-                self.logger.warning(f"⚠️ {ts_code} 未获取到任何Tushare财务数据")
+            if not financial_data:
                 return None
 
+            standardized_data = self._standardize_tushare_financial_data(financial_data, ts_code)
+            self.logger.info(f"✅ {ts_code} Tushare财务数据获取完成(同步): {len(financial_data)} 个数据集")
+            return standardized_data
+
         except Exception as e:
-            self.logger.error(f"❌ 获取Tushare财务数据失败 symbol={symbol}: {e}")
+            self.logger.error(f"❌ 获取财务数据失败(同步) symbol={symbol}: {e}")
             return None
 
     async def get_stock_news(self, symbol: str = None, limit: int = 10,

@@ -150,7 +150,7 @@ def get_bool(env_var: str, system_key: Optional[str], default: bool) -> bool:
     return default
 
 
-def use_app_cache_enabled(default: bool = False) -> bool:
+def use_app_cache_enabled(default: bool = True) -> bool:
     """是否启用从 app 缓存（Mongo 集合）优先读取。ENV: TA_USE_APP_CACHE; DB: ta_use_app_cache
     会记录一次评估日志，包含来源与原始ENV值，便于排查生效路径。
     """

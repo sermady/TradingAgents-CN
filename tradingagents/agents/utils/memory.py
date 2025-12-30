@@ -100,6 +100,11 @@ class FinancialSituationMemory:
     def __init__(self, name, config):
         self.config = config
         self.llm_provider = config.get("llm_provider", "openai").lower()
+        
+        # 默认嵌入维度，将在首次成功调用后更新
+        self.embedding_dimension = 1536  # OpenAI默认为1536
+        if self.llm_provider in ["dashscope", "alibaba", "qianfan"]:
+            self.embedding_dimension = 1024  # DashScope text-embedding-v3默认为1024
 
         # 配置向量缓存的长度限制（向量缓存默认启用长度检查）
         self.max_embedding_length = int(os.getenv('MAX_EMBEDDING_CONTENT_LENGTH', '50000'))  # 默认50K字符
@@ -355,17 +360,17 @@ class FinancialSituationMemory:
         if self.client == "DISABLED":
             # 内存功能已禁用，返回空向量
             logger.debug(f"⚠️ 记忆功能已禁用，返回空向量")
-            return [0.0] * 1024  # 返回1024维的零向量
+            return [0.0] * self.embedding_dimension  # 返回1024维的零向量
 
         # 验证输入文本
         if not text or not isinstance(text, str):
             logger.warning(f"⚠️ 输入文本为空或无效，返回空向量")
-            return [0.0] * 1024
+            return [0.0] * self.embedding_dimension
 
         text_length = len(text)
         if text_length == 0:
             logger.warning(f"⚠️ 输入文本长度为0，返回空向量")
-            return [0.0] * 1024
+            return [0.0] * self.embedding_dimension
         
         # 检查是否启用长度限制
         if self.enable_embedding_length_check and text_length > self.max_embedding_length:
@@ -380,7 +385,7 @@ class FinancialSituationMemory:
                 'strategy': 'length_limit_skip',
                 'max_length': self.max_embedding_length
             }
-            return [0.0] * 1024
+            return [0.0] * self.embedding_dimension
         
         # 记录文本信息（不进行任何截断）
         if text_length > 8192:
@@ -411,7 +416,7 @@ class FinancialSituationMemory:
                 # 检查DashScope API密钥是否可用
                 if not hasattr(dashscope, 'api_key') or not dashscope.api_key:
                     logger.warning(f"⚠️ DashScope API密钥未设置，记忆功能降级")
-                    return [0.0] * 1024  # 返回空向量
+                    return [0.0] * self.embedding_dimension  # 返回空向量
 
                 # 尝试调用DashScope API
                 response = TextEmbedding.call(
@@ -423,6 +428,8 @@ class FinancialSituationMemory:
                 if response.status_code == 200:
                     # 成功获取embedding
                     embedding = response.output['embeddings'][0]['embedding']
+                    # 更新维度
+                    self.embedding_dimension = len(embedding)
                     logger.debug(f"✅ DashScope embedding成功，维度: {len(embedding)}")
                     return embedding
                 else:
@@ -447,13 +454,13 @@ class FinancialSituationMemory:
                             except Exception as fallback_error:
                                 logger.error(f"❌ OpenAI降级失败: {str(fallback_error)}")
                                 logger.info(f"💡 所有降级选项失败，记忆功能降级")
-                                return [0.0] * 1024
+                                return [0.0] * self.embedding_dimension
                         else:
                             logger.info(f"💡 无可用降级选项，记忆功能降级")
-                            return [0.0] * 1024
+                            return [0.0] * self.embedding_dimension
                     else:
                         logger.error(f"❌ DashScope API错误: {error_msg}")
-                        return [0.0] * 1024  # 返回空向量而不是抛出异常
+                        return [0.0] * self.embedding_dimension  # 返回空向量而不是抛出异常
 
             except Exception as e:
                 error_str = str(e).lower()
@@ -476,10 +483,10 @@ class FinancialSituationMemory:
                         except Exception as fallback_error:
                             logger.error(f"❌ OpenAI降级失败: {str(fallback_error)}")
                             logger.info(f"💡 所有降级选项失败，记忆功能降级")
-                            return [0.0] * 1024
+                            return [0.0] * self.embedding_dimension
                     else:
                         logger.info(f"💡 无可用降级选项，记忆功能降级")
-                        return [0.0] * 1024
+                        return [0.0] * self.embedding_dimension
                 elif 'import' in error_str:
                     logger.error(f"❌ DashScope包未安装: {str(e)}")
                 elif 'connection' in error_str:
@@ -490,16 +497,16 @@ class FinancialSituationMemory:
                     logger.error(f"❌ DashScope embedding异常: {str(e)}")
                 
                 logger.warning(f"⚠️ 记忆功能降级，返回空向量")
-                return [0.0] * 1024
+                return [0.0] * self.embedding_dimension
         else:
             # 使用OpenAI兼容的嵌入模型
             if self.client is None:
                 logger.warning(f"⚠️ 嵌入客户端未初始化，返回空向量")
-                return [0.0] * 1024  # 返回空向量
+                return [0.0] * self.embedding_dimension  # 返回空向量
             elif self.client == "DISABLED":
                 # 内存功能已禁用，返回空向量
                 logger.debug(f"⚠️ 内存功能已禁用，返回空向量")
-                return [0.0] * 1024  # 返回1024维的零向量
+                return [0.0] * self.embedding_dimension  # 返回1024维的零向量
 
             # 尝试调用OpenAI兼容的embedding API
             try:
@@ -508,6 +515,8 @@ class FinancialSituationMemory:
                     input=text
                 )
                 embedding = response.data[0].embedding
+                # 更新维度
+                self.embedding_dimension = len(embedding)
                 logger.debug(f"✅ {self.llm_provider} embedding成功，维度: {len(embedding)}")
                 return embedding
 
@@ -540,7 +549,7 @@ class FinancialSituationMemory:
                         logger.error(f"❌ {self.llm_provider} embedding异常: {str(e)}")
                 
                 logger.warning(f"⚠️ 记忆功能降级，返回空向量")
-                return [0.0] * 1024
+                return [0.0] * self.embedding_dimension
 
     def get_embedding_config_status(self):
         """获取向量缓存配置状态"""

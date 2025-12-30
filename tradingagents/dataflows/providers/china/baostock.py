@@ -900,3 +900,126 @@ def get_baostock_provider() -> BaoStockProvider:
     if _baostock_provider is None:
         _baostock_provider = BaoStockProvider()
     return _baostock_provider
+
+
+# ========================
+# 同步方法（避免事件循环冲突）
+# ========================
+
+def get_stock_basic_info_sync(self, code: str) -> Dict[str, Any]:
+    """
+    获取股票基础信息的同步版本
+    
+    Args:
+        code: 股票代码
+        
+    Returns:
+        标准化的股票基础信息
+    """
+    if not self.connected:
+        return {}
+    
+    try:
+        # 获取股票详细信息
+        rs = self.bs.query_stock_basic(code=code, is_history=False)
+        stock_info = {}
+        
+        while (rs.error_code == '0') & rs.next():
+            # 获取每条记录中的数据值
+            row = rs.get_row_data()
+            if len(row) >= 2:
+                stock_info['code'] = row[0]
+                stock_info['name'] = row[1]
+                stock_info['market'] = row[2]
+                stock_info['type'] = row[3]
+                stock_info['status'] = row[4]
+            break  # 只取第一条记录
+            
+        if not stock_info:
+            stock_info = {"code": code, "name": f"股票{code}"}
+        
+        return stock_info
+        
+    except Exception as e:
+        logger.error(f"同步获取{code}基础信息失败: {e}")
+        return {"code": code, "name": f"股票{code}", "error": str(e)}
+
+
+def get_historical_data_sync(self, code: str, start_date: str, end_date: str,
+                           period: str = "daily") -> Optional[pd.DataFrame]:
+    """
+    获取历史数据的同步版本
+    
+    Args:
+        code: 股票代码
+        start_date: 开始日期 (YYYY-MM-DD)
+        end_date: 结束日期 (YYYY-MM-DD)
+        period: 数据周期 (daily, weekly, monthly)
+        
+    Returns:
+        历史数据DataFrame
+    """
+    if not self.connected:
+        return None
+        
+    try:
+        # 转换日期格式
+        start_date_formatted = start_date.replace('-', '')
+        end_date_formatted = end_date.replace('-', '')
+        
+        # 根据周期调整freq字段
+        freq_map = {
+            "daily": "day",
+            "weekly": "week", 
+            "monthly": "month"
+        }
+        freq = freq_map.get(period, "day")
+        
+        # 调用BaoStock获取历史数据
+        rs = self.bs.query_history_k_data_plus(
+            code,
+            "date,code,open,high,low,close,preclose,volume,amount,adjustflag,turn,tradestatus,pctChg,isST",
+            start_date=start_date_formatted,
+            end_date=end_date_formatted,
+            frequency=freq,
+            adjustflag="2"  # 前复权
+        )
+        
+        data_list = []
+        while (rs.error_code == '0') & rs.next():
+            data_list.append(rs.get_row_data())
+        
+        if not data_list:
+            return None
+            
+        # 创建DataFrame
+        columns = ["date", "code", "open", "high", "low", "close", "preclose", 
+                  "volume", "amount", "adjustflag", "turn", "tradestatus", 
+                  "pctChg", "isST"]
+        
+        df = pd.DataFrame(data_list, columns=columns)
+        
+        # 转换数据类型
+        numeric_columns = ["open", "high", "low", "close", "preclose", "volume", 
+                         "amount", "turn", "pctChg"]
+        
+        for col in numeric_columns:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+        
+        # 转换日期
+        if "date" in df.columns:
+            df["date"] = pd.to_datetime(df["date"], format='%Y-%m-%d')
+            df.set_index("date", inplace=True)
+        
+        # 标准化列名（保持与AKShare一致）
+        df = df.rename(columns={
+            "volume": "vol",
+            "amount": "amount"
+        })
+        
+        return df
+        
+    except Exception as e:
+        logger.error(f"同步获取{code}历史数据失败: {e}")
+        return None

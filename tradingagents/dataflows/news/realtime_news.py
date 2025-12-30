@@ -163,7 +163,7 @@ class RealtimeNewsAggregator:
                 'token': self.finnhub_key
             }
 
-            response = requests.get(url, params=params, headers=self.headers)
+            response = requests.get(url, params=params, headers=self.headers, timeout=10)
             response.raise_for_status()
 
             news_data = response.json()
@@ -208,7 +208,7 @@ class RealtimeNewsAggregator:
                 'limit': 50
             }
 
-            response = requests.get(url, params=params, headers=self.headers)
+            response = requests.get(url, params=params, headers=self.headers, timeout=10)
             response.raise_for_status()
 
             data = response.json()
@@ -268,7 +268,7 @@ class RealtimeNewsAggregator:
                 'apiKey': self.newsapi_key
             }
 
-            response = requests.get(url, params=params, headers=self.headers)
+            response = requests.get(url, params=params, headers=self.headers, timeout=10)
             response.raise_for_status()
 
             data = response.json()

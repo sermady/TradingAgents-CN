@@ -369,11 +369,46 @@ def run_stock_analysis(stock_symbol, analysis_date, analysts, research_depth, ll
             logger.info(f"🌐 [SiliconFlow] API端点: https://api.siliconflow.cn/v1")
         elif llm_provider == "custom_openai":
             # 自定义OpenAI端点
-            custom_base_url = st.session_state.get("custom_openai_base_url", "https://api.openai.com/v1")
+            # 优先从环境变量获取，因为 worker 已经桥接了配置
+            custom_base_url = os.getenv("CUSTOM_OPENAI_BASE_URL", "https://api.openai.com/v1")
+            custom_api_key = os.getenv("CUSTOM_OPENAI_API_KEY")
+            
             config["backend_url"] = custom_base_url
             config["custom_openai_base_url"] = custom_base_url
+            
+            # 显式传递 API Key
+            if custom_api_key:
+                config["quick_api_key"] = custom_api_key
+                config["deep_api_key"] = custom_api_key
+                
             logger.info(f"🔧 [自定义OpenAI] 使用模型: {llm_model}")
             logger.info(f"🔧 [自定义OpenAI] API端点: {custom_base_url}")
+
+        # 显式注入 API Key 到配置中，减少对 Graph 内部环境变量读取的依赖
+        # 这样可以将配置来源收敛到这里
+        api_key_env_map = {
+            "dashscope": "DASHSCOPE_API_KEY",
+            "deepseek": "DEEPSEEK_API_KEY",
+            "google": "GOOGLE_API_KEY",
+            "openai": "OPENAI_API_KEY",
+            "anthropic": "ANTHROPIC_API_KEY",
+            "qianfan": "QIANFAN_API_KEY",
+            "zhipu": "ZHIPU_API_KEY",
+            "siliconflow": "SILICONFLOW_API_KEY",
+            "openrouter": "OPENROUTER_API_KEY"
+        }
+        
+        target_env_var = api_key_env_map.get(llm_provider)
+        if target_env_var:
+            api_key = os.getenv(target_env_var)
+            if api_key:
+                config["quick_api_key"] = api_key
+                config["deep_api_key"] = api_key
+                # 同时也设置到环境变量中（双重保险，因为某些底层库可能仍依赖环境变量）
+                os.environ[target_env_var] = api_key
+                logger.info(f"🔑 已将 {target_env_var} 注入配置 (长度: {len(api_key)})")
+            else:
+                logger.warning(f"⚠️ 未找到 {target_env_var} 环境变量，分析可能会失败")
 
         # 修复路径问题 - 优先使用环境变量配置
         # 数据目录：优先使用环境变量，否则使用默认路径
@@ -498,7 +533,7 @@ def run_stock_analysis(stock_symbol, analysis_date, analysts, research_depth, ll
                 analysis_type=f"{market_type}_analysis"
             )
 
-            if usage_record:
+            if usage_record and hasattr(usage_record, 'cost') and isinstance(usage_record.cost, (int, float)):
                 update_progress(f"💰 记录使用成本: ¥{usage_record.cost:.4f}")
 
         # 从决策中提取模型信息

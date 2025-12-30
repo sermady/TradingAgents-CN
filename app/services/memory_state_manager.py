@@ -13,6 +13,16 @@ from enum import Enum
 
 logger = logging.getLogger(__name__)
 
+
+def _consume_task_result(task: asyncio.Task, context: str = "") -> None:
+    """避免后台 Task 异常无人回收导致日志刷屏：Task exception was never retrieved。"""
+    try:
+        task.result()
+    except asyncio.CancelledError:
+        return
+    except Exception:
+        logger.warning(f"⚠️ 后台任务异常{context}", exc_info=True)
+
 class TaskStatus(Enum):
     """任务状态枚举"""
     PENDING = "pending"
@@ -235,9 +245,10 @@ class MemoryStateManager:
                         "timestamp": datetime.now().isoformat()
                     }
                     # 异步推送，不等待完成
-                    asyncio.create_task(
+                    t = asyncio.create_task(
                         self._websocket_manager.send_progress_update(task_id, progress_update)
                     )
+                    t.add_done_callback(lambda _t: _consume_task_result(_t, context=f" (task_id={task_id})"))
                 except Exception as e:
                     logger.warning(f"⚠️ WebSocket 推送失败: {e}")
 

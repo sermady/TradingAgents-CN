@@ -3,7 +3,9 @@
 """
 
 import hashlib
+import bcrypt
 import time
+import asyncio
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from pymongo import MongoClient
@@ -11,6 +13,7 @@ from bson import ObjectId
 
 from app.core.config import settings
 from app.models.user import User, UserCreate, UserUpdate, UserResponse
+from app.core.database import get_mongo_db_sync
 
 # 尝试导入日志管理器
 try:
@@ -28,51 +31,69 @@ class UserService:
     """用户服务类"""
 
     def __init__(self):
-        self.client = MongoClient(settings.MONGO_URI)
-        self.db = self.client[settings.MONGO_DB]
+        # 使用复用的同步 MongoDB 连接池
+        self.db = get_mongo_db_sync()
         self.users_collection = self.db.users
+        # 注意：不再持有 self.client 的所有权，也不负责关闭它
 
     def close(self):
-        """关闭数据库连接"""
-        if hasattr(self, 'client') and self.client:
-            self.client.close()
-            logger.info("✅ UserService MongoDB 连接已关闭")
+        """关闭数据库连接 (不再需要，连接由连接池管理)"""
+        pass
 
     def __del__(self):
-        """析构函数，确保连接被关闭"""
-        self.close()
+        """析构函数"""
+        pass
     
     @staticmethod
     def hash_password(password: str) -> str:
-        """密码哈希"""
-        # 使用 bcrypt 会更安全，但为了兼容性先使用 SHA-256
-        return hashlib.sha256(password.encode()).hexdigest()
+        """密码哈希 (同步方法，应在线程池中调用)"""
+        # 使用 bcrypt 进行密码哈希
+        salt = bcrypt.gensalt()
+        return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
     
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
-        """验证密码"""
-        return UserService.hash_password(plain_password) == hashed_password
+        """验证密码 (同步方法，应在线程池中调用)"""
+        try:
+            # 检查是否是 bcrypt 哈希（以 $2b$ 或 $2a$ 开头）
+            if hashed_password.startswith('$2b$') or hashed_password.startswith('$2a$'):
+                # bcrypt 验证
+                return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+            else:
+                # 兼容旧的 SHA-256 哈希
+                sha256_hash = hashlib.sha256(plain_password.encode()).hexdigest()
+                return sha256_hash == hashed_password
+        except Exception as e:
+            logger.error(f"❌ 密码验证错误: {e}")
+            return False
     
     async def create_user(self, user_data: UserCreate) -> Optional[User]:
         """创建用户"""
         try:
-            # 检查用户名是否已存在
-            existing_user = self.users_collection.find_one({"username": user_data.username})
+            # 检查用户名是否已存在 (在线程池中执行)
+            existing_user = await asyncio.to_thread(
+                self.users_collection.find_one, {"username": user_data.username}
+            )
             if existing_user:
                 logger.warning(f"用户名已存在: {user_data.username}")
                 return None
             
-            # 检查邮箱是否已存在
-            existing_email = self.users_collection.find_one({"email": user_data.email})
+            # 检查邮箱是否已存在 (在线程池中执行)
+            existing_email = await asyncio.to_thread(
+                self.users_collection.find_one, {"email": user_data.email}
+            )
             if existing_email:
                 logger.warning(f"邮箱已存在: {user_data.email}")
                 return None
             
+            # 密码哈希 (CPU密集型，在线程池中执行)
+            hashed_password = await asyncio.to_thread(self.hash_password, user_data.password)
+
             # 创建用户文档
             user_doc = {
                 "username": user_data.username,
                 "email": user_data.email,
-                "hashed_password": self.hash_password(user_data.password),
+                "hashed_password": hashed_password,
                 "is_active": True,
                 "is_verified": False,
                 "is_admin": False,
@@ -106,10 +127,12 @@ class UserService:
                 "favorite_stocks": []
             }
             
-            result = self.users_collection.insert_one(user_doc)
+            # 插入文档 (在线程池中执行)
+            result = await asyncio.to_thread(self.users_collection.insert_one, user_doc)
             user_doc["_id"] = result.inserted_id
             
             logger.info(f"✅ 用户创建成功: {user_data.username}")
+            
             return User(**user_doc)
             
         except Exception as e:
@@ -121,25 +144,31 @@ class UserService:
         try:
             logger.info(f"🔍 [authenticate_user] 开始认证用户: {username}")
 
-            # 查找用户
-            user_doc = self.users_collection.find_one({"username": username})
+            # 查找用户 (在线程池中执行)
+            user_doc = await asyncio.to_thread(
+                self.users_collection.find_one, {"username": username}
+            )
             logger.info(f"🔍 [authenticate_user] 数据库查询结果: {'找到用户' if user_doc else '用户不存在'}")
 
             if not user_doc:
                 logger.warning(f"❌ [authenticate_user] 用户不存在: {username}")
                 return None
 
-            logger.info(f"🔍 [authenticate_user] 用户信息: username={user_doc.get('username')}, email={user_doc.get('email')}, is_active={user_doc.get('is_active')}")
+            # 检查密码字段是否存在
+            stored_password_hash = user_doc.get("hashed_password") or user_doc.get("password_hash")
+            if not stored_password_hash:
+                logger.error(f"❌ [authenticate_user] 用户 {username} 缺少密码字段")
+                return None
 
-            # 验证密码
-            input_password_hash = self.hash_password(password)
-            stored_password_hash = user_doc["hashed_password"]
-            logger.info(f"🔍 [authenticate_user] 密码哈希对比:")
-            logger.info(f"   输入密码哈希: {input_password_hash[:20]}...")
-            logger.info(f"   存储密码哈希: {stored_password_hash[:20]}...")
-            logger.info(f"   哈希匹配: {input_password_hash == stored_password_hash}")
+            # 验证密码 (CPU密集型，在线程池中执行)
+            is_valid_password = await asyncio.to_thread(
+                self.verify_password, password, stored_password_hash
+            )
 
-            if not self.verify_password(password, user_doc["hashed_password"]):
+            # 记录哈希对比日志 (仅用于调试，生产环境应移除)
+            # await asyncio.to_thread(self.hash_password, password) # 这里不需要重新计算，除非为了日志
+
+            if not is_valid_password:
                 logger.warning(f"❌ [authenticate_user] 密码错误: {username}")
                 return None
 
@@ -148,14 +177,21 @@ class UserService:
                 logger.warning(f"❌ [authenticate_user] 用户已禁用: {username}")
                 return None
 
-            # 更新最后登录时间
-            self.users_collection.update_one(
+            # 更新最后登录时间 (在线程池中执行)
+            await asyncio.to_thread(
+                self.users_collection.update_one,
                 {"_id": user_doc["_id"]},
                 {"$set": {"last_login": datetime.utcnow()}}
             )
 
             logger.info(f"✅ [authenticate_user] 用户认证成功: {username}")
-            return User(**user_doc)
+            
+            # 确保字段映射正确
+            user_data = user_doc.copy()
+            if "password_hash" in user_data and "hashed_password" not in user_data:
+                user_data["hashed_password"] = user_data.pop("password_hash")
+            
+            return User(**user_data)
             
         except Exception as e:
             logger.error(f"❌ 用户认证失败: {e}")
@@ -164,9 +200,16 @@ class UserService:
     async def get_user_by_username(self, username: str) -> Optional[User]:
         """根据用户名获取用户"""
         try:
-            user_doc = self.users_collection.find_one({"username": username})
+            # 在线程池中执行查询
+            user_doc = await asyncio.to_thread(
+                self.users_collection.find_one, {"username": username}
+            )
             if user_doc:
-                return User(**user_doc)
+                # 确保字段映射正确
+                user_data = user_doc.copy()
+                if "password_hash" in user_data and "hashed_password" not in user_data:
+                    user_data["hashed_password"] = user_data.pop("password_hash")
+                return User(**user_data)
             return None
         except Exception as e:
             logger.error(f"❌ 获取用户失败: {e}")
@@ -178,9 +221,16 @@ class UserService:
             if not ObjectId.is_valid(user_id):
                 return None
             
-            user_doc = self.users_collection.find_one({"_id": ObjectId(user_id)})
+            # 在线程池中执行查询
+            user_doc = await asyncio.to_thread(
+                self.users_collection.find_one, {"_id": ObjectId(user_id)}
+            )
             if user_doc:
-                return User(**user_doc)
+                # 确保字段映射正确
+                user_data = user_doc.copy()
+                if "password_hash" in user_data and "hashed_password" not in user_data:
+                    user_data["hashed_password"] = user_data.pop("password_hash")
+                return User(**user_data)
             return None
         except Exception as e:
             logger.error(f"❌ 获取用户失败: {e}")
@@ -193,11 +243,14 @@ class UserService:
             
             # 只更新提供的字段
             if user_data.email:
-                # 检查邮箱是否已被其他用户使用
-                existing_email = self.users_collection.find_one({
-                    "email": user_data.email,
-                    "username": {"$ne": username}
-                })
+                # 检查邮箱是否已被其他用户使用 (在线程池中执行)
+                existing_email = await asyncio.to_thread(
+                    self.users_collection.find_one,
+                    {
+                        "email": user_data.email,
+                        "username": {"$ne": username}
+                    }
+                )
                 if existing_email:
                     logger.warning(f"邮箱已被使用: {user_data.email}")
                     return None
@@ -212,7 +265,9 @@ class UserService:
             if user_data.concurrent_limit is not None:
                 update_data["concurrent_limit"] = user_data.concurrent_limit
             
-            result = self.users_collection.update_one(
+            # 执行更新 (在线程池中执行)
+            result = await asyncio.to_thread(
+                self.users_collection.update_one,
                 {"username": username},
                 {"$set": update_data}
             )
@@ -231,15 +286,18 @@ class UserService:
     async def change_password(self, username: str, old_password: str, new_password: str) -> bool:
         """修改密码"""
         try:
-            # 验证旧密码
+            # 验证旧密码 (authenticate_user 已经是异步非阻塞的了)
             user = await self.authenticate_user(username, old_password)
             if not user:
                 logger.warning(f"旧密码验证失败: {username}")
                 return False
             
-            # 更新密码
-            new_hashed_password = self.hash_password(new_password)
-            result = self.users_collection.update_one(
+            # 更新密码 (计算哈希在线程池)
+            new_hashed_password = await asyncio.to_thread(self.hash_password, new_password)
+            
+            # 执行更新 (在线程池)
+            result = await asyncio.to_thread(
+                self.users_collection.update_one,
                 {"username": username},
                 {
                     "$set": {
@@ -263,8 +321,9 @@ class UserService:
     async def reset_password(self, username: str, new_password: str) -> bool:
         """重置密码（管理员操作）"""
         try:
-            new_hashed_password = self.hash_password(new_password)
-            result = self.users_collection.update_one(
+            new_hashed_password = await asyncio.to_thread(self.hash_password, new_password)
+            result = await asyncio.to_thread(
+                self.users_collection.update_one,
                 {"username": username},
                 {
                     "$set": {
@@ -289,16 +348,20 @@ class UserService:
         """创建管理员用户"""
         try:
             # 检查是否已存在管理员
-            existing_admin = self.users_collection.find_one({"username": username})
+            existing_admin = await asyncio.to_thread(
+                self.users_collection.find_one, {"username": username}
+            )
             if existing_admin:
                 logger.info(f"管理员用户已存在: {username}")
                 return User(**existing_admin)
             
+            hashed_password = await asyncio.to_thread(self.hash_password, password)
+
             # 创建管理员用户文档
             admin_doc = {
                 "username": username,
                 "email": email,
-                "hashed_password": self.hash_password(password),
+                "hashed_password": hashed_password,
                 "is_active": True,
                 "is_verified": True,
                 "is_admin": True,
@@ -321,7 +384,7 @@ class UserService:
                 "favorite_stocks": []
             }
             
-            result = self.users_collection.insert_one(admin_doc)
+            result = await asyncio.to_thread(self.users_collection.insert_one, admin_doc)
             admin_doc["_id"] = result.inserted_id
             
             logger.info(f"✅ 管理员用户创建成功: {username}")
@@ -337,11 +400,21 @@ class UserService:
     async def list_users(self, skip: int = 0, limit: int = 100) -> List[UserResponse]:
         """获取用户列表"""
         try:
-            cursor = self.users_collection.find().skip(skip).limit(limit)
+            # Cursor 比较特殊，如果数据量大，find()本身不慢，但遍历会慢
+            # 简单的做法是把 list(cursor) 放在线程池
+            def get_users_sync():
+                cursor = self.users_collection.find().skip(skip).limit(limit)
+                return list(cursor)
+
+            user_docs = await asyncio.to_thread(get_users_sync)
             users = []
             
-            for user_doc in cursor:
-                user = User(**user_doc)
+            for user_doc in user_docs:
+                # 确保字段映射正确
+                user_data = user_doc.copy()
+                if "password_hash" in user_data and "hashed_password" not in user_data:
+                    user_data["hashed_password"] = user_data.pop("password_hash")
+                user = User(**user_data)
                 users.append(UserResponse(
                     id=str(user.id),
                     username=user.username,
@@ -367,7 +440,8 @@ class UserService:
     async def deactivate_user(self, username: str) -> bool:
         """禁用用户"""
         try:
-            result = self.users_collection.update_one(
+            result = await asyncio.to_thread(
+                self.users_collection.update_one,
                 {"username": username},
                 {
                     "$set": {
@@ -391,7 +465,8 @@ class UserService:
     async def activate_user(self, username: str) -> bool:
         """激活用户"""
         try:
-            result = self.users_collection.update_one(
+            result = await asyncio.to_thread(
+                self.users_collection.update_one,
                 {"username": username},
                 {
                     "$set": {

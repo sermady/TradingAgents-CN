@@ -204,6 +204,16 @@ async def worker_loop(stop_event: asyncio.Event):
 async def main():
     setup_logging("INFO")
     await init_db()
+
+    # Bridge configuration from database to environment variables
+    # This ensures the worker process has access to dynamic settings (API keys, etc.)
+    try:
+        from app.core.config_bridge import bridge_config_to_env
+        logger.info("🔧 Bridging configuration to environment variables...")
+        bridge_config_to_env()
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to bridge configuration: {e}")
+
     # Apply dynamic log level from system settings
     try:
         from app.services.config_provider import provider as config_provider

@@ -91,7 +91,7 @@ dependencies = [
 qianfan = ["qianfan>=0.4.20"]
 
 [project.scripts]
-tradingagents = "main:main"
+tradingagents = "cli.main:main"
 
 [tool.setuptools.packages.find]
 include = ["tradingagents*"]

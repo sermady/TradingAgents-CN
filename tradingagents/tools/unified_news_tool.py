@@ -143,7 +143,7 @@ class UnifiedNewsAnalyzer:
 
             if not news_items:
                 logger.info(f"[统一新闻工具] 数据库中没有找到 {stock_code} 的新闻")
-                return ""
+                return f"⚠️ 数据库中未找到 {stock_code} 的相关新闻记录。"
 
             # 格式化新闻
             report = f"# {stock_code} 最新新闻 (数据库缓存)\n\n"
@@ -182,7 +182,7 @@ class UnifiedNewsAnalyzer:
             logger.error(f"[统一新闻工具] 从数据库获取新闻失败: {e}")
             import traceback
             logger.error(traceback.format_exc())
-            return ""
+            return f"❌ 数据库查询出错: {str(e)}"
 
     def _sync_news_from_akshare(self, stock_code: str, max_news: int = 10) -> bool:
         """
@@ -362,7 +362,7 @@ class UnifiedNewsAnalyzer:
         except Exception as e:
             logger.warning(f"[统一新闻工具] OpenAI新闻获取失败: {e}")
         
-        return "❌ 无法获取A股新闻数据，所有新闻源均不可用"
+        return f"❌ 无法获取A股 {stock_code} 的新闻数据。尝试了以下来源但均失败或无数据：数据库缓存, 东方财富, Google新闻, OpenAI全球新闻。请检查网络连接或API配置。"
     
     def _get_hk_share_news(self, stock_code: str, max_news: int, model_info: str = "") -> str:
         """获取港股新闻"""
@@ -408,7 +408,7 @@ class UnifiedNewsAnalyzer:
         except Exception as e:
             logger.warning(f"[统一新闻工具] 实时港股新闻获取失败: {e}")
         
-        return "❌ 无法获取港股新闻数据，所有新闻源均不可用"
+        return f"❌ 无法获取港股 {stock_code} 的新闻数据。尝试了以下来源但均失败或无数据：Google港股, OpenAI港股, 实时新闻。"
     
     def _get_us_share_news(self, stock_code: str, max_news: int, model_info: str = "") -> str:
         """获取美股新闻"""
@@ -454,7 +454,7 @@ class UnifiedNewsAnalyzer:
         except Exception as e:
             logger.warning(f"[统一新闻工具] FinnHub美股新闻获取失败: {e}")
         
-        return "❌ 无法获取美股新闻数据，所有新闻源均不可用"
+        return f"❌ 无法获取美股 {stock_code} 的新闻数据。尝试了以下来源但均失败或无数据：OpenAI美股, Google美股, FinnHub。"
     
     def _format_news_result(self, news_content: str, source: str, model_info: str = "") -> str:
         """格式化新闻结果"""
