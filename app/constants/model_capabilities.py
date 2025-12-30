@@ -353,10 +353,10 @@ DEFAULT_MODEL_CAPABILITIES: Dict[str, Dict[str, Any]] = {
 def get_model_capability_badge(level: int) -> Dict[str, str]:
     """获取能力等级徽章样式"""
     badges = {
-        1: {"text": "基础", "color": "#909399", "icon": "⚡"},
-        2: {"text": "标准", "color": "#409EFF", "icon": "📊"},
-        3: {"text": "高级", "color": "#67C23A", "icon": "🎯"},
-        4: {"text": "专业", "color": "#E6A23C", "icon": "🔥"},
+        1: {"text": "基础", "color": "#909399", "icon": "[FAST]"},
+        2: {"text": "标准", "color": "#409EFF", "icon": "[CHART]"},
+        3: {"text": "高级", "color": "#67C23A", "icon": "[TARGET]"},
+        4: {"text": "专业", "color": "#E6A23C", "icon": "[HOT]"},
         5: {"text": "旗舰", "color": "#F56C6C", "icon": "👑"}
     }
     return badges.get(level, badges[2])
@@ -365,9 +365,9 @@ def get_model_capability_badge(level: int) -> Dict[str, str]:
 def get_role_badge(role: ModelRole) -> Dict[str, str]:
     """获取角色徽章样式"""
     badges = {
-        ModelRole.QUICK_ANALYSIS: {"text": "快速分析", "color": "success", "icon": "⚡"},
+        ModelRole.QUICK_ANALYSIS: {"text": "快速分析", "color": "success", "icon": "[FAST]"},
         ModelRole.DEEP_ANALYSIS: {"text": "深度推理", "color": "warning", "icon": "🧠"},
-        ModelRole.BOTH: {"text": "通用", "color": "primary", "icon": "🎯"}
+        ModelRole.BOTH: {"text": "通用", "color": "primary", "icon": "[TARGET]"}
     }
     return badges.get(role, badges[ModelRole.BOTH])
 
@@ -375,14 +375,14 @@ def get_role_badge(role: ModelRole) -> Dict[str, str]:
 def get_feature_badge(feature: ModelFeature) -> Dict[str, str]:
     """获取特性徽章样式"""
     badges = {
-        ModelFeature.TOOL_CALLING: {"text": "工具调用", "color": "info", "icon": "🔧"},
-        ModelFeature.LONG_CONTEXT: {"text": "长上下文", "color": "success", "icon": "📚"},
+        ModelFeature.TOOL_CALLING: {"text": "工具调用", "color": "info", "icon": "[CONFIG]"},
+        ModelFeature.LONG_CONTEXT: {"text": "长上下文", "color": "success", "icon": "[DOCS]"},
         ModelFeature.REASONING: {"text": "强推理", "color": "warning", "icon": "🧠"},
         ModelFeature.VISION: {"text": "视觉", "color": "primary", "icon": "👁️"},
-        ModelFeature.FAST_RESPONSE: {"text": "快速", "color": "success", "icon": "⚡"},
+        ModelFeature.FAST_RESPONSE: {"text": "快速", "color": "success", "icon": "[FAST]"},
         ModelFeature.COST_EFFECTIVE: {"text": "经济", "color": "success", "icon": "💰"}
     }
-    return badges.get(feature, {"text": str(feature), "color": "info", "icon": "✨"})
+    return badges.get(feature, {"text": str(feature), "color": "info", "icon": "[SHINE]"})
 
 
 # ==================== 聚合渠道配置 ====================

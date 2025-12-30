@@ -56,7 +56,7 @@ def log_tool_call(tool_name: Optional[str] = None, log_args: bool = True, log_re
 
             # 记录工具调用开始
             tool_logger.info(
-                f"🔧 [工具调用] {name} - 开始",
+                f"[CONFIG] [工具调用] {name} - 开始",
                 extra={
                     'tool_name': name,
                     'event_type': 'tool_call_start',
@@ -80,7 +80,7 @@ def log_tool_call(tool_name: Optional[str] = None, log_args: bool = True, log_re
 
                 # 记录工具调用成功
                 tool_logger.info(
-                    f"✅ [工具调用] {name} - 完成 (耗时: {duration:.2f}s)",
+                    f"[OK] [工具调用] {name} - 完成 (耗时: {duration:.2f}s)",
                     extra={
                         'tool_name': name,
                         'event_type': 'tool_call_success',
@@ -98,7 +98,7 @@ def log_tool_call(tool_name: Optional[str] = None, log_args: bool = True, log_re
 
                 # 记录工具调用失败
                 tool_logger.error(
-                    f"❌ [工具调用] {name} - 失败 (耗时: {duration:.2f}s): {str(e)}",
+                    f"[FAIL] [工具调用] {name} - 失败 (耗时: {duration:.2f}s): {str(e)}",
                     extra={
                         'tool_name': name,
                         'event_type': 'tool_call_error',
@@ -133,7 +133,7 @@ def log_data_source_call(source_name: str):
 
             # 记录数据源调用开始
             tool_logger.info(
-                f"📊 [数据源] {source_name} - 获取 {symbol} 数据",
+                f"[CHART] [数据源] {source_name} - 获取 {symbol} 数据",
                 extra={
                     'data_source': source_name,
                     'symbol': symbol,
@@ -147,11 +147,11 @@ def log_data_source_call(source_name: str):
                 duration = time.time() - start_time
 
                 # 检查结果是否成功
-                success = result and "❌" not in str(result) and "错误" not in str(result)
+                success = result and "[FAIL]" not in str(result) and "错误" not in str(result)
 
                 if success:
                     tool_logger.info(
-                        f"✅ [数据源] {source_name} - {symbol} 数据获取成功 (耗时: {duration:.2f}s)",
+                        f"[OK] [数据源] {source_name} - {symbol} 数据获取成功 (耗时: {duration:.2f}s)",
                         extra={
                             'data_source': source_name,
                             'symbol': symbol,
@@ -163,7 +163,7 @@ def log_data_source_call(source_name: str):
                     )
                 else:
                     tool_logger.warning(
-                        f"⚠️ [数据源] {source_name} - {symbol} 数据获取失败 (耗时: {duration:.2f}s)",
+                        f"[WARN] [数据源] {source_name} - {symbol} 数据获取失败 (耗时: {duration:.2f}s)",
                         extra={
                             'data_source': source_name,
                             'symbol': symbol,
@@ -179,7 +179,7 @@ def log_data_source_call(source_name: str):
                 duration = time.time() - start_time
 
                 tool_logger.error(
-                    f"❌ [数据源] {source_name} - {symbol} 数据获取异常 (耗时: {duration:.2f}s): {str(e)}",
+                    f"[FAIL] [数据源] {source_name} - {symbol} 数据获取异常 (耗时: {duration:.2f}s): {str(e)}",
                     extra={
                         'data_source': source_name,
                         'symbol': symbol,
@@ -226,7 +226,7 @@ def log_llm_call(provider: str, model: str):
                 duration = time.time() - start_time
 
                 tool_logger.info(
-                    f"✅ [LLM调用] {provider}/{model} - 完成 (耗时: {duration:.2f}s)",
+                    f"[OK] [LLM调用] {provider}/{model} - 完成 (耗时: {duration:.2f}s)",
                     extra={
                         'llm_provider': provider,
                         'llm_model': model,
@@ -242,7 +242,7 @@ def log_llm_call(provider: str, model: str):
                 duration = time.time() - start_time
 
                 tool_logger.error(
-                    f"❌ [LLM调用] {provider}/{model} - 失败 (耗时: {duration:.2f}s): {str(e)}",
+                    f"[FAIL] [LLM调用] {provider}/{model} - 失败 (耗时: {duration:.2f}s): {str(e)}",
                     extra={
                         'llm_provider': provider,
                         'llm_model': model,
@@ -280,7 +280,7 @@ def log_tool_usage(tool_name: str, symbol: str = None, **extra_data):
     if symbol:
         extra['symbol'] = symbol
 
-    tool_logger.info(f"📋 [工具使用] {tool_name}", extra=extra)
+    tool_logger.info(f"[CLIPBOARD] [工具使用] {tool_name}", extra=extra)
 
 
 def log_analysis_step(step_name: str, symbol: str, **extra_data):
@@ -300,7 +300,7 @@ def log_analysis_step(step_name: str, symbol: str, **extra_data):
         **extra_data
     }
 
-    tool_logger.info(f"📈 [分析步骤] {step_name} - {symbol}", extra=extra)
+    tool_logger.info(f"[CHART-UP] [分析步骤] {step_name} - {symbol}", extra=extra)
 
 
 def log_analysis_module(module_name: str, session_id: str = None):

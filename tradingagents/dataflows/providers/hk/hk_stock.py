@@ -87,14 +87,14 @@ class HKStockProvider:
                         data = data.reset_index()
                         data['Symbol'] = symbol
 
-                        logger.info(f"✅ 港股数据获取成功: {symbol}, {len(data)}条记录")
+                        logger.info(f"[OK] 港股数据获取成功: {symbol}, {len(data)}条记录")
                         return data
                     else:
-                        logger.warning(f"⚠️ 港股数据为空: {symbol} (尝试 {attempt + 1}/{self.max_retries})")
+                        logger.warning(f"[WARN] 港股数据为空: {symbol} (尝试 {attempt + 1}/{self.max_retries})")
 
                 except Exception as e:
                     error_msg = str(e)
-                    logger.error(f"❌ 港股数据获取失败 (尝试 {attempt + 1}/{self.max_retries}): {error_msg}")
+                    logger.error(f"[FAIL] 港股数据获取失败 (尝试 {attempt + 1}/{self.max_retries}): {error_msg}")
 
                     # 检查是否是频率限制错误
                     if "Rate limited" in error_msg or "Too Many Requests" in error_msg:
@@ -102,17 +102,17 @@ class HKStockProvider:
                             logger.info(f"⏳ 检测到频率限制，等待{self.rate_limit_wait}秒...")
                             time.sleep(self.rate_limit_wait)
                         else:
-                            logger.error(f"❌ 频率限制，跳过重试")
+                            logger.error(f"[FAIL] 频率限制，跳过重试")
                             break
                     else:
                         if attempt < self.max_retries - 1:
                             time.sleep(2 ** attempt)  # 指数退避
 
-            logger.error(f"❌ 港股数据获取最终失败: {symbol}")
+            logger.error(f"[FAIL] 港股数据获取最终失败: {symbol}")
             return None
 
         except Exception as e:
-            logger.error(f"❌ 港股数据获取异常: {e}")
+            logger.error(f"[FAIL] 港股数据获取异常: {e}")
             return None
 
     def get_stock_info(self, symbol: str) -> Dict[str, Any]:
@@ -156,7 +156,7 @@ class HKStockProvider:
                 }
 
         except Exception as e:
-            logger.error(f"❌ 获取港股信息失败: {e}")
+            logger.error(f"[FAIL] 获取港股信息失败: {e}")
             return {
                 'symbol': symbol,
                 'name': f'港股{symbol}',
@@ -202,7 +202,7 @@ class HKStockProvider:
                 return None
 
         except Exception as e:
-            logger.error(f"❌ 获取港股实时价格失败: {e}")
+            logger.error(f"[FAIL] 获取港股实时价格失败: {e}")
             return None
 
     def _normalize_hk_symbol(self, symbol: str) -> str:
@@ -250,11 +250,11 @@ class HKStockProvider:
             str: 格式化的股票数据文本（包含技术指标）
         """
         if data is None or data.empty:
-            return f"❌ 无法获取港股 {symbol} 的数据"
+            return f"[FAIL] 无法获取港股 {symbol} 的数据"
 
         try:
             original_data_count = len(data)
-            logger.info(f"📊 [港股技术指标] 开始计算技术指标，原始数据: {original_data_count}条")
+            logger.info(f"[CHART] [港股技术指标] 开始计算技术指标，原始数据: {original_data_count}条")
 
             # 获取股票基本信息
             stock_info = self.get_stock_info(symbol)
@@ -297,25 +297,25 @@ class HKStockProvider:
             display_data = data.tail(display_rows)
             latest_data = data.iloc[-1]
 
-            # 🔍 [调试日志] 打印最近5天的原始数据和技术指标
-            logger.info(f"🔍 [港股技术指标详情] ===== 最近{display_rows}个交易日数据 =====")
+            # [SEARCH] [调试日志] 打印最近5天的原始数据和技术指标
+            logger.info(f"[SEARCH] [港股技术指标详情] ===== 最近{display_rows}个交易日数据 =====")
             for i, (idx, row) in enumerate(display_data.iterrows(), 1):
                 date_str = row.get('Date', idx.strftime('%Y-%m-%d') if hasattr(idx, 'strftime') else str(idx))
-                logger.info(f"🔍 [港股技术指标详情] 第{i}天 ({date_str}):")
+                logger.info(f"[SEARCH] [港股技术指标详情] 第{i}天 ({date_str}):")
                 logger.info(f"   价格: 开={row.get('Open', 0):.2f}, 高={row.get('High', 0):.2f}, 低={row.get('Low', 0):.2f}, 收={row.get('Close', 0):.2f}")
                 logger.info(f"   MA: MA5={row.get('ma5', 0):.2f}, MA10={row.get('ma10', 0):.2f}, MA20={row.get('ma20', 0):.2f}, MA60={row.get('ma60', 0):.2f}")
                 logger.info(f"   MACD: DIF={row.get('macd_dif', 0):.4f}, DEA={row.get('macd_dea', 0):.4f}, MACD={row.get('macd', 0):.4f}")
                 logger.info(f"   RSI: {row.get('rsi', 0):.2f}")
                 logger.info(f"   BOLL: 上={row.get('boll_upper', 0):.2f}, 中={row.get('boll_mid', 0):.2f}, 下={row.get('boll_lower', 0):.2f}")
 
-            logger.info(f"🔍 [港股技术指标详情] ===== 数据详情结束 =====")
+            logger.info(f"[SEARCH] [港股技术指标详情] ===== 数据详情结束 =====")
 
             # 格式化输出包含所有技术指标和解读
-            result = f"📊 {stock_name}({symbol}) - 港股技术分析数据\n"
+            result = f"[CHART] {stock_name}({symbol}) - 港股技术分析数据\n"
             result += "=" * 60 + "\n\n"
 
             # 基本信息
-            result += "📈 基本信息\n"
+            result += "[CHART-UP] 基本信息\n"
             result += f"   代码: {symbol}\n"
             result += f"   名称: {stock_name}\n"
             result += f"   货币: 港币 (HKD)\n"
@@ -333,7 +333,7 @@ class HKStockProvider:
             result += f"   成交量: {latest_data['Volume']:,.0f}股\n\n"
 
             # 移动平均线
-            result += "📊 移动平均线 (MA)\n"
+            result += "[CHART] 移动平均线 (MA)\n"
             ma5 = latest_data['ma5']
             ma10 = latest_data['ma10']
             ma20 = latest_data['ma20']
@@ -362,16 +362,16 @@ class HKStockProvider:
             # 判断均线排列
             if not pd.isna(ma5) and not pd.isna(ma10) and not pd.isna(ma20):
                 if ma5 > ma10 > ma20:
-                    result += "   ✅ 均线呈多头排列\n\n"
+                    result += "   [OK] 均线呈多头排列\n\n"
                 elif ma5 < ma10 < ma20:
-                    result += "   ⚠️ 均线呈空头排列\n\n"
+                    result += "   [WARN] 均线呈空头排列\n\n"
                 else:
                     result += "   ➡️ 均线排列混乱\n\n"
             else:
                 result += "\n"
 
             # MACD指标
-            result += "📉 MACD指标\n"
+            result += "[CHART-DOWN] MACD指标\n"
             macd_dif = latest_data['macd_dif']
             macd_dea = latest_data['macd_dea']
             macd = latest_data['macd']
@@ -390,9 +390,9 @@ class HKStockProvider:
 
                     if not pd.isna(prev_dif) and not pd.isna(prev_dea):
                         if prev_dif <= prev_dea and curr_dif > curr_dea:
-                            result += "   ⚠️ MACD金叉信号（DIF上穿DEA）\n\n"
+                            result += "   [WARN] MACD金叉信号（DIF上穿DEA）\n\n"
                         elif prev_dif >= prev_dea and curr_dif < curr_dea:
-                            result += "   ⚠️ MACD死叉信号（DIF下穿DEA）\n\n"
+                            result += "   [WARN] MACD死叉信号（DIF下穿DEA）\n\n"
                         else:
                             result += "\n"
                     else:
@@ -403,7 +403,7 @@ class HKStockProvider:
                 result += "   数据不足，无法计算MACD\n\n"
 
             # RSI指标
-            result += "📊 RSI指标\n"
+            result += "[CHART] RSI指标\n"
             rsi = latest_data['rsi']
 
             if not pd.isna(rsi):
@@ -422,7 +422,7 @@ class HKStockProvider:
                 result += "   数据不足，无法计算RSI\n\n"
 
             # 布林带
-            result += "📐 布林带 (BOLL)\n"
+            result += "[RULER] 布林带 (BOLL)\n"
             boll_upper = latest_data['boll_upper']
             boll_mid = latest_data['boll_mid']
             boll_lower = latest_data['boll_lower']
@@ -450,7 +450,7 @@ class HKStockProvider:
                 result += "   数据不足，无法计算布林带\n\n"
 
             # 最近交易日数据
-            result += "📅 最近交易日数据\n"
+            result += "[DATE] 最近交易日数据\n"
             for _, row in display_data.iterrows():
                 if 'Date' in row:
                     date_str = row['Date'].strftime('%Y-%m-%d')
@@ -466,13 +466,13 @@ class HKStockProvider:
 
             result += "\n数据来源: Yahoo Finance (港股)\n"
 
-            logger.info(f"✅ [港股技术指标] 技术指标计算完成，展示最后{display_rows}天数据")
+            logger.info(f"[OK] [港股技术指标] 技术指标计算完成，展示最后{display_rows}天数据")
 
             return result
 
         except Exception as e:
-            logger.error(f"❌ 格式化港股数据失败: {e}", exc_info=True)
-            return f"❌ 港股数据格式化失败: {symbol}"
+            logger.error(f"[FAIL] 格式化港股数据失败: {e}", exc_info=True)
+            return f"[FAIL] 港股数据格式化失败: {symbol}"
 
 
 # 全局提供器实例

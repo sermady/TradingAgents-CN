@@ -177,7 +177,7 @@ class QuotesIngestionService:
             # 添加分钟数
             doc["interval_minutes"] = doc.get("interval_seconds", 0) / 60
 
-            # 🔥 格式化时间（确保转换为本地时区）
+            # [HOT] 格式化时间（确保转换为本地时区）
             if "last_sync_time" in doc and doc["last_sync_time"]:
                 dt = doc["last_sync_time"]
                 # MongoDB 返回的是 UTC 时间的 datetime 对象（aware 或 naive）
@@ -229,18 +229,18 @@ class QuotesIngestionService:
             try:
                 df = adapter._provider.api.rt_k(ts_code='000001.SZ')
                 if df is not None and not getattr(df, 'empty', True):
-                    logger.info("✅ 检测到 Tushare rt_k 接口权限（付费用户）")
+                    logger.info("[OK] 检测到 Tushare rt_k 接口权限（付费用户）")
                     self._tushare_has_premium = True
                 else:
-                    logger.info("⚠️ Tushare rt_k 接口返回空数据（可能是免费用户或接口限制）")
+                    logger.info("[WARN] Tushare rt_k 接口返回空数据（可能是免费用户或接口限制）")
                     self._tushare_has_premium = False
             except Exception as e:
                 error_msg = str(e).lower()
                 if "权限" in error_msg or "permission" in error_msg or "没有访问" in error_msg:
-                    logger.info("⚠️ Tushare rt_k 接口无权限（免费用户）")
+                    logger.info("[WARN] Tushare rt_k 接口无权限（免费用户）")
                     self._tushare_has_premium = False
                 else:
-                    logger.warning(f"⚠️ Tushare rt_k 接口测试失败: {e}")
+                    logger.warning(f"[WARN] Tushare rt_k 接口测试失败: {e}")
                     self._tushare_has_premium = False
 
             self._tushare_permission_checked = True
@@ -275,7 +275,7 @@ class QuotesIngestionService:
         # 检查是否超过限制
         if len(self._tushare_call_times) >= self._tushare_hourly_limit:
             logger.warning(
-                f"⚠️ Tushare rt_k 接口已达到每小时调用限制 ({self._tushare_hourly_limit}次)，"
+                f"[WARN] Tushare rt_k 接口已达到每小时调用限制 ({self._tushare_hourly_limit}次)，"
                 f"跳过本次调用，使用 AKShare 备用接口"
             )
             return False
@@ -377,10 +377,10 @@ class QuotesIngestionService:
             if not code6:
                 continue
 
-            # 🔥 日志：记录写入的成交量值
+            # [HOT] 日志：记录写入的成交量值
             volume = q.get("volume")
             if code6 in ["300750", "000001", "600000"]:  # 只记录几个示例股票
-                logger.info(f"📊 [写入market_quotes] {code6} - volume={volume}, amount={q.get('amount')}, source={source}")
+                logger.info(f"[CHART] [写入market_quotes] {code6} - volume={volume}, amount={q.get('amount')}, source={source}")
 
             ops.append(
                 UpdateOne(
@@ -407,7 +407,7 @@ class QuotesIngestionService:
             return
         result = await coll.bulk_write(ops, ordered=False)
         logger.info(
-            f"✅ 行情入库完成 source={source}, matched={result.matched_count}, upserted={len(result.upserted_ids) if result.upserted_ids else 0}, modified={result.modified_count}"
+            f"[OK] 行情入库完成 source={source}, matched={result.matched_count}, upserted={len(result.upserted_ids) if result.upserted_ids else 0}, modified={result.modified_count}"
         )
 
     async def backfill_from_historical_data(self) -> None:
@@ -422,11 +422,11 @@ class QuotesIngestionService:
 
             if not is_empty:
                 # 集合不为空，检查是否有成交量缺失的记录
-                logger.info("✅ market_quotes 集合不为空，检查是否需要修复成交量...")
+                logger.info("[OK] market_quotes 集合不为空，检查是否需要修复成交量...")
                 await self._fix_missing_volume()
                 return
 
-            logger.info("📊 market_quotes 集合为空，开始从历史数据导入")
+            logger.info("[CHART] market_quotes 集合为空，开始从历史数据导入")
 
             db = get_mongo_db()
             manager = DataSourceManager()
@@ -435,13 +435,13 @@ class QuotesIngestionService:
             try:
                 latest_trade_date = manager.find_latest_trade_date_with_fallback()
                 if not latest_trade_date:
-                    logger.warning("⚠️ 无法获取最新交易日，跳过历史数据导入")
+                    logger.warning("[WARN] 无法获取最新交易日，跳过历史数据导入")
                     return
             except Exception as e:
-                logger.warning(f"⚠️ 获取最新交易日失败: {e}，跳过历史数据导入")
+                logger.warning(f"[WARN] 获取最新交易日失败: {e}，跳过历史数据导入")
                 return
 
-            logger.info(f"📊 从历史数据集合导入 {latest_trade_date} 的收盘数据到 market_quotes")
+            logger.info(f"[CHART] 从历史数据集合导入 {latest_trade_date} 的收盘数据到 market_quotes")
 
             # 从 stock_daily_quotes 集合查询最新交易日的数据
             daily_quotes_collection = db["stock_daily_quotes"]
@@ -453,11 +453,11 @@ class QuotesIngestionService:
             docs = await cursor.to_list(length=None)
 
             if not docs:
-                logger.warning(f"⚠️ 历史数据集合中未找到 {latest_trade_date} 的数据")
-                logger.warning("⚠️ market_quotes 和历史数据集合都为空，请先同步历史数据或实时行情")
+                logger.warning(f"[WARN] 历史数据集合中未找到 {latest_trade_date} 的数据")
+                logger.warning("[WARN] market_quotes 和历史数据集合都为空，请先同步历史数据或实时行情")
                 return
 
-            logger.info(f"✅ 从历史数据集合找到 {len(docs)} 条记录")
+            logger.info(f"[OK] 从历史数据集合找到 {len(docs)} 条记录")
 
             # 转换为 quotes_map 格式
             quotes_map = {}
@@ -467,13 +467,13 @@ class QuotesIngestionService:
                     continue
                 code6 = str(code).zfill(6)
 
-                # 🔥 获取成交量，优先使用 volume 字段
+                # [HOT] 获取成交量，优先使用 volume 字段
                 volume_value = doc.get("volume") or doc.get("vol")
                 data_source = doc.get("data_source", "")
 
-                # 🔥 日志：记录原始成交量值
+                # [HOT] 日志：记录原始成交量值
                 if code6 in ["300750", "000001", "600000"]:  # 只记录几个示例股票
-                    logger.info(f"📊 [回填] {code6} - volume={doc.get('volume')}, vol={doc.get('vol')}, data_source={data_source}")
+                    logger.info(f"[CHART] [回填] {code6} - volume={doc.get('volume')}, vol={doc.get('vol')}, data_source={data_source}")
 
                 quotes_map[code6] = {
                     "close": doc.get("close"),
@@ -488,12 +488,12 @@ class QuotesIngestionService:
 
             if quotes_map:
                 await self._bulk_upsert(quotes_map, latest_trade_date, "historical_data")
-                logger.info(f"✅ 成功从历史数据导入 {len(quotes_map)} 条收盘数据到 market_quotes")
+                logger.info(f"[OK] 成功从历史数据导入 {len(quotes_map)} 条收盘数据到 market_quotes")
             else:
-                logger.warning("⚠️ 历史数据转换后为空，无法导入")
+                logger.warning("[WARN] 历史数据转换后为空，无法导入")
 
         except Exception as e:
-            logger.error(f"❌ 从历史数据导入失败: {e}")
+            logger.error(f"[FAIL] 从历史数据导入失败: {e}")
             import traceback
             logger.error(f"堆栈跟踪:\n{traceback.format_exc()}")
 
@@ -512,7 +512,7 @@ class QuotesIngestionService:
                 trade_date = datetime.now(self.tz).strftime("%Y%m%d")
             await self._bulk_upsert(quotes_map, trade_date, source)
         except Exception as e:
-            logger.error(f"❌ backfill 行情补数失败: {e}")
+            logger.error(f"[FAIL] backfill 行情补数失败: {e}")
 
     async def backfill_last_close_snapshot_if_needed(self) -> None:
         """若集合为空或 trade_date 落后于最新交易日，则执行一次 backfill"""
@@ -558,7 +558,7 @@ class QuotesIngestionService:
                     logger.warning("Tushare 不可用")
                     return None, None
 
-                logger.info("📊 使用 Tushare rt_k 接口获取实时行情")
+                logger.info("[CHART] 使用 Tushare rt_k 接口获取实时行情")
                 quotes_map = adapter.get_realtime_quotes()
 
                 if quotes_map:
@@ -577,7 +577,7 @@ class QuotesIngestionService:
                     return None, None
 
                 api_name = akshare_api or "eastmoney"
-                logger.info(f"📊 使用 AKShare {api_name} 接口获取实时行情")
+                logger.info(f"[CHART] 使用 AKShare {api_name} 接口获取实时行情")
                 quotes_map = adapter.get_realtime_quotes(source=api_name)
 
                 if quotes_map:
@@ -614,16 +614,16 @@ class QuotesIngestionService:
         try:
             # 首次运行：检测 Tushare 权限
             if settings.QUOTES_AUTO_DETECT_TUSHARE_PERMISSION and not self._tushare_permission_checked:
-                logger.info("🔍 首次运行，检测 Tushare rt_k 接口权限...")
+                logger.info("[SEARCH] 首次运行，检测 Tushare rt_k 接口权限...")
                 has_premium = self._check_tushare_permission()
 
                 if has_premium:
                     logger.info(
-                        "✅ 检测到 Tushare 付费权限！建议将 QUOTES_INGEST_INTERVAL_SECONDS 设置为 5-60 秒以充分利用权限"
+                        "[OK] 检测到 Tushare 付费权限！建议将 QUOTES_INGEST_INTERVAL_SECONDS 设置为 5-60 秒以充分利用权限"
                     )
                 else:
                     logger.info(
-                        f"ℹ️ Tushare 免费用户，每小时最多调用 {self._tushare_hourly_limit} 次 rt_k 接口。"
+                        f"[INFO] Tushare 免费用户，每小时最多调用 {self._tushare_hourly_limit} 次 rt_k 接口。"
                         f"当前采集间隔: {settings.QUOTES_INGEST_INTERVAL_SECONDS} 秒"
                     )
 
@@ -634,7 +634,7 @@ class QuotesIngestionService:
             quotes_map, source_name = self._fetch_quotes_from_source(source_type, akshare_api)
 
             if not quotes_map:
-                logger.warning(f"⚠️ {source_name or source_type} 未获取到行情数据，跳过本次入库")
+                logger.warning(f"[WARN] {source_name or source_type} 未获取到行情数据，跳过本次入库")
                 # 记录失败状态
                 await self._record_sync_status(
                     success=False,
@@ -663,7 +663,7 @@ class QuotesIngestionService:
             )
 
         except Exception as e:
-            logger.error(f"❌ 行情入库失败: {e}")
+            logger.error(f"[FAIL] 行情入库失败: {e}")
             # 记录失败状态
             await self._record_sync_status(
                 success=False,

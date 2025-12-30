@@ -27,7 +27,7 @@ try:
 
     SERVICE_AVAILABLE = True
 except ImportError as e:
-    logger.warning(f"⚠️ 股票数据服务不可用: {e}")
+    logger.warning(f"[WARN] 股票数据服务不可用: {e}")
     SERVICE_AVAILABLE = False
 
 def get_stock_info(stock_code: str) -> Dict[str, Any]:
@@ -108,7 +108,7 @@ def get_stock_data(stock_code: str, start_date: str = None, end_date: str = None
         >>> print(data)
     """
     if not SERVICE_AVAILABLE:
-        return "❌ 股票数据服务不可用，请检查服务配置"
+        return "[FAIL] 股票数据服务不可用，请检查服务配置"
     
     # 设置默认日期
     if end_date is None:
@@ -268,11 +268,11 @@ status = check_service_status  # 别名
 
 if __name__ == '__main__':
     # 简单的命令行测试
-    logger.debug(f"🔍 股票数据API测试")
+    logger.debug(f"[SEARCH] 股票数据API测试")
     logger.info(f"=" * 50)
     
     # 检查服务状态
-    logger.info(f"\n📊 服务状态检查:")
+    logger.info(f"\n[CHART] 服务状态检查:")
     status_info = check_service_status()
     for key, value in status_info.items():
         logger.info(f"  {key}: {value}")
@@ -290,14 +290,14 @@ if __name__ == '__main__':
         logger.error(f"  错误: {stock_info.get('error')}")
     
     # 测试搜索功能
-    logger.debug(f"\n🔍 搜索'平安'相关股票:")
+    logger.debug(f"\n[SEARCH] 搜索'平安'相关股票:")
     search_results = search_stocks('平安')
     for i, stock in enumerate(search_results[:3]):  # 只显示前3个结果
         if 'error' not in stock:
             logger.info(f"  {i+1}. {stock.get('code')}")
 
     # 测试市场概览
-    logger.info(f"\n📈 市场概览:")
+    logger.info(f"\n[CHART-UP] 市场概览:")
     summary = get_market_summary()
     if 'error' not in summary:
         logger.info(f"  总股票数: {summary.get('total_count')}")

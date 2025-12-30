@@ -118,13 +118,13 @@ class DatabaseScreeningService:
             db = get_mongo_db()
             collection = db[self.collection_name]
 
-            # 🔥 获取数据源优先级配置
+            # [HOT] 获取数据源优先级配置
             if not source:
                 from app.core.unified_config import UnifiedConfigManager
                 config = UnifiedConfigManager()
                 data_source_configs = await config.get_data_source_configs_async()
 
-                logger.info(f"🔍 [database_screening] 获取到 {len(data_source_configs)} 个数据源配置")
+                logger.info(f"[SEARCH] [database_screening] 获取到 {len(data_source_configs)} 个数据源配置")
                 for ds in data_source_configs:
                     logger.info(f"   - {ds.name}: type={ds.type}, priority={ds.priority}, enabled={ds.enabled}")
 
@@ -134,22 +134,22 @@ class DatabaseScreeningService:
                     if ds.enabled and ds.type.lower() in ['tushare', 'akshare', 'baostock']
                 ]
 
-                logger.info(f"🔍 [database_screening] 启用的数据源（按优先级）: {enabled_sources}")
+                logger.info(f"[SEARCH] [database_screening] 启用的数据源（按优先级）: {enabled_sources}")
 
                 if not enabled_sources:
                     enabled_sources = ['tushare', 'akshare', 'baostock']
-                    logger.warning(f"⚠️ [database_screening] 没有启用的数据源，使用默认: {enabled_sources}")
+                    logger.warning(f"[WARN] [database_screening] 没有启用的数据源，使用默认: {enabled_sources}")
 
                 source = enabled_sources[0] if enabled_sources else 'tushare'
-                logger.info(f"✅ [database_screening] 最终使用的数据源: {source}")
+                logger.info(f"[OK] [database_screening] 最终使用的数据源: {source}")
 
             # 构建查询条件（现在视图已包含实时行情数据，可以直接查询所有字段）
             query = await self._build_query(conditions)
 
-            # 🔥 添加数据源筛选
+            # [HOT] 添加数据源筛选
             query["source"] = source
 
-            logger.info(f"📋 数据库查询条件: {query}")
+            logger.info(f"[CLIPBOARD] 数据库查询条件: {query}")
 
             # 构建排序条件
             sort_conditions = self._build_sort_conditions(order_by)
@@ -180,12 +180,12 @@ class DatabaseScreeningService:
             if codes:
                 await self._enrich_with_financial_data(results, codes)
 
-            logger.info(f"✅ 数据库筛选完成: 总数={total_count}, 返回={len(results)}, 数据源={source}")
+            logger.info(f"[OK] 数据库筛选完成: 总数={total_count}, 返回={len(results)}, 数据源={source}")
 
             return results, total_count
             
         except Exception as e:
-            logger.error(f"❌ 数据库筛选失败: {e}")
+            logger.error(f"[FAIL] 数据库筛选失败: {e}")
             raise Exception(f"数据库筛选失败: {str(e)}")
     
     async def _build_query(self, conditions: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -197,15 +197,15 @@ class DatabaseScreeningService:
             operator = condition.get("operator") if isinstance(condition, dict) else condition.operator
             value = condition.get("value") if isinstance(condition, dict) else condition.value
 
-            logger.info(f"🔍 [_build_query] 处理条件: field={field}, operator={operator}, value={value}")
+            logger.info(f"[SEARCH] [_build_query] 处理条件: field={field}, operator={operator}, value={value}")
 
             # 映射字段名
             db_field = self.basic_fields.get(field)
             if not db_field:
-                logger.warning(f"⚠️ [_build_query] 字段 {field} 不在 basic_fields 映射中，跳过")
+                logger.warning(f"[WARN] [_build_query] 字段 {field} 不在 basic_fields 映射中，跳过")
                 continue
 
-            logger.info(f"✅ [_build_query] 字段映射: {field} -> {db_field}")
+            logger.info(f"[OK] [_build_query] 字段映射: {field} -> {db_field}")
             
             # 处理不同操作符
             if operator == "between":
@@ -262,7 +262,7 @@ class DatabaseScreeningService:
             db = get_mongo_db()
             financial_collection = db['stock_financial_data']
 
-            # 🔥 获取数据源优先级配置
+            # [HOT] 获取数据源优先级配置
             from app.core.unified_config import UnifiedConfigManager
             config = UnifiedConfigManager()
             data_source_configs = await config.get_data_source_configs_async()
@@ -315,10 +315,10 @@ class DatabaseScreeningService:
                     # result["roa"] = financial_data.get("roa")
                     # result["netprofit_margin"] = financial_data.get("netprofit_margin")
 
-            logger.debug(f"✅ 已填充 {len(financial_data_map)} 条财务数据")
+            logger.debug(f"[OK] 已填充 {len(financial_data_map)} 条财务数据")
 
         except Exception as e:
-            logger.warning(f"⚠️ 填充财务数据失败: {e}")
+            logger.warning(f"[WARN] 填充财务数据失败: {e}")
             # 不抛出异常，允许继续返回基础数据
 
     def _format_result(self, doc: Dict[str, Any]) -> Dict[str, Any]:
@@ -494,7 +494,7 @@ class DatabaseScreeningService:
                     "volume": quote.get("volume"),
                 }
 
-            logger.info(f"📊 查询到 {len(quotes_map)} 只股票的实时行情数据")
+            logger.info(f"[CHART] 查询到 {len(quotes_map)} 只股票的实时行情数据")
 
             # 过滤结果
             filtered_results = []
@@ -545,11 +545,11 @@ class DatabaseScreeningService:
                     result.update(quote_data)
                     filtered_results.append(result)
 
-            logger.info(f"✅ 实时行情筛选完成: 筛选前={len(results)}, 筛选后={len(filtered_results)}")
+            logger.info(f"[OK] 实时行情筛选完成: 筛选前={len(results)}, 筛选后={len(filtered_results)}")
             return filtered_results
 
         except Exception as e:
-            logger.error(f"❌ 实时行情筛选失败: {e}")
+            logger.error(f"[FAIL] 实时行情筛选失败: {e}")
             # 如果失败，返回原始结果
             return results
 

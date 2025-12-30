@@ -98,13 +98,13 @@ def get_news(
                 
                 result += "\n---\n\n"
             
-            logger.info(f"✅ [Alpha Vantage] 成功获取 {len(feed)} 条新闻")
+            logger.info(f"[OK] [Alpha Vantage] 成功获取 {len(feed)} 条新闻")
             return result
         else:
             return format_response_as_string(data, f"News for {ticker}")
             
     except Exception as e:
-        logger.error(f"❌ [Alpha Vantage] 获取新闻失败 {ticker}: {e}")
+        logger.error(f"[FAIL] [Alpha Vantage] 获取新闻失败 {ticker}: {e}")
         return f"Error retrieving news for {ticker}: {str(e)}"
 
 
@@ -161,13 +161,13 @@ def get_insider_transactions(
                 result += f"**Shares Owned After**: {txn.get('shares_owned_after_transaction', 'N/A')}\n"
                 result += "\n---\n\n"
             
-            logger.info(f"✅ [Alpha Vantage] 成功获取 {len(transactions)} 笔内部人交易")
+            logger.info(f"[OK] [Alpha Vantage] 成功获取 {len(transactions)} 笔内部人交易")
             return result
         else:
             return format_response_as_string(data, f"Insider Transactions for {symbol}")
             
     except Exception as e:
-        logger.error(f"❌ [Alpha Vantage] 获取内部人交易失败 {symbol}: {e}")
+        logger.error(f"[FAIL] [Alpha Vantage] 获取内部人交易失败 {symbol}: {e}")
         return f"Error retrieving insider transactions for {symbol}: {str(e)}"
 
 
@@ -242,12 +242,12 @@ def get_market_news(
                 result += f"**Summary**: {summary}\n\n"
                 result += "---\n\n"
             
-            logger.info(f"✅ [Alpha Vantage] 成功获取 {len(feed)} 条市场新闻")
+            logger.info(f"[OK] [Alpha Vantage] 成功获取 {len(feed)} 条市场新闻")
             return result
         else:
             return format_response_as_string(data, "Market News")
             
     except Exception as e:
-        logger.error(f"❌ [Alpha Vantage] 获取市场新闻失败: {e}")
+        logger.error(f"[FAIL] [Alpha Vantage] 获取市场新闻失败: {e}")
         return f"Error retrieving market news: {str(e)}"
 

@@ -125,7 +125,7 @@ async def search_stocks(
             "total": len(results)
         })
     except Exception as e:
-        logger.error(f"❌ 搜索股票失败: market={market}, q={q}, error={e}", exc_info=True)
+        logger.error(f"[FAIL] 搜索股票失败: market={market}, q={q}, error={e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"搜索失败: {str(e)}"
@@ -188,7 +188,7 @@ async def get_stock_info(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ 获取股票信息失败: market={market}, code={code}, error={e}", exc_info=True)
+        logger.error(f"[FAIL] 获取股票信息失败: market={market}, code={code}, error={e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"获取股票信息失败: {str(e)}"
@@ -249,7 +249,7 @@ async def get_stock_quote(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ 获取股票行情失败: market={market}, code={code}, error={e}", exc_info=True)
+        logger.error(f"[FAIL] 获取股票行情失败: market={market}, code={code}, error={e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"获取股票行情失败: {str(e)}"
@@ -319,7 +319,7 @@ async def get_stock_daily_quotes(
             "total": len(quotes)
         })
     except Exception as e:
-        logger.error(f"❌ 获取历史K线失败: market={market}, code={code}, error={e}", exc_info=True)
+        logger.error(f"[FAIL] 获取历史K线失败: market={market}, code={code}, error={e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"获取历史K线失败: {str(e)}"

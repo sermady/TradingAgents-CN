@@ -34,7 +34,7 @@ def create_bear_researcher(llm, memory):
                     stock_info = get_china_stock_info_unified(ticker_code)
                     if stock_info and "股票名称:" in stock_info:
                         name = stock_info.split("股票名称:")[1].split("\n")[0].strip()
-                        logger.info(f"✅ [空头研究员] 成功获取中国股票名称: {ticker_code} -> {name}")
+                        logger.info(f"[OK] [空头研究员] 成功获取中国股票名称: {ticker_code} -> {name}")
                         return name
                     else:
                         # 降级方案
@@ -43,10 +43,10 @@ def create_bear_researcher(llm, memory):
                             info_dict = get_info_dict(ticker_code)
                             if info_dict and info_dict.get('name'):
                                 name = info_dict['name']
-                                logger.info(f"✅ [空头研究员] 降级方案成功获取股票名称: {ticker_code} -> {name}")
+                                logger.info(f"[OK] [空头研究员] 降级方案成功获取股票名称: {ticker_code} -> {name}")
                                 return name
                         except Exception as e:
-                            logger.error(f"❌ [空头研究员] 降级方案也失败: {e}")
+                            logger.error(f"[FAIL] [空头研究员] 降级方案也失败: {e}")
                 elif market_info_dict['is_hk']:
                     try:
                         from tradingagents.dataflows.providers.hk.improved_hk import get_hk_company_name_improved
@@ -63,7 +63,7 @@ def create_bear_researcher(llm, memory):
                     }
                     return us_stock_names.get(ticker_code.upper(), f"美股{ticker_code}")
             except Exception as e:
-                logger.error(f"❌ [空头研究员] 获取公司名称失败: {e}")
+                logger.error(f"[FAIL] [空头研究员] 获取公司名称失败: {e}")
             return f"股票代码{ticker_code}"
 
         company_name = _get_company_name(ticker, market_info)
@@ -79,7 +79,7 @@ def create_bear_researcher(llm, memory):
         if memory is not None:
             past_memories = memory.get_memories(curr_situation, n_matches=2)
         else:
-            logger.warning(f"⚠️ [DEBUG] memory为None，跳过历史记忆检索")
+            logger.warning(f"[WARN] [DEBUG] memory为None，跳过历史记忆检索")
             past_memories = []
 
         past_memory_str = ""
@@ -88,8 +88,8 @@ def create_bear_researcher(llm, memory):
 
         prompt = f"""你是一位看跌分析师，负责论证不投资股票 {company_name}（股票代码：{ticker}）的理由。
 
-⚠️ 重要提醒：当前分析的是 {market_info['market_name']}，所有价格和估值请使用 {currency}（{currency_symbol}）作为单位。
-⚠️ 在你的分析中，请始终使用公司名称"{company_name}"而不是股票代码"{ticker}"来称呼这家公司。
+[WARN] 重要提醒：当前分析的是 {market_info['market_name']}，所有价格和估值请使用 {currency}（{currency_symbol}）作为单位。
+[WARN] 在你的分析中，请始终使用公司名称"{company_name}"而不是股票代码"{ticker}"来称呼这家公司。
 
 你的目标是提出合理的论证，强调风险、挑战和负面指标。利用提供的研究和数据来突出潜在的不利因素并有效反驳看涨论点。
 

@@ -57,14 +57,14 @@ class ExampleSDKSyncService:
     
     async def sync_all_data(self):
         """同步所有数据"""
-        logger.info("🚀 开始ExampleSDK全量数据同步...")
+        logger.info("[START] 开始ExampleSDK全量数据同步...")
         
         start_time = datetime.now()
         
         try:
             # 连接数据源
             if not await self.provider.connect():
-                logger.error("❌ ExampleSDK连接失败，同步中止")
+                logger.error("[FAIL] ExampleSDK连接失败，同步中止")
                 return False
             
             # 同步基础信息
@@ -79,13 +79,13 @@ class ExampleSDKSyncService:
             # 记录同步状态
             await self._record_sync_status("success", start_time)
             
-            logger.info("✅ ExampleSDK全量数据同步完成")
+            logger.info("[OK] ExampleSDK全量数据同步完成")
             self._log_sync_stats()
             
             return True
             
         except Exception as e:
-            logger.error(f"❌ ExampleSDK数据同步失败: {e}")
+            logger.error(f"[FAIL] ExampleSDK数据同步失败: {e}")
             await self._record_sync_status("failed", start_time, str(e))
             return False
             
@@ -94,14 +94,14 @@ class ExampleSDKSyncService:
     
     async def sync_basic_info(self):
         """同步股票基础信息"""
-        logger.info("📊 开始同步股票基础信息...")
+        logger.info("[CHART] 开始同步股票基础信息...")
         
         try:
             # 获取股票列表
             stock_list = await self.provider.get_stock_list()
             
             if not stock_list:
-                logger.warning("⚠️ 未获取到股票列表")
+                logger.warning("[WARN] 未获取到股票列表")
                 return
             
             self.sync_stats["basic_info"]["total"] = len(stock_list)
@@ -113,19 +113,19 @@ class ExampleSDKSyncService:
                 
                 # 进度日志
                 processed = min(i + self.batch_size, len(stock_list))
-                logger.info(f"📈 基础信息同步进度: {processed}/{len(stock_list)}")
+                logger.info(f"[CHART-UP] 基础信息同步进度: {processed}/{len(stock_list)}")
                 
                 # 避免API限制
                 await asyncio.sleep(0.1)
             
-            logger.info(f"✅ 股票基础信息同步完成: {self.sync_stats['basic_info']['success']}/{self.sync_stats['basic_info']['total']}")
+            logger.info(f"[OK] 股票基础信息同步完成: {self.sync_stats['basic_info']['success']}/{self.sync_stats['basic_info']['total']}")
             
         except Exception as e:
-            logger.error(f"❌ 股票基础信息同步失败: {e}")
+            logger.error(f"[FAIL] 股票基础信息同步失败: {e}")
     
     async def sync_realtime_quotes(self):
         """同步实时行情"""
-        logger.info("📈 开始同步实时行情...")
+        logger.info("[CHART-UP] 开始同步实时行情...")
         
         try:
             # 获取需要同步的股票代码列表
@@ -134,7 +134,7 @@ class ExampleSDKSyncService:
             stock_codes = [doc["code"] async for doc in cursor]
             
             if not stock_codes:
-                logger.warning("⚠️ 未找到需要同步行情的股票")
+                logger.warning("[WARN] 未找到需要同步行情的股票")
                 return
             
             self.sync_stats["quotes"]["total"] = len(stock_codes)
@@ -146,15 +146,15 @@ class ExampleSDKSyncService:
                 
                 # 进度日志
                 processed = min(i + self.batch_size, len(stock_codes))
-                logger.info(f"📈 实时行情同步进度: {processed}/{len(stock_codes)}")
+                logger.info(f"[CHART-UP] 实时行情同步进度: {processed}/{len(stock_codes)}")
                 
                 # 避免API限制
                 await asyncio.sleep(0.1)
             
-            logger.info(f"✅ 实时行情同步完成: {self.sync_stats['quotes']['success']}/{self.sync_stats['quotes']['total']}")
+            logger.info(f"[OK] 实时行情同步完成: {self.sync_stats['quotes']['success']}/{self.sync_stats['quotes']['total']}")
             
         except Exception as e:
-            logger.error(f"❌ 实时行情同步失败: {e}")
+            logger.error(f"[FAIL] 实时行情同步失败: {e}")
     
     async def sync_financial_data(self):
         """同步财务数据"""
@@ -172,7 +172,7 @@ class ExampleSDKSyncService:
             stock_codes = [doc["code"] async for doc in cursor]
             
             if not stock_codes:
-                logger.warning("⚠️ 未找到需要同步财务数据的股票")
+                logger.warning("[WARN] 未找到需要同步财务数据的股票")
                 return
             
             self.sync_stats["financial"]["total"] = len(stock_codes)
@@ -182,10 +182,10 @@ class ExampleSDKSyncService:
                 await self._process_financial_data(code)
                 await asyncio.sleep(1)  # 更长的延迟
             
-            logger.info(f"✅ 财务数据同步完成: {self.sync_stats['financial']['success']}/{self.sync_stats['financial']['total']}")
+            logger.info(f"[OK] 财务数据同步完成: {self.sync_stats['financial']['success']}/{self.sync_stats['financial']['total']}")
             
         except Exception as e:
-            logger.error(f"❌ 财务数据同步失败: {e}")
+            logger.error(f"[FAIL] 财务数据同步失败: {e}")
     
     async def _process_basic_info_batch(self, batch: List[Dict[str, Any]]):
         """处理基础信息批次"""
@@ -202,11 +202,11 @@ class ExampleSDKSyncService:
                     self.sync_stats["basic_info"]["success"] += 1
                 else:
                     self.sync_stats["basic_info"]["failed"] += 1
-                    logger.warning(f"⚠️ 更新{code}基础信息失败")
+                    logger.warning(f"[WARN] 更新{code}基础信息失败")
                     
             except Exception as e:
                 self.sync_stats["basic_info"]["failed"] += 1
-                logger.error(f"❌ 处理{stock_info.get('code', 'N/A')}基础信息失败: {e}")
+                logger.error(f"[FAIL] 处理{stock_info.get('code', 'N/A')}基础信息失败: {e}")
     
     async def _process_quotes_batch(self, batch: List[str]):
         """处理行情批次"""
@@ -223,13 +223,13 @@ class ExampleSDKSyncService:
                         self.sync_stats["quotes"]["success"] += 1
                     else:
                         self.sync_stats["quotes"]["failed"] += 1
-                        logger.warning(f"⚠️ 更新{code}行情失败")
+                        logger.warning(f"[WARN] 更新{code}行情失败")
                 else:
                     self.sync_stats["quotes"]["failed"] += 1
                     
             except Exception as e:
                 self.sync_stats["quotes"]["failed"] += 1
-                logger.error(f"❌ 处理{code}行情失败: {e}")
+                logger.error(f"[FAIL] 处理{code}行情失败: {e}")
     
     async def _process_financial_data(self, code: str):
         """处理财务数据"""
@@ -257,13 +257,13 @@ class ExampleSDKSyncService:
                 )
                 
                 self.sync_stats["financial"]["success"] += 1
-                logger.debug(f"✅ 更新{code}财务数据成功")
+                logger.debug(f"[OK] 更新{code}财务数据成功")
             else:
                 self.sync_stats["financial"]["failed"] += 1
                 
         except Exception as e:
             self.sync_stats["financial"]["failed"] += 1
-            logger.error(f"❌ 处理{code}财务数据失败: {e}")
+            logger.error(f"[FAIL] 处理{code}财务数据失败: {e}")
     
     async def _record_sync_status(self, status: str, start_time: datetime, error_msg: str = None):
         """记录同步状态"""
@@ -288,11 +288,11 @@ class ExampleSDKSyncService:
             )
             
         except Exception as e:
-            logger.error(f"❌ 记录同步状态失败: {e}")
+            logger.error(f"[FAIL] 记录同步状态失败: {e}")
     
     def _log_sync_stats(self):
         """记录同步统计信息"""
-        logger.info("📊 ExampleSDK同步统计:")
+        logger.info("[CHART] ExampleSDK同步统计:")
         for data_type, stats in self.sync_stats.items():
             total = stats["total"]
             success = stats["success"]
@@ -303,21 +303,21 @@ class ExampleSDKSyncService:
     
     async def sync_incremental(self):
         """增量同步 - 只同步实时行情"""
-        logger.info("🔄 开始ExampleSDK增量同步...")
+        logger.info("[SYNC] 开始ExampleSDK增量同步...")
         
         try:
             if not await self.provider.connect():
-                logger.error("❌ ExampleSDK连接失败，增量同步中止")
+                logger.error("[FAIL] ExampleSDK连接失败，增量同步中止")
                 return False
             
             # 只同步实时行情
             await self.sync_realtime_quotes()
             
-            logger.info("✅ ExampleSDK增量同步完成")
+            logger.info("[OK] ExampleSDK增量同步完成")
             return True
             
         except Exception as e:
-            logger.error(f"❌ ExampleSDK增量同步失败: {e}")
+            logger.error(f"[FAIL] ExampleSDK增量同步失败: {e}")
             return False
             
         finally:

@@ -78,9 +78,9 @@ class UnifiedStockService:
             query = {"code": code, "source": source}
             doc = await collection.find_one(query, {"_id": 0})
             if doc:
-                logger.debug(f"✅ 使用指定数据源: {source}")
+                logger.debug(f"[OK] 使用指定数据源: {source}")
         else:
-            # 🔥 按优先级查询（参考A股设计）
+            # [HOT] 按优先级查询（参考A股设计）
             source_priority = await self._get_source_priority(market)
             doc = None
             
@@ -88,14 +88,14 @@ class UnifiedStockService:
                 query = {"code": code, "source": src}
                 doc = await collection.find_one(query, {"_id": 0})
                 if doc:
-                    logger.debug(f"✅ 使用数据源: {src} (优先级查询)")
+                    logger.debug(f"[OK] 使用数据源: {src} (优先级查询)")
                     break
             
             # 如果没有找到，尝试不指定source查询（兼容旧数据）
             if not doc:
                 doc = await collection.find_one({"code": code}, {"_id": 0})
                 if doc:
-                    logger.debug(f"✅ 使用默认数据源（兼容模式）")
+                    logger.debug(f"[OK] 使用默认数据源（兼容模式）")
         
         return doc
 
@@ -126,10 +126,10 @@ class UnifiedStockService:
             
             if groupings:
                 priority_list = [g["data_source_name"] for g in groupings]
-                logger.debug(f"📊 {market} 数据源优先级（从数据库）: {priority_list}")
+                logger.debug(f"[CHART] {market} 数据源优先级（从数据库）: {priority_list}")
                 return priority_list
         except Exception as e:
-            logger.warning(f"⚠️ 从数据库读取数据源优先级失败: {e}")
+            logger.warning(f"[WARN] 从数据库读取数据源优先级失败: {e}")
         
         # 默认优先级
         default_priority = {
@@ -138,7 +138,7 @@ class UnifiedStockService:
             "US": ["yfinance_us"]
         }
         priority_list = default_priority.get(market, [])
-        logger.debug(f"📊 {market} 数据源优先级（默认）: {priority_list}")
+        logger.debug(f"[CHART] {market} 数据源优先级（默认）: {priority_list}")
         return priority_list
 
     async def get_stock_quote(self, market: str, code: str) -> Optional[Dict]:
@@ -215,7 +215,7 @@ class UnifiedStockService:
         
         # 返回前 limit 条
         result_list = list(unique_results.values())[:limit]
-        logger.info(f"🔍 搜索 {market} 市场: '{query}' -> {len(result_list)} 条结果（已去重）")
+        logger.info(f"[SEARCH] 搜索 {market} 市场: '{query}' -> {len(result_list)} 条结果（已去重）")
         return result_list
 
     async def get_daily_quotes(

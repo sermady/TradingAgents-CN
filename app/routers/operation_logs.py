@@ -35,7 +35,7 @@ async def get_operation_logs(
 ):
     """获取操作日志列表"""
     try:
-        logger.info(f"🔍 用户 {current_user['username']} 获取操作日志列表")
+        logger.info(f"[SEARCH] 用户 {current_user['username']} 获取操作日志列表")
         
         service = get_operation_log_service()
         query = OperationLogQuery(
@@ -77,7 +77,7 @@ async def get_operation_log_stats(
 ):
     """获取操作日志统计"""
     try:
-        logger.info(f"📊 用户 {current_user['username']} 获取操作日志统计")
+        logger.info(f"[CHART] 用户 {current_user['username']} 获取操作日志统计")
         
         service = get_operation_log_service()
         stats = await service.get_stats(days)
@@ -103,7 +103,7 @@ async def get_operation_log_detail(
 ):
     """获取操作日志详情"""
     try:
-        logger.info(f"🔍 用户 {current_user['username']} 获取操作日志详情: {log_id}")
+        logger.info(f"[SEARCH] 用户 {current_user['username']} 获取操作日志详情: {log_id}")
         
         service = get_operation_log_service()
         log = await service.get_log_by_id(log_id)
@@ -173,7 +173,7 @@ async def create_operation_log(
 ):
     """手动创建操作日志"""
     try:
-        logger.info(f"📝 用户 {current_user['username']} 手动创建操作日志")
+        logger.info(f"[LOG] 用户 {current_user['username']} 手动创建操作日志")
         
         service = get_operation_log_service()
         
@@ -212,7 +212,7 @@ async def export_logs_csv(
 ):
     """导出操作日志为CSV"""
     try:
-        logger.info(f"📤 用户 {current_user['username']} 导出操作日志CSV")
+        logger.info(f"[EXPORT] 用户 {current_user['username']} 导出操作日志CSV")
         
         service = get_operation_log_service()
         query = OperationLogQuery(

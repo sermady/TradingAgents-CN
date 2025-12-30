@@ -77,7 +77,7 @@ class FavoritesService:
         codes = [it.get("stock_code") for it in items if it.get("stock_code")]
         if codes:
             try:
-                # 🔥 获取数据源优先级配置
+                # [HOT] 获取数据源优先级配置
                 from app.core.unified_config import UnifiedConfigManager
                 config = UnifiedConfigManager()
                 data_source_configs = await config.get_data_source_configs_async()
@@ -96,7 +96,7 @@ class FavoritesService:
                 # 从 stock_basic_info 获取板块信息（只查询优先级最高的数据源）
                 basic_info_coll = db["stock_basic_info"]
                 cursor = basic_info_coll.find(
-                    {"code": {"$in": codes}, "source": preferred_source},  # 🔥 添加数据源筛选
+                    {"code": {"$in": codes}, "source": preferred_source},  # [HOT] 添加数据源筛选
                     {"code": 1, "sse": 1, "market": 1, "_id": 0}
                 )
                 basic_docs = await cursor.to_list(length=None)
@@ -167,10 +167,10 @@ class FavoritesService:
         logger = logging.getLogger("webapi")
 
         try:
-            logger.info(f"🔧 [add_favorite] 开始添加自选股: user_id={user_id}, stock_code={stock_code}")
+            logger.info(f"[CONFIG] [add_favorite] 开始添加自选股: user_id={user_id}, stock_code={stock_code}")
 
             db = await self._get_db()
-            logger.info(f"🔧 [add_favorite] 数据库连接获取成功")
+            logger.info(f"[CONFIG] [add_favorite] 数据库连接获取成功")
 
             favorite_stock = {
                 "stock_code": stock_code,
@@ -183,13 +183,13 @@ class FavoritesService:
                 "alert_price_low": alert_price_low
             }
 
-            logger.info(f"🔧 [add_favorite] 自选股数据构建完成: {favorite_stock}")
+            logger.info(f"[CONFIG] [add_favorite] 自选股数据构建完成: {favorite_stock}")
 
             is_oid = self._is_valid_object_id(user_id)
-            logger.info(f"🔧 [add_favorite] 用户ID类型检查: is_valid_object_id={is_oid}")
+            logger.info(f"[CONFIG] [add_favorite] 用户ID类型检查: is_valid_object_id={is_oid}")
 
             if is_oid:
-                logger.info(f"🔧 [add_favorite] 使用 ObjectId 方式添加到 users 集合")
+                logger.info(f"[CONFIG] [add_favorite] 使用 ObjectId 方式添加到 users 集合")
 
                 # 先尝试使用 ObjectId 查询
                 result = await db.users.update_one(
@@ -199,24 +199,24 @@ class FavoritesService:
                         "$setOnInsert": {"favorite_stocks": []}
                     }
                 )
-                logger.info(f"🔧 [add_favorite] ObjectId查询结果: matched_count={result.matched_count}, modified_count={result.modified_count}")
+                logger.info(f"[CONFIG] [add_favorite] ObjectId查询结果: matched_count={result.matched_count}, modified_count={result.modified_count}")
 
                 # 如果 ObjectId 查询失败，尝试使用字符串查询
                 if result.matched_count == 0:
-                    logger.info(f"🔧 [add_favorite] ObjectId查询失败，尝试使用字符串ID查询")
+                    logger.info(f"[CONFIG] [add_favorite] ObjectId查询失败，尝试使用字符串ID查询")
                     result = await db.users.update_one(
                         {"_id": user_id},
                         {
                             "$push": {"favorite_stocks": favorite_stock}
                         }
                     )
-                    logger.info(f"🔧 [add_favorite] 字符串ID查询结果: matched_count={result.matched_count}, modified_count={result.modified_count}")
+                    logger.info(f"[CONFIG] [add_favorite] 字符串ID查询结果: matched_count={result.matched_count}, modified_count={result.modified_count}")
 
                 success = result.matched_count > 0
-                logger.info(f"🔧 [add_favorite] 返回结果: {success}")
+                logger.info(f"[CONFIG] [add_favorite] 返回结果: {success}")
                 return success
             else:
-                logger.info(f"🔧 [add_favorite] 使用字符串ID方式添加到 user_favorites 集合")
+                logger.info(f"[CONFIG] [add_favorite] 使用字符串ID方式添加到 user_favorites 集合")
                 result = await db.user_favorites.update_one(
                     {"user_id": user_id},
                     {
@@ -226,11 +226,11 @@ class FavoritesService:
                     },
                     upsert=True
                 )
-                logger.info(f"🔧 [add_favorite] 更新结果: matched_count={result.matched_count}, modified_count={result.modified_count}, upserted_id={result.upserted_id}")
-                logger.info(f"🔧 [add_favorite] 返回结果: True")
+                logger.info(f"[CONFIG] [add_favorite] 更新结果: matched_count={result.matched_count}, modified_count={result.modified_count}, upserted_id={result.upserted_id}")
+                logger.info(f"[CONFIG] [add_favorite] 返回结果: True")
                 return True
         except Exception as e:
-            logger.error(f"❌ [add_favorite] 添加自选股异常: {type(e).__name__}: {str(e)}", exc_info=True)
+            logger.error(f"[FAIL] [add_favorite] 添加自选股异常: {type(e).__name__}: {str(e)}", exc_info=True)
             raise
 
     async def remove_favorite(self, user_id: str, stock_code: str) -> bool:
@@ -318,12 +318,12 @@ class FavoritesService:
         logger = logging.getLogger("webapi")
 
         try:
-            logger.info(f"🔧 [is_favorite] 检查自选股: user_id={user_id}, stock_code={stock_code}")
+            logger.info(f"[CONFIG] [is_favorite] 检查自选股: user_id={user_id}, stock_code={stock_code}")
 
             db = await self._get_db()
 
             is_oid = self._is_valid_object_id(user_id)
-            logger.info(f"🔧 [is_favorite] 用户ID类型: is_valid_object_id={is_oid}")
+            logger.info(f"[CONFIG] [is_favorite] 用户ID类型: is_valid_object_id={is_oid}")
 
             if is_oid:
                 # 先尝试使用 ObjectId 查询
@@ -336,7 +336,7 @@ class FavoritesService:
 
                 # 如果 ObjectId 查询失败，尝试使用字符串查询
                 if user is None:
-                    logger.info(f"🔧 [is_favorite] ObjectId查询未找到，尝试使用字符串ID查询")
+                    logger.info(f"[CONFIG] [is_favorite] ObjectId查询未找到，尝试使用字符串ID查询")
                     user = await db.users.find_one(
                         {
                             "_id": user_id,
@@ -345,7 +345,7 @@ class FavoritesService:
                     )
 
                 result = user is not None
-                logger.info(f"🔧 [is_favorite] 查询结果: {result}")
+                logger.info(f"[CONFIG] [is_favorite] 查询结果: {result}")
                 return result
             else:
                 doc = await db.user_favorites.find_one(
@@ -355,10 +355,10 @@ class FavoritesService:
                     }
                 )
                 result = doc is not None
-                logger.info(f"🔧 [is_favorite] 字符串ID查询结果: {result}")
+                logger.info(f"[CONFIG] [is_favorite] 字符串ID查询结果: {result}")
                 return result
         except Exception as e:
-            logger.error(f"❌ [is_favorite] 检查自选股异常: {type(e).__name__}: {str(e)}", exc_info=True)
+            logger.error(f"[FAIL] [is_favorite] 检查自选股异常: {type(e).__name__}: {str(e)}", exc_info=True)
             raise
 
     async def get_user_tags(self, user_id: str) -> List[str]:

@@ -173,7 +173,7 @@ class StockDataPreparer:
     def _get_hk_network_limitation_suggestion(self) -> str:
         """获取港股网络限制的详细建议"""
         suggestions = [
-            "🌐 港股数据获取受到网络API限制，这是常见的临时问题",
+            "[WEB] 港股数据获取受到网络API限制，这是常见的临时问题",
             "",
             "[INFO] 解决方案：",
             "1. 等待5-10分钟后重试（API限制通常会自动解除）",
@@ -181,7 +181,7 @@ class StockDataPreparer:
             "3. 如果是知名港股（如腾讯0700.HK、阿里9988.HK），代码格式通常正确",
             "4. 可以尝试使用其他时间段进行分析",
             "",
-            "📋 常见港股代码格式：",
+            "[CLIPBOARD] 常见港股代码格式：",
             "• 腾讯控股：0700.HK",
             "• 阿里巴巴：9988.HK",
             "• 美团：3690.HK",
@@ -511,7 +511,7 @@ class StockDataPreparer:
                 logger.warning(f"[WARNING] [A股数据-异步] 数据库数据不完整: {db_check_result['message']}")
                 logger.info(f"[INFO] [A股数据-异步] 自动触发数据同步: {stock_code}")
 
-                # 🔥 使用异步方法同步数据
+                # [HOT] 使用异步方法同步数据
                 sync_result = await self._trigger_data_sync_async(stock_code, extended_start_date_str, end_date_str)
                 if sync_result["success"]:
                     logger.info(f"[SUCCESS] [A股数据-异步] 数据同步成功: {sync_result['message']}")
@@ -703,14 +703,14 @@ class StockDataPreparer:
         触发数据同步（同步包装器）
         在同步上下文中调用异步同步方法
 
-        🔥 兼容 asyncio.to_thread() 调用：
+        [HOT] 兼容 asyncio.to_thread() 调用：
         - 如果在 asyncio.to_thread() 创建的线程中运行，创建新的事件循环
         - 避免 "attached to a different loop" 错误
         """
         import asyncio
 
         try:
-            # 🔥 检测是否有正在运行的事件循环
+            # [HOT] 检测是否有正在运行的事件循环
             # 如果有，说明我们在 asyncio.to_thread() 创建的线程中，需要创建新的事件循环
             try:
                 running_loop = asyncio.get_running_loop()
@@ -1003,7 +1003,7 @@ class StockDataPreparer:
                 is_network_issue = any(indicator in str(stock_info) for indicator in network_error_indicators)
 
                 if is_network_issue:
-                    logger.warning(f"🌐 [港股数据] 网络限制影响: {formatted_code}")
+                    logger.warning(f"[WEB] [港股数据] 网络限制影响: {formatted_code}")
                     return StockDataPreparationResult(
                         is_valid=False,
                         stock_code=formatted_code,
@@ -1066,7 +1066,7 @@ class StockDataPreparer:
                 is_network_issue = any(indicator in str(historical_data) for indicator in network_error_indicators)
 
                 if is_network_issue:
-                    logger.warning(f"🌐 [港股数据] 历史数据获取受网络限制: {formatted_code}")
+                    logger.warning(f"[WEB] [港股数据] 历史数据获取受网络限制: {formatted_code}")
                     return StockDataPreparationResult(
                         is_valid=False,
                         stock_code=formatted_code,
@@ -1294,7 +1294,7 @@ async def prepare_stock_data_async(stock_code: str, market_type: str = "auto",
     """
     异步版本：预获取和验证股票数据
 
-    🔥 专门用于 FastAPI 异步上下文，避免事件循环冲突
+    [HOT] 专门用于 FastAPI 异步上下文，避免事件循环冲突
 
     Args:
         stock_code: 股票代码

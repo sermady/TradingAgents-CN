@@ -56,26 +56,26 @@ class BaoStockInitService:
         """
         try:
             self.settings = get_settings()
-            self.db = None  # 🔥 延迟初始化
+            self.db = None  # [HOT] 延迟初始化
             self.sync_service = BaoStockSyncService()
-            logger.info("✅ BaoStock初始化服务初始化成功")
+            logger.info("[OK] BaoStock初始化服务初始化成功")
         except Exception as e:
-            logger.error(f"❌ BaoStock初始化服务初始化失败: {e}")
+            logger.error(f"[FAIL] BaoStock初始化服务初始化失败: {e}")
             raise
 
     async def initialize(self):
         """异步初始化服务"""
         try:
-            # 🔥 初始化数据库连接
+            # [HOT] 初始化数据库连接
             from app.core.database import get_mongo_db
             self.db = get_mongo_db()
 
-            # 🔥 初始化同步服务
+            # [HOT] 初始化同步服务
             await self.sync_service.initialize()
 
-            logger.info("✅ BaoStock初始化服务异步初始化完成")
+            logger.info("[OK] BaoStock初始化服务异步初始化完成")
         except Exception as e:
-            logger.error(f"❌ BaoStock初始化服务异步初始化失败: {e}")
+            logger.error(f"[FAIL] BaoStock初始化服务异步初始化失败: {e}")
             raise
     
     async def check_database_status(self) -> Dict[str, Any]:
@@ -112,7 +112,7 @@ class BaoStockInitService:
             }
             
         except Exception as e:
-            logger.error(f"❌ 检查数据库状态失败: {e}")
+            logger.error(f"[FAIL] 检查数据库状态失败: {e}")
             return {"status": "error", "error": str(e)}
     
     async def full_initialization(self, historical_days: int = 365,
@@ -134,15 +134,15 @@ class BaoStockInitService:
         stats.start_time = datetime.now()
         
         try:
-            logger.info("🚀 开始BaoStock完整数据初始化...")
+            logger.info("[START] 开始BaoStock完整数据初始化...")
             
             # 步骤1: 检查数据库状态
             stats.current_step = "检查数据库状态"
-            logger.info(f"1️⃣ {stats.current_step}...")
+            logger.info(f"[1] {stats.current_step}...")
             
             db_status = await self.check_database_status()
             if db_status["status"] != "empty" and not force:
-                logger.info("ℹ️ 数据库已有数据，跳过初始化（使用--force强制重新初始化）")
+                logger.info("[INFO] 数据库已有数据，跳过初始化（使用--force强制重新初始化）")
                 stats.completed_steps = 6
                 stats.end_time = datetime.now()
                 return stats
@@ -151,7 +151,7 @@ class BaoStockInitService:
             
             # 步骤2: 初始化股票基础信息
             stats.current_step = "初始化股票基础信息"
-            logger.info(f"2️⃣ {stats.current_step}...")
+            logger.info(f"[2] {stats.current_step}...")
             
             basic_stats = await self.sync_service.sync_stock_basic_info()
             stats.basic_info_count = basic_stats.basic_info_count
@@ -163,7 +163,7 @@ class BaoStockInitService:
             
             # 步骤3: 同步历史数据（日线）
             stats.current_step = "同步历史数据（日线）"
-            logger.info(f"3️⃣ {stats.current_step} (最近{historical_days}天)...")
+            logger.info(f"[3] {stats.current_step} (最近{historical_days}天)...")
 
             historical_stats = await self.sync_service.sync_historical_data(days=historical_days, period="daily")
             stats.historical_records = historical_stats.historical_records
@@ -174,31 +174,31 @@ class BaoStockInitService:
             if enable_multi_period:
                 # 同步周线数据
                 stats.current_step = "同步周线数据"
-                logger.info(f"4️⃣a {stats.current_step} (最近{historical_days}天)...")
+                logger.info(f"[4]a {stats.current_step} (最近{historical_days}天)...")
                 try:
                     weekly_stats = await self.sync_service.sync_historical_data(days=historical_days, period="weekly")
                     stats.weekly_records = weekly_stats.historical_records
                     stats.errors.extend(weekly_stats.errors)
-                    logger.info(f"✅ 周线数据同步完成: {stats.weekly_records}条记录")
+                    logger.info(f"[OK] 周线数据同步完成: {stats.weekly_records}条记录")
                 except Exception as e:
-                    logger.warning(f"⚠️ 周线数据同步失败: {e}（继续后续步骤）")
+                    logger.warning(f"[WARN] 周线数据同步失败: {e}（继续后续步骤）")
                 stats.completed_steps += 1
 
                 # 同步月线数据
                 stats.current_step = "同步月线数据"
-                logger.info(f"4️⃣b {stats.current_step} (最近{historical_days}天)...")
+                logger.info(f"[4]b {stats.current_step} (最近{historical_days}天)...")
                 try:
                     monthly_stats = await self.sync_service.sync_historical_data(days=historical_days, period="monthly")
                     stats.monthly_records = monthly_stats.historical_records
                     stats.errors.extend(monthly_stats.errors)
-                    logger.info(f"✅ 月线数据同步完成: {stats.monthly_records}条记录")
+                    logger.info(f"[OK] 月线数据同步完成: {stats.monthly_records}条记录")
                 except Exception as e:
-                    logger.warning(f"⚠️ 月线数据同步失败: {e}（继续后续步骤）")
+                    logger.warning(f"[WARN] 月线数据同步失败: {e}（继续后续步骤）")
                 stats.completed_steps += 1
             
             # 步骤4: 同步财务数据
             stats.current_step = "同步财务数据"
-            logger.info(f"4️⃣ {stats.current_step}...")
+            logger.info(f"[4] {stats.current_step}...")
             
             financial_stats = await self._sync_financial_data()
             stats.financial_records = financial_stats
@@ -206,7 +206,7 @@ class BaoStockInitService:
             
             # 步骤5: 同步最新行情
             stats.current_step = "同步最新行情"
-            logger.info(f"5️⃣ {stats.current_step}...")
+            logger.info(f"[5] {stats.current_step}...")
             
             quotes_stats = await self.sync_service.sync_realtime_quotes()
             stats.quotes_count = quotes_stats.quotes_count
@@ -215,20 +215,20 @@ class BaoStockInitService:
             
             # 步骤6: 验证数据完整性
             stats.current_step = "验证数据完整性"
-            logger.info(f"6️⃣ {stats.current_step}...")
+            logger.info(f"[6] {stats.current_step}...")
             
             await self._verify_data_integrity(stats)
             stats.completed_steps += 1
             
             stats.end_time = datetime.now()
-            logger.info(f"🎉 BaoStock完整初始化成功完成！耗时: {stats.duration:.1f}秒")
+            logger.info(f"[SUCCESS] BaoStock完整初始化成功完成！耗时: {stats.duration:.1f}秒")
             
             return stats
             
         except Exception as e:
             stats.end_time = datetime.now()
             error_msg = f"BaoStock初始化失败: {e}"
-            logger.error(f"❌ {error_msg}")
+            logger.error(f"[FAIL] {error_msg}")
             stats.errors.append(error_msg)
             return stats
     
@@ -268,11 +268,11 @@ class BaoStockInitService:
                     logger.debug(f"获取{code}财务数据失败: {e}")
                     continue
             
-            logger.info(f"✅ 财务数据同步完成: {financial_count}条记录")
+            logger.info(f"[OK] 财务数据同步完成: {financial_count}条记录")
             return financial_count
             
         except Exception as e:
-            logger.error(f"❌ 财务数据同步失败: {e}")
+            logger.error(f"[FAIL] 财务数据同步失败: {e}")
             return 0
     
     async def _verify_data_integrity(self, stats: BaoStockInitializationStats):
@@ -281,17 +281,17 @@ class BaoStockInitService:
             # 检查基础信息
             basic_count = await self.db.stock_basic_info.count_documents({"data_source": "baostock"})
             if basic_count != stats.basic_info_count:
-                logger.warning(f"⚠️ 基础信息数量不匹配: 预期{stats.basic_info_count}, 实际{basic_count}")
+                logger.warning(f"[WARN] 基础信息数量不匹配: 预期{stats.basic_info_count}, 实际{basic_count}")
             
             # 检查行情数据
             quotes_count = await self.db.market_quotes.count_documents({"data_source": "baostock"})
             if quotes_count != stats.quotes_count:
-                logger.warning(f"⚠️ 行情数据数量不匹配: 预期{stats.quotes_count}, 实际{quotes_count}")
+                logger.warning(f"[WARN] 行情数据数量不匹配: 预期{stats.quotes_count}, 实际{quotes_count}")
             
-            logger.info("✅ 数据完整性验证完成")
+            logger.info("[OK] 数据完整性验证完成")
             
         except Exception as e:
-            logger.error(f"❌ 数据完整性验证失败: {e}")
+            logger.error(f"[FAIL] 数据完整性验证失败: {e}")
             stats.errors.append(f"数据完整性验证失败: {e}")
     
     async def basic_initialization(self) -> BaoStockInitializationStats:
@@ -301,11 +301,11 @@ class BaoStockInitService:
         stats.total_steps = 3
         
         try:
-            logger.info("🚀 开始BaoStock基础数据初始化...")
+            logger.info("[START] 开始BaoStock基础数据初始化...")
             
             # 步骤1: 初始化股票基础信息
             stats.current_step = "初始化股票基础信息"
-            logger.info(f"1️⃣ {stats.current_step}...")
+            logger.info(f"[1] {stats.current_step}...")
             
             basic_stats = await self.sync_service.sync_stock_basic_info()
             stats.basic_info_count = basic_stats.basic_info_count
@@ -314,7 +314,7 @@ class BaoStockInitService:
             
             # 步骤2: 同步最新行情
             stats.current_step = "同步最新行情"
-            logger.info(f"2️⃣ {stats.current_step}...")
+            logger.info(f"[2] {stats.current_step}...")
             
             quotes_stats = await self.sync_service.sync_realtime_quotes()
             stats.quotes_count = quotes_stats.quotes_count
@@ -323,20 +323,20 @@ class BaoStockInitService:
             
             # 步骤3: 验证数据
             stats.current_step = "验证数据完整性"
-            logger.info(f"3️⃣ {stats.current_step}...")
+            logger.info(f"[3] {stats.current_step}...")
             
             await self._verify_data_integrity(stats)
             stats.completed_steps += 1
             
             stats.end_time = datetime.now()
-            logger.info(f"🎉 BaoStock基础初始化完成！耗时: {stats.duration:.1f}秒")
+            logger.info(f"[SUCCESS] BaoStock基础初始化完成！耗时: {stats.duration:.1f}秒")
             
             return stats
             
         except Exception as e:
             stats.end_time = datetime.now()
             error_msg = f"BaoStock基础初始化失败: {e}"
-            logger.error(f"❌ {error_msg}")
+            logger.error(f"[FAIL] {error_msg}")
             stats.errors.append(error_msg)
             return stats
 
@@ -346,19 +346,19 @@ async def run_baostock_full_initialization():
     """运行BaoStock完整初始化"""
     try:
         service = BaoStockInitService()
-        await service.initialize()  # 🔥 必须先初始化
+        await service.initialize()  # [HOT] 必须先初始化
         stats = await service.full_initialization()
-        logger.info(f"🎯 BaoStock完整初始化完成: {stats.progress}, 耗时: {stats.duration:.1f}秒")
+        logger.info(f"[TARGET] BaoStock完整初始化完成: {stats.progress}, 耗时: {stats.duration:.1f}秒")
     except Exception as e:
-        logger.error(f"❌ BaoStock完整初始化任务失败: {e}")
+        logger.error(f"[FAIL] BaoStock完整初始化任务失败: {e}")
 
 
 async def run_baostock_basic_initialization():
     """运行BaoStock基础初始化"""
     try:
         service = BaoStockInitService()
-        await service.initialize()  # 🔥 必须先初始化
+        await service.initialize()  # [HOT] 必须先初始化
         stats = await service.basic_initialization()
-        logger.info(f"🎯 BaoStock基础初始化完成: {stats.progress}, 耗时: {stats.duration:.1f}秒")
+        logger.info(f"[TARGET] BaoStock基础初始化完成: {stats.progress}, 耗时: {stats.duration:.1f}秒")
     except Exception as e:
-        logger.error(f"❌ BaoStock基础初始化任务失败: {e}")
+        logger.error(f"[FAIL] BaoStock基础初始化任务失败: {e}")

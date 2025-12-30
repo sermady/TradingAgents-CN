@@ -29,7 +29,7 @@ def bridge_config_to_env():
         from app.core.unified_config import unified_config
         from app.services.config_service import config_service
 
-        logger.info("🔧 开始桥接配置到环境变量...")
+        logger.info("[CONFIG] 开始桥接配置到环境变量...")
         bridged_count = 0
 
         # 强制启用 MongoDB 存储（用于 Token 使用统计）
@@ -53,8 +53,8 @@ def bridge_config_to_env():
         bridged_count += 1
 
         # 1. 桥接大模型配置（基础 API 密钥）
-        # 🔧 [优先级] .env 文件 > 数据库厂家配置
-        # 🔥 修改：从数据库的 llm_providers 集合读取厂家配置，而不是从 JSON 文件
+        # [CONFIG] [优先级] .env 文件 > 数据库厂家配置
+        # [HOT] 修改：从数据库的 llm_providers 集合读取厂家配置，而不是从 JSON 文件
         # 只有当环境变量不存在或为占位符时，才使用数据库中的配置
         try:
             # 使用同步 MongoDB 客户端读取厂家配置
@@ -71,7 +71,7 @@ def bridge_config_to_env():
             providers_data = list(providers_collection.find())
             providers = [LLMProvider(**data) for data in providers_data]
 
-            logger.info(f"  📊 从数据库读取到 {len(providers)} 个厂家配置")
+            logger.info(f"  [CHART] 从数据库读取到 {len(providers)} 个厂家配置")
 
             for provider in providers:
                 if not provider.is_active:
@@ -97,8 +97,8 @@ def bridge_config_to_env():
             client.close()
 
         except Exception as e:
-            logger.error(f"❌ 从数据库读取厂家配置失败: {e}", exc_info=True)
-            logger.warning("⚠️  将尝试从 JSON 文件读取配置作为后备方案")
+            logger.error(f"[FAIL] 从数据库读取厂家配置失败: {e}", exc_info=True)
+            logger.warning("[WARN]  将尝试从 JSON 文件读取配置作为后备方案")
 
             # 后备方案：从 JSON 文件读取
             llm_configs = unified_config.get_llm_configs()
@@ -118,7 +118,7 @@ def bridge_config_to_env():
                         logger.info(f"  ✓ 使用 JSON 文件中的 {env_key} (长度: {len(llm_config.api_key)})")
                         bridged_count += 1
                     else:
-                        logger.warning(f"  ⚠️  {env_key} 在 .env 和 JSON 文件中都是占位符，跳过")
+                        logger.warning(f"  [WARN]  {env_key} 在 .env 和 JSON 文件中都是占位符，跳过")
                 else:
                     logger.debug(f"  ⏭️  {env_key} 未配置")
 
@@ -142,8 +142,8 @@ def bridge_config_to_env():
             bridged_count += 1
 
         # 3. 桥接数据源配置（基础 API 密钥）
-        # 🔧 [优先级] .env 文件 > 数据库配置
-        # 🔥 修改：从数据库的 system_configs 集合读取数据源配置，而不是从 JSON 文件
+        # [CONFIG] [优先级] .env 文件 > 数据库配置
+        # [HOT] 修改：从数据库的 system_configs 集合读取数据源配置，而不是从 JSON 文件
         try:
             # 使用同步 MongoDB 客户端读取系统配置
             from pymongo import MongoClient
@@ -164,23 +164,23 @@ def bridge_config_to_env():
             if config_data and config_data.get('data_source_configs'):
                 system_config = SystemConfig(**config_data)
                 data_source_configs = system_config.data_source_configs
-                logger.info(f"  📊 从数据库读取到 {len(data_source_configs)} 个数据源配置")
+                logger.info(f"  [CHART] 从数据库读取到 {len(data_source_configs)} 个数据源配置")
             else:
-                logger.warning("  ⚠️  数据库中没有数据源配置，使用 JSON 文件配置")
+                logger.warning("  [WARN]  数据库中没有数据源配置，使用 JSON 文件配置")
                 data_source_configs = unified_config.get_data_source_configs()
 
             # 关闭同步客户端
             client.close()
 
         except Exception as e:
-            logger.error(f"❌ 从数据库读取数据源配置失败: {e}", exc_info=True)
-            logger.warning("⚠️  将尝试从 JSON 文件读取配置作为后备方案")
+            logger.error(f"[FAIL] 从数据库读取数据源配置失败: {e}", exc_info=True)
+            logger.warning("[WARN]  将尝试从 JSON 文件读取配置作为后备方案")
             data_source_configs = unified_config.get_data_source_configs()
 
         for ds_config in data_source_configs:
             if ds_config.enabled and ds_config.api_key:
                 # Tushare Token
-                # 🔥 优先级：数据库配置 > .env 文件（用户在 Web 后台修改后立即生效）
+                # [HOT] 优先级：数据库配置 > .env 文件（用户在 Web 后台修改后立即生效）
                 if ds_config.type.value == 'tushare':
                     existing_token = os.getenv('TUSHARE_TOKEN')
 
@@ -189,18 +189,18 @@ def bridge_config_to_env():
                         os.environ['TUSHARE_TOKEN'] = ds_config.api_key
                         logger.info(f"  ✓ 使用数据库中的 TUSHARE_TOKEN (长度: {len(ds_config.api_key)})")
                         if existing_token and existing_token != ds_config.api_key:
-                            logger.info(f"  ℹ️  已覆盖 .env 文件中的 TUSHARE_TOKEN")
+                            logger.info(f"  [INFO]  已覆盖 .env 文件中的 TUSHARE_TOKEN")
                     # 降级到 .env 文件配置
                     elif existing_token and not existing_token.startswith("your_"):
                         logger.info(f"  ✓ 使用 .env 文件中的 TUSHARE_TOKEN (长度: {len(existing_token)})")
-                        logger.info(f"  ℹ️  数据库中未配置有效的 TUSHARE_TOKEN，使用 .env 降级方案")
+                        logger.info(f"  [INFO]  数据库中未配置有效的 TUSHARE_TOKEN，使用 .env 降级方案")
                     else:
-                        logger.warning(f"  ⚠️  TUSHARE_TOKEN 在数据库和 .env 中都未配置有效值")
+                        logger.warning(f"  [WARN]  TUSHARE_TOKEN 在数据库和 .env 中都未配置有效值")
                         continue
                     bridged_count += 1
 
                 # FinnHub API Key
-                # 🔥 优先级：数据库配置 > .env 文件
+                # [HOT] 优先级：数据库配置 > .env 文件
                 elif ds_config.type.value == 'finnhub':
                     existing_key = os.getenv('FINNHUB_API_KEY')
 
@@ -209,13 +209,13 @@ def bridge_config_to_env():
                         os.environ['FINNHUB_API_KEY'] = ds_config.api_key
                         logger.info(f"  ✓ 使用数据库中的 FINNHUB_API_KEY (长度: {len(ds_config.api_key)})")
                         if existing_key and existing_key != ds_config.api_key:
-                            logger.info(f"  ℹ️  已覆盖 .env 文件中的 FINNHUB_API_KEY")
+                            logger.info(f"  [INFO]  已覆盖 .env 文件中的 FINNHUB_API_KEY")
                     # 降级到 .env 文件配置
                     elif existing_key and not existing_key.startswith("your_"):
                         logger.info(f"  ✓ 使用 .env 文件中的 FINNHUB_API_KEY (长度: {len(existing_key)})")
-                        logger.info(f"  ℹ️  数据库中未配置有效的 FINNHUB_API_KEY，使用 .env 降级方案")
+                        logger.info(f"  [INFO]  数据库中未配置有效的 FINNHUB_API_KEY，使用 .env 降级方案")
                     else:
-                        logger.warning(f"  ⚠️  FINNHUB_API_KEY 在数据库和 .env 中都未配置有效值")
+                        logger.warning(f"  [WARN]  FINNHUB_API_KEY 在数据库和 .env 中都未配置有效值")
                         continue
                     bridged_count += 1
 
@@ -230,42 +230,42 @@ def bridge_config_to_env():
         try:
             from tradingagents.config.config_manager import config_manager
             from tradingagents.config.mongodb_storage import MongoDBStorage
-            logger.info("🔄 重新初始化 tradingagents MongoDB 存储...")
+            logger.info("[SYNC] 重新初始化 tradingagents MongoDB 存储...")
 
             # 调试：检查环境变量
             use_mongodb = os.getenv("USE_MONGODB_STORAGE", "false")
             mongodb_conn = os.getenv("MONGODB_CONNECTION_STRING", "未设置")
             mongodb_db = os.getenv("MONGODB_DATABASE_NAME", "tradingagents")
-            logger.info(f"  📋 USE_MONGODB_STORAGE: {use_mongodb}")
-            logger.info(f"  📋 MONGODB_CONNECTION_STRING: {mongodb_conn[:30]}..." if len(mongodb_conn) > 30 else f"  📋 MONGODB_CONNECTION_STRING: {mongodb_conn}")
-            logger.info(f"  📋 MONGODB_DATABASE_NAME: {mongodb_db}")
+            logger.info(f"  [CLIPBOARD] USE_MONGODB_STORAGE: {use_mongodb}")
+            logger.info(f"  [CLIPBOARD] MONGODB_CONNECTION_STRING: {mongodb_conn[:30]}..." if len(mongodb_conn) > 30 else f"  [CLIPBOARD] MONGODB_CONNECTION_STRING: {mongodb_conn}")
+            logger.info(f"  [CLIPBOARD] MONGODB_DATABASE_NAME: {mongodb_db}")
 
             # 直接创建 MongoDBStorage 实例，而不是调用 _init_mongodb_storage()
             # 这样可以捕获更详细的错误信息
             if use_mongodb.lower() == "true":
                 try:
-                    # 🔍 详细日志：显示完整的连接字符串（用于调试）
-                    logger.info(f"  🔍 实际传入的连接字符串: {mongodb_conn}")
-                    logger.info(f"  🔍 实际传入的数据库名称: {mongodb_db}")
+                    # [SEARCH] 详细日志：显示完整的连接字符串（用于调试）
+                    logger.info(f"  [SEARCH] 实际传入的连接字符串: {mongodb_conn}")
+                    logger.info(f"  [SEARCH] 实际传入的数据库名称: {mongodb_db}")
 
                     config_manager.mongodb_storage = MongoDBStorage(
                         connection_string=mongodb_conn,
                         database_name=mongodb_db
                     )
                     if config_manager.mongodb_storage.is_connected():
-                        logger.info("✅ tradingagents MongoDB 存储已启用")
+                        logger.info("[OK] tradingagents MongoDB 存储已启用")
                     else:
-                        logger.warning("⚠️ tradingagents MongoDB 连接失败，将使用 JSON 文件存储")
+                        logger.warning("[WARN] tradingagents MongoDB 连接失败，将使用 JSON 文件存储")
                         config_manager.mongodb_storage = None
                 except Exception as e:
-                    logger.error(f"❌ 创建 MongoDBStorage 实例失败: {e}")
+                    logger.error(f"[FAIL] 创建 MongoDBStorage 实例失败: {e}")
                     import traceback
                     logger.error(traceback.format_exc())
                     config_manager.mongodb_storage = None
             else:
-                logger.info("ℹ️ USE_MONGODB_STORAGE 未启用，将使用 JSON 文件存储")
+                logger.info("[INFO] USE_MONGODB_STORAGE 未启用，将使用 JSON 文件存储")
         except Exception as e:
-            logger.error(f"❌ 重新初始化 tradingagents MongoDB 存储失败: {e}")
+            logger.error(f"[FAIL] 重新初始化 tradingagents MongoDB 存储失败: {e}")
             import traceback
             logger.error(traceback.format_exc())
 
@@ -278,17 +278,17 @@ def bridge_config_to_env():
             # 在异步上下文中，创建后台任务
             task = loop.create_task(_sync_pricing_config_from_db())
             task.add_done_callback(_handle_sync_task_result)
-            logger.info("🔄 定价配置同步任务已创建（后台执行）")
+            logger.info("[SYNC] 定价配置同步任务已创建（后台执行）")
         except RuntimeError:
             # 不在异步上下文中，使用 asyncio.run
             asyncio.run(_sync_pricing_config_from_db())
 
-        logger.info(f"✅ 配置桥接完成，共桥接 {bridged_count} 项配置")
+        logger.info(f"[OK] 配置桥接完成，共桥接 {bridged_count} 项配置")
         return True
 
     except Exception as e:
-        logger.error(f"❌ 配置桥接失败: {e}", exc_info=True)
-        logger.warning("⚠️  TradingAgents 将使用 .env 文件中的配置")
+        logger.error(f"[FAIL] 配置桥接失败: {e}", exc_info=True)
+        logger.warning("[WARN]  TradingAgents 将使用 .env 文件中的配置")
         return False
 
 
@@ -377,12 +377,12 @@ def _bridge_system_settings() -> int:
             config_doc = db.system_configs.find_one({"is_active": True})
 
             if not config_doc or 'system_settings' not in config_doc:
-                logger.debug("  ⚠️  系统设置为空，跳过桥接")
+                logger.debug("  [WARN]  系统设置为空，跳过桥接")
                 return 0
 
             system_settings = config_doc['system_settings']
         except Exception as e:
-            logger.debug(f"  ⚠️  无法从数据库获取系统设置: {e}")
+            logger.debug(f"  [WARN]  无法从数据库获取系统设置: {e}")
             import traceback
             logger.debug(traceback.format_exc())
             return 0
@@ -390,10 +390,10 @@ def _bridge_system_settings() -> int:
             client.close()
 
         if not system_settings:
-            logger.debug("  ⚠️  系统设置为空，跳过桥接")
+            logger.debug("  [WARN]  系统设置为空，跳过桥接")
             return 0
 
-        logger.debug(f"  📋 获取到 {len(system_settings)} 个系统设置")
+        logger.debug(f"  [CLIPBOARD] 获取到 {len(system_settings)} 个系统设置")
         bridged_count = 0
 
         # TradingAgents 运行时配置
@@ -426,7 +426,7 @@ def _bridge_system_settings() -> int:
                 logger.info(f"  ✓ 桥接 {env_key}: {value}")
                 bridged_count += 1
             else:
-                logger.debug(f"  ⚠️  配置键 {setting_key} 不存在于系统设置中")
+                logger.debug(f"  [WARN]  配置键 {setting_key} 不存在于系统设置中")
 
         # 桥接 Token 使用统计配置
         for setting_key, env_key in token_tracking_settings.items():
@@ -436,7 +436,7 @@ def _bridge_system_settings() -> int:
                 logger.info(f"  ✓ 桥接 {env_key}: {value}")
                 bridged_count += 1
             else:
-                logger.debug(f"  ⚠️  配置键 {setting_key} 不存在于系统设置中")
+                logger.debug(f"  [WARN]  配置键 {setting_key} 不存在于系统设置中")
 
         # 时区配置
         if 'app_timezone' in system_settings:
@@ -455,39 +455,39 @@ def _bridge_system_settings() -> int:
 
         # 同步到文件系统（供 unified_config 使用）
         try:
-            print(f"🔄 [config_bridge] 准备同步系统设置到文件系统")
-            print(f"🔄 [config_bridge] system_settings 包含 {len(system_settings)} 项")
+            print(f"[SYNC] [config_bridge] 准备同步系统设置到文件系统")
+            print(f"[SYNC] [config_bridge] system_settings 包含 {len(system_settings)} 项")
 
             # 检查关键字段
             if "quick_analysis_model" in system_settings:
                 print(f"  ✓ [config_bridge] 包含 quick_analysis_model: {system_settings['quick_analysis_model']}")
             else:
-                print(f"  ⚠️  [config_bridge] 不包含 quick_analysis_model")
+                print(f"  [WARN]  [config_bridge] 不包含 quick_analysis_model")
 
             if "deep_analysis_model" in system_settings:
                 print(f"  ✓ [config_bridge] 包含 deep_analysis_model: {system_settings['deep_analysis_model']}")
             else:
-                print(f"  ⚠️  [config_bridge] 不包含 deep_analysis_model")
+                print(f"  [WARN]  [config_bridge] 不包含 deep_analysis_model")
 
             from app.core.unified_config import unified_config
             result = unified_config.save_system_settings(system_settings)
 
             if result:
                 logger.info(f"  ✓ 系统设置已同步到文件系统")
-                print(f"✅ [config_bridge] 系统设置同步成功")
+                print(f"[OK] [config_bridge] 系统设置同步成功")
             else:
-                logger.warning(f"  ⚠️  系统设置同步返回 False")
-                print(f"⚠️  [config_bridge] 系统设置同步返回 False")
+                logger.warning(f"  [WARN]  系统设置同步返回 False")
+                print(f"[WARN]  [config_bridge] 系统设置同步返回 False")
         except Exception as e:
-            logger.warning(f"  ⚠️  同步系统设置到文件系统失败: {e}")
-            print(f"❌ [config_bridge] 同步系统设置到文件系统失败: {e}")
+            logger.warning(f"  [WARN]  同步系统设置到文件系统失败: {e}")
+            print(f"[FAIL] [config_bridge] 同步系统设置到文件系统失败: {e}")
             import traceback
             print(traceback.format_exc())
 
         return bridged_count
 
     except Exception as e:
-        logger.warning(f"  ⚠️  桥接系统设置失败: {e}")
+        logger.warning(f"  [WARN]  桥接系统设置失败: {e}")
         return 0
 
 
@@ -574,7 +574,7 @@ def clear_bridged_config():
             del os.environ[key]
             logger.debug(f"  清除环境变量: {key}")
 
-    logger.info("✅ 已清除所有桥接的配置")
+    logger.info("[OK] 已清除所有桥接的配置")
 
 
 def reload_bridged_config():
@@ -583,7 +583,7 @@ def reload_bridged_config():
 
     用于配置更新后重新桥接
     """
-    logger.info("🔄 重新加载配置桥接...")
+    logger.info("[SYNC] 重新加载配置桥接...")
     clear_bridged_config()
     return bridge_config_to_env()
 
@@ -624,7 +624,7 @@ def _sync_pricing_config(llm_configs):
         logger.info(f"  ✓ 同步定价配置到 {pricing_file}: {len(pricing_configs)} 个模型")
 
     except Exception as e:
-        logger.warning(f"  ⚠️  同步定价配置失败: {e}")
+        logger.warning(f"  [WARN]  同步定价配置失败: {e}")
 
 
 def sync_pricing_config_now():
@@ -643,14 +643,14 @@ def sync_pricing_config_now():
             task = loop.create_task(_sync_pricing_config_from_db())
             # 添加回调来记录错误
             task.add_done_callback(_handle_sync_task_result)
-            logger.info("🔄 定价配置同步任务已创建（后台执行）")
+            logger.info("[SYNC] 定价配置同步任务已创建（后台执行）")
             return True
         except RuntimeError:
             # 不在异步上下文中，使用 asyncio.run
             asyncio.run(_sync_pricing_config_from_db())
             return True
     except Exception as e:
-        logger.error(f"❌ 立即同步定价配置失败: {e}")
+        logger.error(f"[FAIL] 立即同步定价配置失败: {e}")
         import traceback
         logger.error(traceback.format_exc())
         return False
@@ -661,7 +661,7 @@ def _handle_sync_task_result(task):
     try:
         task.result()
     except Exception as e:
-        logger.error(f"❌ 定价配置同步任务执行失败: {e}")
+        logger.error(f"[FAIL] 定价配置同步任务执行失败: {e}")
         import traceback
         logger.error(traceback.format_exc())
 
@@ -683,7 +683,7 @@ async def _sync_pricing_config_from_db():
         )
 
         if not config:
-            logger.warning("⚠️  未找到激活的配置")
+            logger.warning("[WARN]  未找到激活的配置")
             return
 
         # 获取项目根目录的 config 目录
@@ -717,10 +717,10 @@ async def _sync_pricing_config_from_db():
         with open(pricing_file, 'w', encoding='utf-8') as f:
             json.dump(pricing_configs, f, ensure_ascii=False, indent=2)
 
-        logger.info(f"✅ 同步定价配置到 {pricing_file}: {len(pricing_configs)} 个模型")
+        logger.info(f"[OK] 同步定价配置到 {pricing_file}: {len(pricing_configs)} 个模型")
 
     except Exception as e:
-        logger.error(f"❌ 从数据库同步定价配置失败: {e}")
+        logger.error(f"[FAIL] 从数据库同步定价配置失败: {e}")
         import traceback
         logger.error(traceback.format_exc())
 

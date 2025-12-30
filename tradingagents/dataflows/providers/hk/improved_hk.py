@@ -115,7 +115,7 @@ class ImprovedHKStockProvider:
             else:
                 self.cache = {}
         except Exception as e:
-            logger.debug(f"📊 [港股缓存] 加载缓存失败: {e}")
+            logger.debug(f"[CHART] [港股缓存] 加载缓存失败: {e}")
             self.cache = {}
     
     def _save_cache(self):
@@ -126,7 +126,7 @@ class ImprovedHKStockProvider:
             with open(self.cache_file, 'w', encoding='utf-8') as f:
                 json.dump(self.cache, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.debug(f"📊 [港股缓存] 保存缓存失败: {e}")
+            logger.debug(f"[CHART] [港股缓存] 保存缓存失败: {e}")
     
     def _is_cache_valid(self, key: str) -> bool:
         """检查缓存是否有效"""
@@ -143,7 +143,7 @@ class ImprovedHKStockProvider:
 
         if time_since_last_request < self.rate_limit_wait:
             wait_time = self.rate_limit_wait - time_since_last_request
-            logger.debug(f"⏱️ [速率限制] 等待 {wait_time:.2f} 秒")
+            logger.debug(f"[TIME] [速率限制] 等待 {wait_time:.2f} 秒")
             time.sleep(wait_time)
 
         self.last_request_time = time.time()
@@ -180,7 +180,7 @@ class ImprovedHKStockProvider:
             cache_key = f"name_{symbol}"
             if self._is_cache_valid(cache_key):
                 cached_name = self.cache[cache_key]['data']
-                logger.debug(f"📊 [港股缓存] 从缓存获取公司名称: {symbol} -> {cached_name}")
+                logger.debug(f"[CHART] [港股缓存] 从缓存获取公司名称: {symbol} -> {cached_name}")
                 return cached_name
             
             # 方案1：使用内置映射
@@ -199,7 +199,7 @@ class ImprovedHKStockProvider:
                     }
                     self._save_cache()
                     
-                    logger.debug(f"📊 [港股映射] 获取公司名称: {symbol} -> {company_name}")
+                    logger.debug(f"[CHART] [港股映射] 获取公司名称: {symbol} -> {company_name}")
                     return company_name
             
             # 方案2：优先尝试AKShare API获取（有速率限制保护）
@@ -208,7 +208,7 @@ class ImprovedHKStockProvider:
                 current_time = time.time()
                 if current_time - self.last_request_time < self.rate_limit_wait:
                     wait_time = self.rate_limit_wait - (current_time - self.last_request_time)
-                    logger.debug(f"📊 [港股API] 速率限制保护，等待 {wait_time:.1f} 秒")
+                    logger.debug(f"[CHART] [港股API] 速率限制保护，等待 {wait_time:.1f} 秒")
                     time.sleep(wait_time)
 
                 self.last_request_time = time.time()
@@ -216,7 +216,7 @@ class ImprovedHKStockProvider:
                 # 优先尝试AKShare获取
                 try:
                     # 直接使用 akshare 库获取，避免循环调用
-                    logger.debug(f"📊 [港股API] 优先使用AKShare获取: {symbol}")
+                    logger.debug(f"[CHART] [港股API] 优先使用AKShare获取: {symbol}")
 
                     import akshare as ak
                     # 标准化代码格式（akshare 需要 5 位数字格式）
@@ -241,13 +241,13 @@ class ImprovedHKStockProvider:
                                     }
                                     self._save_cache()
 
-                                    logger.debug(f"📊 [港股AKShare-新浪] 获取公司名称: {symbol} -> {akshare_name}")
+                                    logger.debug(f"[CHART] [港股AKShare-新浪] 获取公司名称: {symbol} -> {akshare_name}")
                                     return akshare_name
                     except Exception as e:
-                        logger.debug(f"📊 [港股AKShare-新浪] 获取实时行情失败: {e}")
+                        logger.debug(f"[CHART] [港股AKShare-新浪] 获取实时行情失败: {e}")
 
                 except Exception as e:
-                    logger.debug(f"📊 [港股AKShare] AKShare获取失败: {e}")
+                    logger.debug(f"[CHART] [港股AKShare] AKShare获取失败: {e}")
 
                 # 备用：尝试从统一接口获取（包含Yahoo Finance）
                 from tradingagents.dataflows.interface import get_hk_stock_info_unified
@@ -264,11 +264,11 @@ class ImprovedHKStockProvider:
                         }
                         self._save_cache()
 
-                        logger.debug(f"📊 [港股统一API] 获取公司名称: {symbol} -> {api_name}")
+                        logger.debug(f"[CHART] [港股统一API] 获取公司名称: {symbol} -> {api_name}")
                         return api_name
 
             except Exception as e:
-                logger.debug(f"📊 [港股API] API获取失败: {e}")
+                logger.debug(f"[CHART] [港股API] API获取失败: {e}")
             
             # 方案3：生成友好的默认名称
             clean_symbol = self._normalize_hk_symbol(symbol)
@@ -282,11 +282,11 @@ class ImprovedHKStockProvider:
             }
             self._save_cache()
             
-            logger.debug(f"📊 [港股默认] 使用默认名称: {symbol} -> {default_name}")
+            logger.debug(f"[CHART] [港股默认] 使用默认名称: {symbol} -> {default_name}")
             return default_name
             
         except Exception as e:
-            logger.error(f"❌ [港股] 获取公司名称失败: {e}")
+            logger.error(f"[FAIL] [港股] 获取公司名称失败: {e}")
             clean_symbol = self._normalize_hk_symbol(symbol)
             return f"港股{clean_symbol}"
     
@@ -312,19 +312,19 @@ class ImprovedHKStockProvider:
             # 检查缓存
             cache_key = f"financial_{normalized_symbol}"
             if self._is_cache_valid(cache_key):
-                logger.debug(f"📊 [港股财务指标] 使用缓存: {normalized_symbol}")
+                logger.debug(f"[CHART] [港股财务指标] 使用缓存: {normalized_symbol}")
                 return self.cache[cache_key]['data']
 
             # 速率限制
             self._rate_limit()
 
-            logger.info(f"📊 [港股财务指标] 获取财务指标: {normalized_symbol}")
+            logger.info(f"[CHART] [港股财务指标] 获取财务指标: {normalized_symbol}")
 
             # 调用 AKShare 接口
             df = ak.stock_financial_hk_analysis_indicator_em(symbol=normalized_symbol)
 
             if df is None or df.empty:
-                logger.warning(f"⚠️ [港股财务指标] 未获取到数据: {normalized_symbol}")
+                logger.warning(f"[WARN] [港股财务指标] 未获取到数据: {normalized_symbol}")
                 return {}
 
             # 获取最新一期数据
@@ -379,11 +379,11 @@ class ImprovedHKStockProvider:
             }
             self._save_cache()
 
-            logger.info(f"✅ [港股财务指标] 成功获取: {normalized_symbol}, 报告期: {indicators['report_date']}")
+            logger.info(f"[OK] [港股财务指标] 成功获取: {normalized_symbol}, 报告期: {indicators['report_date']}")
             return indicators
 
         except Exception as e:
-            logger.error(f"❌ [港股财务指标] 获取失败: {symbol} - {e}")
+            logger.error(f"[FAIL] [港股财务指标] 获取失败: {symbol} - {e}")
             return {}
 
     def get_stock_info(self, symbol: str) -> Dict[str, Any]:
@@ -409,7 +409,7 @@ class ImprovedHKStockProvider:
             }
             
         except Exception as e:
-            logger.error(f"❌ [港股] 获取股票信息失败: {e}")
+            logger.error(f"[FAIL] [港股] 获取股票信息失败: {e}")
             clean_symbol = self._normalize_hk_symbol(symbol)
             return {
                 'symbol': symbol,
@@ -511,14 +511,14 @@ def get_hk_stock_data_akshare(symbol: str, start_date: str = None, end_date: str
         if not start_date:
             start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
 
-        logger.info(f"🔄 [AKShare-新浪] 获取港股历史数据: {symbol} ({start_date} ~ {end_date})")
+        logger.info(f"[SYNC] [AKShare-新浪] 获取港股历史数据: {symbol} ({start_date} ~ {end_date})")
 
         # 使用新浪财经接口获取历史数据
         df = ak.stock_hk_daily(symbol=normalized_symbol, adjust="qfq")
 
         if df is None or df.empty:
-            logger.warning(f"⚠️ [AKShare-新浪] 返回空数据: {symbol}")
-            return f"❌ 无法获取港股{symbol}的历史数据"
+            logger.warning(f"[WARN] [AKShare-新浪] 返回空数据: {symbol}")
+            return f"[FAIL] 无法获取港股{symbol}的历史数据"
 
         # 过滤日期范围
         df['date'] = pd.to_datetime(df['date'])
@@ -526,10 +526,10 @@ def get_hk_stock_data_akshare(symbol: str, start_date: str = None, end_date: str
         df = df.loc[mask]
 
         if df.empty:
-            logger.warning(f"⚠️ [AKShare-新浪] 日期范围内无数据: {symbol}")
-            return f"❌ 港股{symbol}在指定日期范围内无数据"
+            logger.warning(f"[WARN] [AKShare-新浪] 日期范围内无数据: {symbol}")
+            return f"[FAIL] 港股{symbol}在指定日期范围内无数据"
 
-        # 🔥 添加 pre_close 字段（从前一天的 close 获取）
+        # [HOT] 添加 pre_close 字段（从前一天的 close 获取）
         # AKShare 不返回 pre_close 字段，需要手动计算
         df['pre_close'] = df['close'].shift(1)
 
@@ -537,11 +537,11 @@ def get_hk_stock_data_akshare(symbol: str, start_date: str = None, end_date: str
         df['change'] = df['close'] - df['pre_close']
         df['pct_change'] = (df['change'] / df['pre_close'] * 100).round(2)
 
-        # 🔥 使用统一的技术指标计算函数
+        # [HOT] 使用统一的技术指标计算函数
         from tradingagents.tools.analysis.indicators import add_all_indicators
         df = add_all_indicators(df, close_col='close', high_col='high', low_col='low')
 
-        # 🔥 获取财务指标并计算 PE、PB
+        # [HOT] 获取财务指标并计算 PE、PB
         financial_indicators = provider.get_financial_indicators(symbol)
 
         # 格式化输出（包含价格数据和技术指标）
@@ -646,22 +646,22 @@ def get_hk_stock_data_akshare(symbol: str, start_date: str = None, end_date: str
 - 总成交量: {df['volume'].sum():,.0f}
 """
 
-        logger.info(f"✅ [AKShare-新浪] 港股历史数据获取成功: {symbol} ({len(df)}条)")
+        logger.info(f"[OK] [AKShare-新浪] 港股历史数据获取成功: {symbol} ({len(df)}条)")
         return result
 
     except Exception as e:
-        logger.error(f"❌ [AKShare-新浪] 港股历史数据获取失败: {symbol} - {e}")
-        return f"❌ 港股{symbol}历史数据获取失败: {str(e)}"
+        logger.error(f"[FAIL] [AKShare-新浪] 港股历史数据获取失败: {symbol} - {e}")
+        return f"[FAIL] 港股{symbol}历史数据获取失败: {str(e)}"
 
 
-# 🔥 全局缓存：缓存 AKShare 的所有港股数据
+# [HOT] 全局缓存：缓存 AKShare 的所有港股数据
 _akshare_hk_spot_cache = {
     'data': None,
     'timestamp': None,
     'ttl': 600  # 缓存 10 分钟（参考美股实时行情缓存时长）
 }
 
-# 🔥 线程锁：防止多个线程同时调用 AKShare API
+# [HOT] 线程锁：防止多个线程同时调用 AKShare API
 import threading
 _akshare_hk_spot_lock = threading.Lock()
 
@@ -669,7 +669,7 @@ _akshare_hk_spot_lock = threading.Lock()
 def get_hk_stock_info_akshare(symbol: str) -> Dict[str, Any]:
     """
     兼容性函数：直接使用 akshare 获取港股信息（避免循环调用）
-    🔥 使用全局缓存 + 线程锁，避免重复调用 ak.stock_hk_spot()
+    [HOT] 使用全局缓存 + 线程锁，避免重复调用 ak.stock_hk_spot()
 
     Args:
         symbol: 港股代码
@@ -687,14 +687,14 @@ def get_hk_stock_info_akshare(symbol: str) -> Dict[str, Any]:
 
         # 尝试从 akshare 获取实时行情
         try:
-            # 🔥 使用互斥锁保护 AKShare API 调用（防止并发导致被封禁）
+            # [HOT] 使用互斥锁保护 AKShare API 调用（防止并发导致被封禁）
             # 策略：
             # 1. 尝试获取锁（最多等待 60 秒）
             # 2. 获取锁后，先检查缓存是否已被其他线程更新
             # 3. 如果缓存有效，直接使用；否则调用 API
 
             thread_id = threading.current_thread().name
-            logger.info(f"🔒 [AKShare锁-{thread_id}] 尝试获取锁...")
+            logger.info(f"[LOCK] [AKShare锁-{thread_id}] 尝试获取锁...")
 
             # 尝试获取锁，最多等待 60 秒
             lock_acquired = _akshare_hk_spot_lock.acquire(timeout=60)
@@ -705,7 +705,7 @@ def get_hk_stock_info_akshare(symbol: str) -> Dict[str, Any]:
                 raise Exception("AKShare API 调用超时（其他线程占用）")
 
             try:
-                logger.info(f"✅ [AKShare锁-{thread_id}] 已获取锁")
+                logger.info(f"[OK] [AKShare锁-{thread_id}] 已获取锁")
 
                 # 获取锁后，检查缓存是否已被其他线程更新
                 now = datetime.now()
@@ -715,22 +715,22 @@ def get_hk_stock_info_akshare(symbol: str) -> Dict[str, Any]:
                     elapsed = (now - cache['timestamp']).total_seconds()
                     if elapsed <= cache['ttl']:
                         # 缓存有效（可能是其他线程刚更新的）
-                        logger.info(f"⚡ [AKShare缓存-{thread_id}] 使用缓存数据（{elapsed:.1f}秒前，可能由其他线程更新）")
+                        logger.info(f"[FAST] [AKShare缓存-{thread_id}] 使用缓存数据（{elapsed:.1f}秒前，可能由其他线程更新）")
                         df = cache['data']
                     else:
                         # 缓存过期，需要调用 API
-                        logger.info(f"🔄 [AKShare缓存-{thread_id}] 缓存过期（{elapsed:.1f}秒前），调用 API 刷新")
+                        logger.info(f"[SYNC] [AKShare缓存-{thread_id}] 缓存过期（{elapsed:.1f}秒前），调用 API 刷新")
                         df = ak.stock_hk_spot()
                         cache['data'] = df
                         cache['timestamp'] = now
-                        logger.info(f"✅ [AKShare缓存-{thread_id}] 已缓存 {len(df)} 只港股数据")
+                        logger.info(f"[OK] [AKShare缓存-{thread_id}] 已缓存 {len(df)} 只港股数据")
                 else:
                     # 缓存为空，首次调用
-                    logger.info(f"🔄 [AKShare缓存-{thread_id}] 首次获取港股数据")
+                    logger.info(f"[SYNC] [AKShare缓存-{thread_id}] 首次获取港股数据")
                     df = ak.stock_hk_spot()
                     cache['data'] = df
                     cache['timestamp'] = now
-                    logger.info(f"✅ [AKShare缓存-{thread_id}] 已缓存 {len(df)} 只港股数据")
+                    logger.info(f"[OK] [AKShare缓存-{thread_id}] 已缓存 {len(df)} 只港股数据")
 
             finally:
                 # 释放锁
@@ -775,7 +775,7 @@ def get_hk_stock_info_akshare(symbol: str) -> Dict[str, Any]:
                         'source': 'akshare_sina'
                     }
         except Exception as e:
-            logger.debug(f"📊 [港股AKShare-新浪] 获取失败: {e}")
+            logger.debug(f"[CHART] [港股AKShare-新浪] 获取失败: {e}")
 
         # 如果失败，返回基本信息
         return {
@@ -788,7 +788,7 @@ def get_hk_stock_info_akshare(symbol: str) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        logger.error(f"❌ [港股AKShare-新浪] 获取信息失败: {e}")
+        logger.error(f"[FAIL] [港股AKShare-新浪] 获取信息失败: {e}")
         return {
             'symbol': symbol,
             'name': f'港股{symbol}',

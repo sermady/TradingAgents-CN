@@ -254,7 +254,7 @@ async def _run_full_initialization_task(historical_days: int, force: bool, task_
     global _initialization_status
     
     try:
-        logger.info(f"🚀 开始BaoStock完整初始化任务: {task_id}")
+        logger.info(f"[START] 开始BaoStock完整初始化任务: {task_id}")
         
         service = BaoStockInitService()
         stats = await service.full_initialization(
@@ -270,12 +270,12 @@ async def _run_full_initialization_task(historical_days: int, force: bool, task_
         })
         
         if stats.completed_steps == stats.total_steps:
-            logger.info(f"✅ BaoStock完整初始化任务完成: {task_id}")
+            logger.info(f"[OK] BaoStock完整初始化任务完成: {task_id}")
         else:
-            logger.warning(f"⚠️ BaoStock完整初始化任务部分完成: {task_id}")
+            logger.warning(f"[WARN] BaoStock完整初始化任务部分完成: {task_id}")
         
     except Exception as e:
-        logger.error(f"❌ BaoStock完整初始化任务失败: {task_id}, 错误: {e}")
+        logger.error(f"[FAIL] BaoStock完整初始化任务失败: {task_id}, 错误: {e}")
         _initialization_status.update({
             "is_running": False,
             "last_update": datetime.now()
@@ -287,7 +287,7 @@ async def _run_basic_initialization_task(task_id: str):
     global _initialization_status
     
     try:
-        logger.info(f"🚀 开始BaoStock基础初始化任务: {task_id}")
+        logger.info(f"[START] 开始BaoStock基础初始化任务: {task_id}")
         
         service = BaoStockInitService()
         stats = await service.basic_initialization()
@@ -300,12 +300,12 @@ async def _run_basic_initialization_task(task_id: str):
         })
         
         if stats.completed_steps == stats.total_steps:
-            logger.info(f"✅ BaoStock基础初始化任务完成: {task_id}")
+            logger.info(f"[OK] BaoStock基础初始化任务完成: {task_id}")
         else:
-            logger.warning(f"⚠️ BaoStock基础初始化任务部分完成: {task_id}")
+            logger.warning(f"[WARN] BaoStock基础初始化任务部分完成: {task_id}")
         
     except Exception as e:
-        logger.error(f"❌ BaoStock基础初始化任务失败: {task_id}, 错误: {e}")
+        logger.error(f"[FAIL] BaoStock基础初始化任务失败: {task_id}, 错误: {e}")
         _initialization_status.update({
             "is_running": False,
             "last_update": datetime.now()

@@ -167,19 +167,19 @@ class UnifiedConfigManager:
     def save_system_settings(self, settings: Dict[str, Any]) -> bool:
         """保存系统设置（保留现有字段，添加新字段映射）"""
         try:
-            print(f"📝 [unified_config] save_system_settings 被调用")
-            print(f"📝 [unified_config] 接收到的 settings 包含 {len(settings)} 项")
+            print(f"[LOG] [unified_config] save_system_settings 被调用")
+            print(f"[LOG] [unified_config] 接收到的 settings 包含 {len(settings)} 项")
 
             # 检查关键字段
             if "quick_analysis_model" in settings:
                 print(f"  ✓ [unified_config] 包含 quick_analysis_model: {settings['quick_analysis_model']}")
             else:
-                print(f"  ⚠️  [unified_config] 不包含 quick_analysis_model")
+                print(f"  [WARN]  [unified_config] 不包含 quick_analysis_model")
 
             if "deep_analysis_model" in settings:
                 print(f"  ✓ [unified_config] 包含 deep_analysis_model: {settings['deep_analysis_model']}")
             else:
-                print(f"  ⚠️  [unified_config] 不包含 deep_analysis_model")
+                print(f"  [WARN]  [unified_config] 不包含 deep_analysis_model")
 
             # 读取现有配置
             print(f"📖 [unified_config] 读取现有配置文件: {self.paths.settings_json}")
@@ -201,7 +201,7 @@ class UnifiedConfigManager:
                 print(f"  ✓ [unified_config] 映射 deep_analysis_model -> deep_think_llm: {settings['deep_analysis_model']}")
 
             # 打印最终要保存的配置
-            print(f"💾 [unified_config] 即将保存到文件:")
+            print(f"[SAVE] [unified_config] 即将保存到文件:")
             if "quick_think_llm" in merged_settings:
                 print(f"  ✓ quick_think_llm: {merged_settings['quick_think_llm']}")
             if "deep_think_llm" in merged_settings:
@@ -212,13 +212,13 @@ class UnifiedConfigManager:
                 print(f"  ✓ deep_analysis_model: {merged_settings['deep_analysis_model']}")
 
             # 保存合并后的配置
-            print(f"💾 [unified_config] 保存到文件: {self.paths.settings_json}")
+            print(f"[SAVE] [unified_config] 保存到文件: {self.paths.settings_json}")
             self._save_json_file(self.paths.settings_json, merged_settings, "settings")
-            print(f"✅ [unified_config] 配置保存成功")
+            print(f"[OK] [unified_config] 配置保存成功")
 
             return True
         except Exception as e:
-            print(f"❌ [unified_config] 保存系统设置失败: {e}")
+            print(f"[FAIL] [unified_config] 保存系统设置失败: {e}")
             import traceback
             print(traceback.format_exc())
             return False
@@ -259,7 +259,7 @@ class UnifiedConfigManager:
     def get_data_source_configs(self) -> List[DataSourceConfig]:
         """获取数据源配置 - 优先从数据库读取，回退到硬编码（同步版本）"""
         try:
-            # 🔥 优先从数据库读取配置（使用同步连接）
+            # [HOT] 优先从数据库读取配置（使用同步连接）
             from app.core.database import get_mongo_db_sync
             db = get_mongo_db_sync()
             config_collection = db.system_configs
@@ -273,7 +273,7 @@ class UnifiedConfigManager:
             if config_data and config_data.get('data_source_configs'):
                 # 从数据库读取到配置
                 data_source_configs = config_data.get('data_source_configs', [])
-                print(f"✅ [unified_config] 从数据库读取到 {len(data_source_configs)} 个数据源配置")
+                print(f"[OK] [unified_config] 从数据库读取到 {len(data_source_configs)} 个数据源配置")
 
                 # 转换为 DataSourceConfig 对象
                 result = []
@@ -281,18 +281,18 @@ class UnifiedConfigManager:
                     try:
                         result.append(DataSourceConfig(**ds_config))
                     except Exception as e:
-                        print(f"⚠️ [unified_config] 解析数据源配置失败: {e}, 配置: {ds_config}")
+                        print(f"[WARN] [unified_config] 解析数据源配置失败: {e}, 配置: {ds_config}")
                         continue
 
                 # 按优先级排序（数字越大优先级越高）
                 result.sort(key=lambda x: x.priority, reverse=True)
                 return result
             else:
-                print("⚠️ [unified_config] 数据库中没有数据源配置，使用硬编码配置")
+                print("[WARN] [unified_config] 数据库中没有数据源配置，使用硬编码配置")
         except Exception as e:
-            print(f"⚠️ [unified_config] 从数据库读取数据源配置失败: {e}，使用硬编码配置")
+            print(f"[WARN] [unified_config] 从数据库读取数据源配置失败: {e}，使用硬编码配置")
 
-        # 🔥 回退到硬编码配置（兼容性）
+        # [HOT] 回退到硬编码配置（兼容性）
         settings = self.get_system_settings()
         data_sources = []
 
@@ -327,7 +327,7 @@ class UnifiedConfigManager:
     async def get_data_source_configs_async(self) -> List[DataSourceConfig]:
         """获取数据源配置 - 优先从数据库读取，回退到硬编码（异步版本）"""
         try:
-            # 🔥 优先从数据库读取配置（使用异步连接）
+            # [HOT] 优先从数据库读取配置（使用异步连接）
             from app.core.database import get_mongo_db
             db = get_mongo_db()
             config_collection = db.system_configs
@@ -341,7 +341,7 @@ class UnifiedConfigManager:
             if config_data and config_data.get('data_source_configs'):
                 # 从数据库读取到配置
                 data_source_configs = config_data.get('data_source_configs', [])
-                print(f"✅ [unified_config] 从数据库读取到 {len(data_source_configs)} 个数据源配置")
+                print(f"[OK] [unified_config] 从数据库读取到 {len(data_source_configs)} 个数据源配置")
 
                 # 转换为 DataSourceConfig 对象
                 result = []
@@ -349,18 +349,18 @@ class UnifiedConfigManager:
                     try:
                         result.append(DataSourceConfig(**ds_config))
                     except Exception as e:
-                        print(f"⚠️ [unified_config] 解析数据源配置失败: {e}, 配置: {ds_config}")
+                        print(f"[WARN] [unified_config] 解析数据源配置失败: {e}, 配置: {ds_config}")
                         continue
 
                 # 按优先级排序（数字越大优先级越高）
                 result.sort(key=lambda x: x.priority, reverse=True)
                 return result
             else:
-                print("⚠️ [unified_config] 数据库中没有数据源配置，使用硬编码配置")
+                print("[WARN] [unified_config] 数据库中没有数据源配置，使用硬编码配置")
         except Exception as e:
-            print(f"⚠️ [unified_config] 从数据库读取数据源配置失败: {e}，使用硬编码配置")
+            print(f"[WARN] [unified_config] 从数据库读取数据源配置失败: {e}，使用硬编码配置")
 
-        # 🔥 回退到硬编码配置（兼容性）
+        # [HOT] 回退到硬编码配置（兼容性）
         settings = self.get_system_settings()
         data_sources = []
 

@@ -110,10 +110,10 @@ class DatabaseConfig:
         validation = DatabaseConfig.validate_config()
         
         if validation['mongodb_valid'] and validation['redis_valid']:
-            return "✅ 所有数据库配置正常"
+            return "[OK] 所有数据库配置正常"
         elif validation['mongodb_valid']:
-            return "⚠️ MongoDB配置正常，Redis配置缺失"
+            return "[WARN] MongoDB配置正常，Redis配置缺失"
         elif validation['redis_valid']:
-            return "⚠️ Redis配置正常，MongoDB配置缺失"
+            return "[WARN] Redis配置正常，MongoDB配置缺失"
         else:
-            return "❌ 数据库配置缺失，请检查环境变量"
+            return "[FAIL] 数据库配置缺失，请检查环境变量"

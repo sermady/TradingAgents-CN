@@ -40,7 +40,7 @@ class BaseStockDataProvider(ABC):
     async def disconnect(self):
         """断开连接"""
         self.connected = False
-        self.logger.info(f"✅ {self.provider_name} 连接已断开")
+        self.logger.info(f"[OK] {self.provider_name} 连接已断开")
     
     def is_available(self) -> bool:
         """检查数据源是否可用"""

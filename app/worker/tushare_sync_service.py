@@ -60,7 +60,7 @@ class TushareSyncService:
         """初始化同步服务"""
         success = await self.provider.connect()
         if not success:
-            raise RuntimeError("❌ Tushare连接失败，无法启动同步服务")
+            raise RuntimeError("[FAIL] Tushare连接失败，无法启动同步服务")
 
         # 初始化历史数据服务
         self.historical_service = await get_historical_data_service()
@@ -68,7 +68,7 @@ class TushareSyncService:
         # 初始化新闻数据服务
         self.news_service = await get_news_data_service()
 
-        logger.info("✅ Tushare同步服务初始化完成")
+        logger.info("[OK] Tushare同步服务初始化完成")
     
     # ==================== 基础信息同步 ====================
     
@@ -83,7 +83,7 @@ class TushareSyncService:
         Returns:
             同步结果统计
         """
-        logger.info("🔄 开始同步股票基础信息...")
+        logger.info("[SYNC] 开始同步股票基础信息...")
 
         stats = {
             "total_processed": 0,
@@ -98,17 +98,17 @@ class TushareSyncService:
             # 1. 从Tushare获取股票列表
             stock_list = await self.provider.get_stock_list(market="CN")
             if not stock_list:
-                logger.error("❌ 无法获取股票列表")
+                logger.error("[FAIL] 无法获取股票列表")
                 return stats
             
             stats["total_processed"] = len(stock_list)
-            logger.info(f"📊 获取到 {len(stock_list)} 只股票信息")
+            logger.info(f"[CHART] 获取到 {len(stock_list)} 只股票信息")
 
             # 2. 批量处理
             for i in range(0, len(stock_list), self.batch_size):
                 # 检查是否需要退出
                 if job_id and await self._should_stop(job_id):
-                    logger.warning(f"⚠️ 任务 {job_id} 收到停止信号，正在退出...")
+                    logger.warning(f"[WARN] 任务 {job_id} 收到停止信号，正在退出...")
                     stats["stopped"] = True
                     break
 
@@ -124,7 +124,7 @@ class TushareSyncService:
                 # 进度日志和进度更新
                 progress = min(i + self.batch_size, len(stock_list))
                 progress_percent = int((progress / len(stock_list)) * 100)
-                logger.info(f"📈 基础信息同步进度: {progress}/{len(stock_list)} ({progress_percent}%) "
+                logger.info(f"[CHART-UP] 基础信息同步进度: {progress}/{len(stock_list)} ({progress_percent}%) "
                            f"(成功: {stats['success_count']}, 错误: {stats['error_count']})")
 
                 # 更新任务进度
@@ -143,7 +143,7 @@ class TushareSyncService:
             stats["end_time"] = datetime.utcnow()
             stats["duration"] = (stats["end_time"] - stats["start_time"]).total_seconds()
             
-            logger.info(f"✅ 股票基础信息同步完成: "
+            logger.info(f"[OK] 股票基础信息同步完成: "
                        f"总计 {stats['total_processed']} 只, "
                        f"成功 {stats['success_count']} 只, "
                        f"错误 {stats['error_count']} 只, "
@@ -153,7 +153,7 @@ class TushareSyncService:
             return stats
             
         except Exception as e:
-            logger.error(f"❌ 股票基础信息同步失败: {e}")
+            logger.error(f"[FAIL] 股票基础信息同步失败: {e}")
             stats["errors"].append({"error": str(e), "context": "sync_stock_basic_info"})
             return stats
     
@@ -168,7 +168,7 @@ class TushareSyncService:
         
         for stock_info in batch:
             try:
-                # 🔥 先转换为字典格式（如果是Pydantic模型）
+                # [HOT] 先转换为字典格式（如果是Pydantic模型）
                 if hasattr(stock_info, 'model_dump'):
                     stock_data = stock_info.model_dump()
                 elif hasattr(stock_info, 'dict'):
@@ -182,7 +182,7 @@ class TushareSyncService:
                 if not force_update:
                     existing = await self.stock_service.get_stock_basic_info(code)
                     if existing:
-                        # 🔥 existing 也可能是 Pydantic 模型，需要安全获取属性
+                        # [HOT] existing 也可能是 Pydantic 模型，需要安全获取属性
                         existing_dict = existing.model_dump() if hasattr(existing, 'model_dump') else (existing.dict() if hasattr(existing, 'dict') else existing)
                         if self._is_data_fresh(existing_dict.get("updated_at"), hours=24):
                             batch_stats["skipped_count"] += 1
@@ -202,7 +202,7 @@ class TushareSyncService:
 
             except Exception as e:
                 batch_stats["error_count"] += 1
-                # 🔥 安全获取 code（处理 Pydantic 模型和字典）
+                # [HOT] 安全获取 code（处理 Pydantic 模型和字典）
                 try:
                     if hasattr(stock_info, 'code'):
                         code = stock_info.code
@@ -258,23 +258,23 @@ class TushareSyncService:
                 stats["skipped_non_trading_time"] = True
                 return stats
 
-            # 🔥 策略选择：少量股票切换到 AKShare，大量股票或全市场用 Tushare 批量接口
+            # [HOT] 策略选择：少量股票切换到 AKShare，大量股票或全市场用 Tushare 批量接口
             USE_AKSHARE_THRESHOLD = 10  # 少于等于10只股票时切换到 AKShare
 
             if symbols and len(symbols) <= USE_AKSHARE_THRESHOLD:
-                # 🔥 自动切换到 AKShare（避免浪费 Tushare rt_k 配额，每小时只能调用2次）
+                # [HOT] 自动切换到 AKShare（避免浪费 Tushare rt_k 配额，每小时只能调用2次）
                 logger.info(
-                    f"💡 股票数量 ≤{USE_AKSHARE_THRESHOLD} 只，自动切换到 AKShare 接口"
+                    f"[INFO] 股票数量 ≤{USE_AKSHARE_THRESHOLD} 只，自动切换到 AKShare 接口"
                     f"（避免浪费 Tushare rt_k 配额，每小时只能调用2次）"
                 )
-                logger.info(f"🎯 使用 AKShare 同步 {len(symbols)} 只股票的实时行情: {symbols}")
+                logger.info(f"[TARGET] 使用 AKShare 同步 {len(symbols)} 只股票的实时行情: {symbols}")
 
                 # 调用 AKShare 服务
                 from app.worker.akshare_sync_service import get_akshare_sync_service
                 akshare_service = await get_akshare_sync_service()
 
                 if not akshare_service:
-                    logger.error("❌ AKShare 服务不可用，回退到 Tushare 批量接口")
+                    logger.error("[FAIL] AKShare 服务不可用，回退到 Tushare 批量接口")
                     # 回退到 Tushare 批量接口
                     quotes_map = await self.provider.get_realtime_quotes_batch()
                     if quotes_map and symbols:
@@ -294,7 +294,7 @@ class TushareSyncService:
                     stats["duration"] = (stats["end_time"] - stats["start_time"]).total_seconds()
 
                     logger.info(
-                        f"✅ AKShare 实时行情同步完成: "
+                        f"[OK] AKShare 实时行情同步完成: "
                         f"总计 {stats['total_processed']} 只, "
                         f"成功 {stats['success_count']} 只, "
                         f"错误 {stats['error_count']} 只, "
@@ -304,20 +304,20 @@ class TushareSyncService:
             else:
                 # 使用 Tushare 批量接口一次性获取全市场行情
                 if symbols:
-                    logger.info(f"📊 使用 Tushare 批量接口同步 {len(symbols)} 只股票的实时行情（从全市场数据中筛选）")
+                    logger.info(f"[CHART] 使用 Tushare 批量接口同步 {len(symbols)} 只股票的实时行情（从全市场数据中筛选）")
                 else:
-                    logger.info("📊 使用 Tushare 批量接口同步全市场实时行情...")
+                    logger.info("[CHART] 使用 Tushare 批量接口同步全市场实时行情...")
 
                 logger.info("📡 调用 rt_k 批量接口获取全市场实时行情...")
                 quotes_map = await self.provider.get_realtime_quotes_batch()
 
                 if not quotes_map:
-                    logger.warning("⚠️ 未获取到实时行情数据")
+                    logger.warning("[WARN] 未获取到实时行情数据")
                     return stats
 
-                logger.info(f"✅ 获取到 {len(quotes_map)} 只股票的实时行情")
+                logger.info(f"[OK] 获取到 {len(quotes_map)} 只股票的实时行情")
 
-                # 🔥 如果指定了股票列表，只处理这些股票
+                # [HOT] 如果指定了股票列表，只处理这些股票
                 if symbols:
                     # 过滤出指定的股票
                     filtered_quotes_map = {symbol: quotes_map[symbol] for symbol in symbols if symbol in quotes_map}
@@ -325,13 +325,13 @@ class TushareSyncService:
                     # 检查是否有股票未找到
                     missing_symbols = [s for s in symbols if s not in quotes_map]
                     if missing_symbols:
-                        logger.warning(f"⚠️ 以下股票未在实时行情中找到: {missing_symbols}")
+                        logger.warning(f"[WARN] 以下股票未在实时行情中找到: {missing_symbols}")
 
                     quotes_map = filtered_quotes_map
-                    logger.info(f"🔍 过滤后保留 {len(quotes_map)} 只指定股票的行情")
+                    logger.info(f"[SEARCH] 过滤后保留 {len(quotes_map)} 只指定股票的行情")
 
             if not quotes_map:
-                logger.warning("⚠️ 未获取到任何实时行情数据")
+                logger.warning("[WARN] 未获取到任何实时行情数据")
                 return stats
 
             stats["total_processed"] = len(quotes_map)
@@ -368,7 +368,7 @@ class TushareSyncService:
             stats["end_time"] = datetime.utcnow()
             stats["duration"] = (stats["end_time"] - stats["start_time"]).total_seconds()
 
-            logger.info(f"✅ 实时行情同步完成: "
+            logger.info(f"[OK] 实时行情同步完成: "
                       f"总计 {stats['total_processed']} 只, "
                       f"成功 {stats['success_count']} 只, "
                       f"错误 {stats['error_count']} 只, "
@@ -381,14 +381,14 @@ class TushareSyncService:
             error_msg = str(e)
             if self._is_rate_limit_error(error_msg):
                 stats["stopped_by_rate_limit"] = True
-                logger.error(f"❌ 实时行情同步失败（API限流）: {e}")
+                logger.error(f"[FAIL] 实时行情同步失败（API限流）: {e}")
             else:
-                logger.error(f"❌ 实时行情同步失败: {e}")
+                logger.error(f"[FAIL] 实时行情同步失败: {e}")
 
             stats["errors"].append({"error": str(e), "context": "sync_realtime_quotes"})
             return stats
 
-    # 🔥 已废弃：不再使用 Tushare 单只接口（rt_k 每小时只能调用2次，太宝贵）
+    # [HOT] 已废弃：不再使用 Tushare 单只接口（rt_k 每小时只能调用2次，太宝贵）
     # 少量股票（≤10只）自动切换到 AKShare 接口
     # async def _get_quotes_individually(self, symbols: List[str]) -> Dict[str, Dict[str, Any]]:
     #     """
@@ -407,14 +407,14 @@ class TushareSyncService:
     #             quote_data = await self.provider.get_stock_quotes(symbol)
     #             if quote_data:
     #                 quotes_map[symbol] = quote_data
-    #                 logger.info(f"✅ 获取 {symbol} 实时行情成功")
+    #                 logger.info(f"[OK] 获取 {symbol} 实时行情成功")
     #             else:
-    #                 logger.warning(f"⚠️ 未获取到 {symbol} 的实时行情")
+    #                 logger.warning(f"[WARN] 未获取到 {symbol} 的实时行情")
     #         except Exception as e:
-    #             logger.error(f"❌ 获取 {symbol} 实时行情失败: {e}")
+    #             logger.error(f"[FAIL] 获取 {symbol} 实时行情失败: {e}")
     #             continue
     #
-    #     logger.info(f"✅ 单只接口获取完成，成功 {len(quotes_map)}/{len(symbols)} 只")
+    #     logger.info(f"[OK] 单只接口获取完成，成功 {len(quotes_map)}/{len(symbols)} 只")
     #     return quotes_map
 
     async def _process_quotes_batch(self, batch: List[str]) -> Dict[str, Any]:
@@ -449,7 +449,7 @@ class TushareSyncService:
                 # 检测 API 限流错误
                 if self._is_rate_limit_error(error_msg):
                     batch_stats["rate_limit_hit"] = True
-                    logger.warning(f"⚠️ 检测到 API 限流错误: {error_msg}")
+                    logger.warning(f"[WARN] 检测到 API 限流错误: {error_msg}")
 
             elif result:
                 batch_stats["success_count"] += 1
@@ -533,9 +533,9 @@ class TushareSyncService:
             error_msg = str(e)
             # 检测限流错误，直接抛出让上层处理
             if self._is_rate_limit_error(error_msg):
-                logger.error(f"❌ 获取 {symbol} 行情失败（限流）: {e}")
+                logger.error(f"[FAIL] 获取 {symbol} 行情失败（限流）: {e}")
                 raise  # 抛出限流错误
-            logger.error(f"❌ 获取 {symbol} 行情失败: {e}")
+            logger.error(f"[FAIL] 获取 {symbol} 行情失败: {e}")
             return False
 
     # ==================== 历史数据同步 ====================
@@ -566,7 +566,7 @@ class TushareSyncService:
             同步结果统计
         """
         period_name = {"daily": "日线", "weekly": "周线", "monthly": "月线"}.get(period, period)
-        logger.info(f"🔄 开始同步{period_name}历史数据...")
+        logger.info(f"[SYNC] 开始同步{period_name}历史数据...")
 
         stats = {
             "total_processed": 0,
@@ -604,7 +604,7 @@ class TushareSyncService:
                     {"code": 1}
                 )
                 symbols = [doc["code"] async for doc in cursor]
-                logger.info(f"📋 从 stock_basic_info 获取到 {len(symbols)} 只股票（已排除退市股票）")
+                logger.info(f"[CLIPBOARD] 从 stock_basic_info 获取到 {len(symbols)} 只股票（已排除退市股票）")
 
             stats["total_processed"] = len(symbols)
 
@@ -622,7 +622,7 @@ class TushareSyncService:
                 else:
                     global_start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
 
-            logger.info(f"📊 历史数据同步: 结束日期={end_date}, 股票数量={len(symbols)}, 模式={'增量' if incremental else '全量'}")
+            logger.info(f"[CHART] 历史数据同步: 结束日期={end_date}, 股票数量={len(symbols)}, 模式={'增量' if incremental else '全量'}")
 
             # 4. 批量处理
             for i, symbol in enumerate(symbols):
@@ -632,7 +632,7 @@ class TushareSyncService:
                 try:
                     # 检查是否需要退出
                     if job_id and await self._should_stop(job_id):
-                        logger.warning(f"⚠️ 任务 {job_id} 收到停止信号，正在退出...")
+                        logger.warning(f"[WARN] 任务 {job_id} 收到停止信号，正在退出...")
                         stats["stopped"] = True
                         break
 
@@ -647,23 +647,23 @@ class TushareSyncService:
                         elif incremental:
                             # 增量同步：获取该股票的最后日期
                             symbol_start_date = await self._get_last_sync_date(symbol)
-                            logger.debug(f"📅 {symbol}: 从 {symbol_start_date} 开始同步")
+                            logger.debug(f"[DATE] {symbol}: 从 {symbol_start_date} 开始同步")
                         else:
                             symbol_start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
 
                     # 记录请求参数
                     logger.debug(
-                        f"🔍 {symbol}: 请求{period_name}数据 "
+                        f"[SEARCH] {symbol}: 请求{period_name}数据 "
                         f"start={symbol_start_date}, end={end_date}, period={period}"
                     )
 
-                    # ⏱️ 性能监控：API 调用
+                    # [TIME] 性能监控：API 调用
                     api_start = datetime.now()
                     df = await self.provider.get_historical_data(symbol, symbol_start_date, end_date, period=period)
                     api_duration = (datetime.now() - api_start).total_seconds()
 
                     if df is not None and not df.empty:
-                        # ⏱️ 性能监控：数据保存
+                        # [TIME] 性能监控：数据保存
                         save_start = datetime.now()
                         records_saved = await self._save_historical_data(symbol, df, period=period)
                         save_duration = (datetime.now() - save_start).total_seconds()
@@ -674,14 +674,14 @@ class TushareSyncService:
                         # 计算单个股票耗时
                         stock_duration = (datetime.now() - stock_start_time).total_seconds()
                         logger.info(
-                            f"✅ {symbol}: 保存 {records_saved} 条{period_name}记录，"
+                            f"[OK] {symbol}: 保存 {records_saved} 条{period_name}记录，"
                             f"总耗时 {stock_duration:.2f}秒 "
                             f"(API: {api_duration:.2f}秒, 保存: {save_duration:.2f}秒)"
                         )
                     else:
                         stock_duration = (datetime.now() - stock_start_time).total_seconds()
                         logger.warning(
-                            f"⚠️ {symbol}: 无{period_name}数据 "
+                            f"[WARN] {symbol}: 无{period_name}数据 "
                             f"(start={symbol_start_date}, end={end_date})，耗时 {stock_duration:.2f}秒"
                         )
 
@@ -698,7 +698,7 @@ class TushareSyncService:
 
                     # 每50个股票输出一次详细日志
                     if (i + 1) % 50 == 0 or (i + 1) == len(symbols):
-                        logger.info(f"📈 {period_name}数据同步进度: {i + 1}/{len(symbols)} ({progress_percent}%) "
+                        logger.info(f"[CHART-UP] {period_name}数据同步进度: {i + 1}/{len(symbols)} ({progress_percent}%) "
                                    f"(成功: {stats['success_count']}, 记录: {stats['total_records']})")
 
                         # 输出速率限制器统计
@@ -719,7 +719,7 @@ class TushareSyncService:
                         "traceback": error_details
                     })
                     logger.error(
-                        f"❌ {symbol} {period_name}数据同步失败\n"
+                        f"[FAIL] {symbol} {period_name}数据同步失败\n"
                         f"   参数: start={symbol_start_date if 'symbol_start_date' in locals() else 'N/A'}, "
                         f"end={end_date}, period={period}\n"
                         f"   错误类型: {type(e).__name__}\n"
@@ -731,7 +731,7 @@ class TushareSyncService:
             stats["end_time"] = datetime.utcnow()
             stats["duration"] = (stats["end_time"] - stats["start_time"]).total_seconds()
 
-            logger.info(f"✅ {period_name}数据同步完成: "
+            logger.info(f"[OK] {period_name}数据同步完成: "
                        f"股票 {stats['success_count']}/{stats['total_processed']}, "
                        f"记录 {stats['total_records']} 条, "
                        f"错误 {stats['error_count']} 个, "
@@ -743,7 +743,7 @@ class TushareSyncService:
             import traceback
             error_details = traceback.format_exc()
             logger.error(
-                f"❌ 历史数据同步失败（外层异常）\n"
+                f"[FAIL] 历史数据同步失败（外层异常）\n"
                 f"   错误类型: {type(e).__name__}\n"
                 f"   错误信息: {str(e)}\n"
                 f"   堆栈跟踪:\n{error_details}"
@@ -774,7 +774,7 @@ class TushareSyncService:
             return saved_count
 
         except Exception as e:
-            logger.error(f"❌ 保存{period}数据失败 {symbol}: {e}")
+            logger.error(f"[FAIL] 保存{period}数据失败 {symbol}: {e}")
             return 0
 
     async def _get_last_sync_date(self, symbol: str = None) -> str:
@@ -805,7 +805,7 @@ class TushareSyncService:
                         logger.warning(f"日期计算失败，使用原日期: {date_error}")
                         return latest_date
                 else:
-                    # 🔥 没有历史数据时，从上市日期开始全量同步
+                    # [HOT] 没有历史数据时，从上市日期开始全量同步
                     stock_info = await self.db.stock_basic_info.find_one(
                         {"code": symbol},
                         {"list_date": 1}
@@ -823,14 +823,14 @@ class TushareSyncService:
                             return list_date.strftime('%Y-%m-%d')
 
                     # 如果没有上市日期，从1990年开始
-                    logger.warning(f"⚠️ {symbol}: 未找到上市日期，从1990-01-01开始同步")
+                    logger.warning(f"[WARN] {symbol}: 未找到上市日期，从1990-01-01开始同步")
                     return "1990-01-01"
 
             # 默认返回30天前（确保不漏数据）
             return (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
 
         except Exception as e:
-            logger.error(f"❌ 获取最后同步日期失败 {symbol}: {e}")
+            logger.error(f"[FAIL] 获取最后同步日期失败 {symbol}: {e}")
             # 出错时返回30天前，确保不漏数据
             return (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
 
@@ -845,7 +845,7 @@ class TushareSyncService:
             limit: 获取财报期数，默认20期（约5年数据）
             job_id: 任务ID（用于进度跟踪）
         """
-        logger.info(f"🔄 开始同步财务数据 (获取最近 {limit} 期)...")
+        logger.info(f"[SYNC] 开始同步财务数据 (获取最近 {limit} 期)...")
 
         stats = {
             "total_processed": 0,
@@ -869,10 +869,10 @@ class TushareSyncService:
                     {"code": 1}
                 )
                 symbols = [doc["code"] async for doc in cursor]
-                logger.info(f"📋 从 stock_basic_info 获取到 {len(symbols)} 只股票")
+                logger.info(f"[CLIPBOARD] 从 stock_basic_info 获取到 {len(symbols)} 只股票")
 
             stats["total_processed"] = len(symbols)
-            logger.info(f"📊 需要同步 {len(symbols)} 只股票财务数据")
+            logger.info(f"[CHART] 需要同步 {len(symbols)} 只股票财务数据")
 
             # 批量处理
             for i, symbol in enumerate(symbols):
@@ -891,12 +891,12 @@ class TushareSyncService:
                         else:
                             stats["error_count"] += 1
                     else:
-                        logger.warning(f"⚠️ {symbol}: 无财务数据")
+                        logger.warning(f"[WARN] {symbol}: 无财务数据")
 
                     # 进度日志和进度跟踪
                     if (i + 1) % 20 == 0:
                         progress = int((i + 1) / len(symbols) * 100)
-                        logger.info(f"📈 财务数据同步进度: {i + 1}/{len(symbols)} ({progress}%) "
+                        logger.info(f"[CHART-UP] 财务数据同步进度: {i + 1}/{len(symbols)} ({progress}%) "
                                    f"(成功: {stats['success_count']}, 错误: {stats['error_count']})")
                         # 输出速率限制器统计
                         limiter_stats = self.rate_limiter.get_stats()
@@ -916,7 +916,7 @@ class TushareSyncService:
                                 )
                             except TaskCancelledException:
                                 # 任务被取消，记录并退出
-                                logger.warning(f"⚠️ 财务数据同步任务被用户取消 (已处理 {i + 1}/{len(symbols)})")
+                                logger.warning(f"[WARN] 财务数据同步任务被用户取消 (已处理 {i + 1}/{len(symbols)})")
                                 stats["end_time"] = datetime.utcnow()
                                 stats["duration"] = (stats["end_time"] - stats["start_time"]).total_seconds()
                                 stats["cancelled"] = True
@@ -929,13 +929,13 @@ class TushareSyncService:
                         "error": str(e),
                         "context": "sync_financial_data"
                     })
-                    logger.error(f"❌ {symbol} 财务数据同步失败: {e}")
+                    logger.error(f"[FAIL] {symbol} 财务数据同步失败: {e}")
 
             # 完成统计
             stats["end_time"] = datetime.utcnow()
             stats["duration"] = (stats["end_time"] - stats["start_time"]).total_seconds()
 
-            logger.info(f"✅ 财务数据同步完成: "
+            logger.info(f"[OK] 财务数据同步完成: "
                        f"成功 {stats['success_count']}/{stats['total_processed']}, "
                        f"错误 {stats['error_count']} 个, "
                        f"耗时 {stats['duration']:.2f} 秒")
@@ -943,7 +943,7 @@ class TushareSyncService:
             return stats
 
         except Exception as e:
-            logger.error(f"❌ 财务数据同步失败: {e}")
+            logger.error(f"[FAIL] 财务数据同步失败: {e}")
             stats["errors"].append({"error": str(e), "context": "sync_financial_data"})
             return stats
 
@@ -968,7 +968,7 @@ class TushareSyncService:
             return saved_count > 0
 
         except Exception as e:
-            logger.error(f"❌ 保存 {symbol} 财务数据失败: {e}")
+            logger.error(f"[FAIL] 保存 {symbol} 财务数据失败: {e}")
             return False
 
     # ==================== 辅助方法 ====================
@@ -1014,7 +1014,7 @@ class TushareSyncService:
             }
 
         except Exception as e:
-            logger.error(f"❌ 获取同步状态失败: {e}")
+            logger.error(f"[FAIL] 获取同步状态失败: {e}")
             return {"error": str(e)}
 
     # ==================== 新闻数据同步 ====================
@@ -1040,7 +1040,7 @@ class TushareSyncService:
         Returns:
             同步结果统计
         """
-        logger.info("🔄 开始同步新闻数据...")
+        logger.info("[SYNC] 开始同步新闻数据...")
 
         stats = {
             "total_processed": 0,
@@ -1058,17 +1058,17 @@ class TushareSyncService:
                 symbols = [stock["code"] for stock in stock_list]
 
             if not symbols:
-                logger.warning("⚠️ 没有找到需要同步新闻的股票")
+                logger.warning("[WARN] 没有找到需要同步新闻的股票")
                 return stats
 
             stats["total_processed"] = len(symbols)
-            logger.info(f"📊 需要同步 {len(symbols)} 只股票的新闻")
+            logger.info(f"[CHART] 需要同步 {len(symbols)} 只股票的新闻")
 
             # 2. 批量处理
             for i in range(0, len(symbols), self.batch_size):
                 # 检查是否需要退出
                 if job_id and await self._should_stop(job_id):
-                    logger.warning(f"⚠️ 任务 {job_id} 收到停止信号，正在退出...")
+                    logger.warning(f"[WARN] 任务 {job_id} 收到停止信号，正在退出...")
                     stats["stopped"] = True
                     break
 
@@ -1086,7 +1086,7 @@ class TushareSyncService:
                 # 进度日志和进度更新
                 progress = min(i + self.batch_size, len(symbols))
                 progress_percent = int((progress / len(symbols)) * 100)
-                logger.info(f"📈 新闻同步进度: {progress}/{len(symbols)} ({progress_percent}%) "
+                logger.info(f"[CHART-UP] 新闻同步进度: {progress}/{len(symbols)} ({progress_percent}%) "
                            f"(成功: {stats['success_count']}, 新闻: {stats['news_count']})")
 
                 # 更新任务进度
@@ -1105,7 +1105,7 @@ class TushareSyncService:
             stats["end_time"] = datetime.utcnow()
             stats["duration"] = (stats["end_time"] - stats["start_time"]).total_seconds()
 
-            logger.info(f"✅ 新闻数据同步完成: "
+            logger.info(f"[OK] 新闻数据同步完成: "
                        f"总计 {stats['total_processed']} 只股票, "
                        f"成功 {stats['success_count']} 只, "
                        f"获取 {stats['news_count']} 条新闻, "
@@ -1115,7 +1115,7 @@ class TushareSyncService:
             return stats
 
         except Exception as e:
-            logger.error(f"❌ 新闻数据同步失败: {e}")
+            logger.error(f"[FAIL] 新闻数据同步失败: {e}")
             stats["errors"].append({"error": str(e), "context": "sync_news_data"})
             return stats
 
@@ -1153,21 +1153,21 @@ class TushareSyncService:
                     batch_stats["success_count"] += 1
                     batch_stats["news_count"] += saved_count
 
-                    logger.debug(f"✅ {symbol} 新闻同步成功: {saved_count}条")
+                    logger.debug(f"[OK] {symbol} 新闻同步成功: {saved_count}条")
                 else:
-                    logger.debug(f"⚠️ {symbol} 未获取到新闻数据")
+                    logger.debug(f"[WARN] {symbol} 未获取到新闻数据")
                     batch_stats["success_count"] += 1  # 没有新闻也算成功
 
-                # 🔥 API限流：成功后休眠
+                # [HOT] API限流：成功后休眠
                 await asyncio.sleep(0.2)
 
             except Exception as e:
                 batch_stats["error_count"] += 1
                 error_msg = f"{symbol}: {str(e)}"
                 batch_stats["errors"].append(error_msg)
-                logger.error(f"❌ {symbol} 新闻同步失败: {e}")
+                logger.error(f"[FAIL] {symbol} 新闻同步失败: {e}")
 
-                # 🔥 失败后也要休眠，避免"失败雪崩"
+                # [HOT] 失败后也要休眠，避免"失败雪崩"
                 # 失败时休眠更长时间，给API服务器恢复的机会
                 await asyncio.sleep(1.0)
 
@@ -1198,7 +1198,7 @@ class TushareSyncService:
             return False
 
         except Exception as e:
-            logger.error(f"❌ 检查任务停止标记失败: {e}")
+            logger.error(f"[FAIL] 检查任务停止标记失败: {e}")
             return False
 
     async def _update_progress(self, job_id: str, progress: int, message: str):
@@ -1215,7 +1215,7 @@ class TushareSyncService:
             from pymongo import MongoClient
             from app.core.config import settings
 
-            logger.info(f"📊 [进度更新] 开始更新任务 {job_id} 进度: {progress}% - {message}")
+            logger.info(f"[CHART] [进度更新] 开始更新任务 {job_id} 进度: {progress}% - {message}")
 
             # 使用同步 PyMongo 客户端（避免事件循环冲突）
             sync_client = MongoClient(settings.MONGO_URI)
@@ -1228,11 +1228,11 @@ class TushareSyncService:
             )
 
             if not execution:
-                logger.warning(f"⚠️ 未找到任务 {job_id} 的执行记录")
+                logger.warning(f"[WARN] 未找到任务 {job_id} 的执行记录")
                 sync_client.close()
                 return
 
-            logger.info(f"📊 [进度更新] 找到执行记录: _id={execution['_id']}, 当前进度={execution.get('progress', 0)}%")
+            logger.info(f"[CHART] [进度更新] 找到执行记录: _id={execution['_id']}, 当前进度={execution.get('progress', 0)}%")
 
             # 检查是否收到取消请求
             if execution.get("cancel_requested"):
@@ -1251,15 +1251,15 @@ class TushareSyncService:
                 }
             )
 
-            logger.info(f"📊 [进度更新] 更新结果: matched={result.matched_count}, modified={result.modified_count}")
+            logger.info(f"[CHART] [进度更新] 更新结果: matched={result.matched_count}, modified={result.modified_count}")
 
             sync_client.close()
-            logger.info(f"✅ 任务 {job_id} 进度更新成功: {progress}% - {message}")
+            logger.info(f"[OK] 任务 {job_id} 进度更新成功: {progress}% - {message}")
 
         except Exception as e:
             if "TaskCancelledException" in str(type(e).__name__):
                 raise
-            logger.error(f"❌ 更新任务进度失败: {e}", exc_info=True)
+            logger.error(f"[FAIL] 更新任务进度失败: {e}", exc_info=True)
 
 
 # 全局同步服务实例
@@ -1280,10 +1280,10 @@ async def run_tushare_basic_info_sync(force_update: bool = False):
     try:
         service = await get_tushare_sync_service()
         result = await service.sync_stock_basic_info(force_update, job_id="tushare_basic_info_sync")
-        logger.info(f"✅ Tushare基础信息同步完成: {result}")
+        logger.info(f"[OK] Tushare基础信息同步完成: {result}")
         return result
     except Exception as e:
-        logger.error(f"❌ Tushare基础信息同步失败: {e}")
+        logger.error(f"[FAIL] Tushare基础信息同步失败: {e}")
         raise
 
 
@@ -1297,24 +1297,24 @@ async def run_tushare_quotes_sync(force: bool = False):
     try:
         service = await get_tushare_sync_service()
         result = await service.sync_realtime_quotes(force=force)
-        logger.info(f"✅ Tushare行情同步完成: {result}")
+        logger.info(f"[OK] Tushare行情同步完成: {result}")
         return result
     except Exception as e:
-        logger.error(f"❌ Tushare行情同步失败: {e}")
+        logger.error(f"[FAIL] Tushare行情同步失败: {e}")
         raise
 
 
 async def run_tushare_historical_sync(incremental: bool = True):
     """APScheduler任务：同步历史数据"""
-    logger.info(f"🚀 [APScheduler] 开始执行 Tushare 历史数据同步任务 (incremental={incremental})")
+    logger.info(f"[START] [APScheduler] 开始执行 Tushare 历史数据同步任务 (incremental={incremental})")
     try:
         service = await get_tushare_sync_service()
-        logger.info(f"✅ [APScheduler] Tushare 同步服务已初始化")
+        logger.info(f"[OK] [APScheduler] Tushare 同步服务已初始化")
         result = await service.sync_historical_data(incremental=incremental, job_id="tushare_historical_sync")
-        logger.info(f"✅ [APScheduler] Tushare历史数据同步完成: {result}")
+        logger.info(f"[OK] [APScheduler] Tushare历史数据同步完成: {result}")
         return result
     except Exception as e:
-        logger.error(f"❌ [APScheduler] Tushare历史数据同步失败: {e}")
+        logger.error(f"[FAIL] [APScheduler] Tushare历史数据同步失败: {e}")
         import traceback
         logger.error(f"详细错误: {traceback.format_exc()}")
         raise
@@ -1325,10 +1325,10 @@ async def run_tushare_financial_sync():
     try:
         service = await get_tushare_sync_service()
         result = await service.sync_financial_data(limit=20, job_id="tushare_financial_sync")  # 获取最近20期（约5年数据）
-        logger.info(f"✅ Tushare财务数据同步完成: {result}")
+        logger.info(f"[OK] Tushare财务数据同步完成: {result}")
         return result
     except Exception as e:
-        logger.error(f"❌ Tushare财务数据同步失败: {e}")
+        logger.error(f"[FAIL] Tushare财务数据同步失败: {e}")
         raise
 
 
@@ -1337,10 +1337,10 @@ async def run_tushare_status_check():
     try:
         service = await get_tushare_sync_service()
         result = await service.get_sync_status()
-        logger.info(f"✅ Tushare状态检查完成: {result}")
+        logger.info(f"[OK] Tushare状态检查完成: {result}")
         return result
     except Exception as e:
-        logger.error(f"❌ Tushare状态检查失败: {e}")
+        logger.error(f"[FAIL] Tushare状态检查失败: {e}")
         return {"error": str(e)}
 
 
@@ -1353,8 +1353,8 @@ async def run_tushare_news_sync(hours_back: int = 24, max_news_per_stock: int = 
             max_news_per_stock=max_news_per_stock,
             job_id="tushare_news_sync"
         )
-        logger.info(f"✅ Tushare新闻数据同步完成: {result}")
+        logger.info(f"[OK] Tushare新闻数据同步完成: {result}")
         return result
     except Exception as e:
-        logger.error(f"❌ Tushare新闻数据同步失败: {e}")
+        logger.error(f"[FAIL] Tushare新闻数据同步失败: {e}")
         raise

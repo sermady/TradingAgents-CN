@@ -91,7 +91,7 @@ async def process_task(task_id: str) -> None:
         async def progress_callback(message: str, step: Optional[int] = None, total_steps: Optional[int] = None):
             await publish_progress(task_id, message, step, total_steps)
 
-        await progress_callback("🚀 开始执行股票分析...")
+        await progress_callback("[START] 开始执行股票分析...")
 
         # Import and call the actual analysis function
         try:
@@ -120,7 +120,7 @@ async def process_task(task_id: str) -> None:
             # Run analysis in thread pool to avoid blocking
             analysis_result = await loop.run_in_executor(None, sync_analysis)
 
-            await progress_callback("✅ 分析完成，正在保存结果...")
+            await progress_callback("[OK] 分析完成，正在保存结果...")
 
             # Prepare result
             if analysis_result and analysis_result.get('success', False):
@@ -131,7 +131,7 @@ async def process_task(task_id: str) -> None:
                     "success": True
                 }
                 status = "completed"
-                await progress_callback("🎉 任务成功完成")
+                await progress_callback("[SUCCESS] 任务成功完成")
             else:
                 error_msg = analysis_result.get('error', '分析失败') if analysis_result else '分析返回空结果'
                 result = {
@@ -141,7 +141,7 @@ async def process_task(task_id: str) -> None:
                     "success": False
                 }
                 status = "failed"
-                await progress_callback(f"❌ 任务失败: {error_msg}")
+                await progress_callback(f"[FAIL] 任务失败: {error_msg}")
 
         except Exception as analysis_error:
             logger.exception(f"Analysis execution failed for task {task_id}: {analysis_error}")
@@ -152,7 +152,7 @@ async def process_task(task_id: str) -> None:
                 "success": False
             }
             status = "failed"
-            await progress_callback(f"❌ 分析执行异常: {str(analysis_error)}")
+            await progress_callback(f"[FAIL] 分析执行异常: {str(analysis_error)}")
 
         # Mark completed/failed
         finished = int(time.time())
@@ -179,7 +179,7 @@ async def process_task(task_id: str) -> None:
         })
         await r.srem(SET_PROCESSING, task_id)
         await r.sadd(SET_FAILED, task_id)
-        await publish_progress(task_id, f"❌ 处理失败: {str(e)}")
+        await publish_progress(task_id, f"[FAIL] 处理失败: {str(e)}")
 
 
 async def worker_loop(stop_event: asyncio.Event):
@@ -209,10 +209,10 @@ async def main():
     # This ensures the worker process has access to dynamic settings (API keys, etc.)
     try:
         from app.core.config_bridge import bridge_config_to_env
-        logger.info("🔧 Bridging configuration to environment variables...")
+        logger.info("[CONFIG] Bridging configuration to environment variables...")
         bridge_config_to_env()
     except Exception as e:
-        logger.warning(f"⚠️ Failed to bridge configuration: {e}")
+        logger.warning(f"[WARN] Failed to bridge configuration: {e}")
 
     # Apply dynamic log level from system settings
     try:

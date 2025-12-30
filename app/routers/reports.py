@@ -40,7 +40,7 @@ def get_stock_name(stock_code: str) -> str:
         db = get_mongo_db_sync()
         code6 = str(stock_code).zfill(6)
 
-        # 🔥 按数据源优先级查询
+        # [HOT] 按数据源优先级查询
         config = UnifiedConfigManager()
         data_source_configs = config.get_data_source_configs()
 
@@ -60,7 +60,7 @@ def get_stock_name(stock_code: str) -> str:
                 {"$or": [{"symbol": code6}, {"code": code6}], "source": data_source}
             )
             if stock_info:
-                logger.debug(f"✅ 使用数据源 {data_source} 获取股票名称 {code6}")
+                logger.debug(f"[OK] 使用数据源 {data_source} 获取股票名称 {code6}")
                 break
 
         # 如果所有数据源都没有，尝试不带 source 条件查询（兼容旧数据）
@@ -69,7 +69,7 @@ def get_stock_name(stock_code: str) -> str:
                 {"$or": [{"symbol": code6}, {"code": code6}]}
             )
             if stock_info:
-                logger.warning(f"⚠️ 使用旧数据（无 source 字段）获取股票名称 {code6}")
+                logger.warning(f"[WARN] 使用旧数据（无 source 字段）获取股票名称 {code6}")
 
         if stock_info and stock_info.get("name"):
             stock_name = stock_info["name"]
@@ -81,7 +81,7 @@ def get_stock_name(stock_code: str) -> str:
         return stock_code
 
     except Exception as e:
-        logger.warning(f"⚠️ 获取股票名称失败 {stock_code}: {e}")
+        logger.warning(f"[WARN] 获取股票名称失败 {stock_code}: {e}")
         return stock_code
 
 
@@ -129,7 +129,7 @@ async def get_reports_list(
 ):
     """获取分析报告列表"""
     try:
-        logger.info(f"🔍 获取报告列表: 用户={user['id']}, 页码={page}, 每页={page_size}, 市场={market_filter}")
+        logger.info(f"[SEARCH] 获取报告列表: 用户={user['id']}, 页码={page}, 每页={page_size}, 市场={market_filter}")
 
         db = get_mongo_db()
 
@@ -161,7 +161,7 @@ async def get_reports_list(
                 date_query["$lte"] = end_date
             query["analysis_date"] = date_query
 
-        logger.info(f"📊 查询条件: {query}")
+        logger.info(f"[CHART] 查询条件: {query}")
 
         # 计算总数
         total = await db.analysis_reports.count_documents(query)
@@ -174,12 +174,12 @@ async def get_reports_list(
         async for doc in cursor:
             # 转换为前端需要的格式
             stock_code = doc.get("stock_symbol", "")
-            # 🔥 优先使用MongoDB中保存的股票名称，如果没有则查询
+            # [HOT] 优先使用MongoDB中保存的股票名称，如果没有则查询
             stock_name = doc.get("stock_name")
             if not stock_name:
                 stock_name = get_stock_name(stock_code)
 
-            # 🔥 获取市场类型，如果没有则根据股票代码推断
+            # [HOT] 获取市场类型，如果没有则根据股票代码推断
             market_type = doc.get("market_type")
             if not market_type:
                 from tradingagents.utils.stock_utils import StockUtils
@@ -202,8 +202,8 @@ async def get_reports_list(
                 "title": f"{stock_name}({stock_code}) 分析报告",
                 "stock_code": stock_code,
                 "stock_name": stock_name,
-                "market_type": market_type,  # 🔥 添加市场类型字段
-                "model_info": doc.get("model_info", "Unknown"),  # 🔥 添加模型信息字段
+                "market_type": market_type,  # [HOT] 添加市场类型字段
+                "model_info": doc.get("model_info", "Unknown"),  # [HOT] 添加模型信息字段
                 "type": "single",  # 目前主要是单股分析
                 "format": "markdown",  # 主要格式
                 "status": doc.get("status", "completed"),
@@ -218,7 +218,7 @@ async def get_reports_list(
             }
             reports.append(report)
 
-        logger.info(f"✅ 查询完成: 总数={total}, 返回={len(reports)}")
+        logger.info(f"[OK] 查询完成: 总数={total}, 返回={len(reports)}")
 
         return {
             "success": True,
@@ -232,7 +232,7 @@ async def get_reports_list(
         }
 
     except Exception as e:
-        logger.error(f"❌ 获取报告列表失败: {e}")
+        logger.error(f"[FAIL] 获取报告列表失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{report_id}/detail")
@@ -242,7 +242,7 @@ async def get_report_detail(
 ):
     """获取报告详情"""
     try:
-        logger.info(f"🔍 获取报告详情: {report_id}")
+        logger.info(f"[SEARCH] 获取报告详情: {report_id}")
 
         db = get_mongo_db()
 
@@ -252,7 +252,7 @@ async def get_report_detail(
 
         if not doc:
             # 兜底：从 analysis_tasks.result 中还原报告详情
-            logger.info(f"⚠️ 未在analysis_reports找到，尝试从analysis_tasks还原: {report_id}")
+            logger.info(f"[WARN] 未在analysis_reports找到，尝试从analysis_tasks还原: {report_id}")
             tasks_doc = await db.analysis_tasks.find_one(
                 {"$or": [{"task_id": report_id}, {"result.analysis_id": report_id}]},
                 {"result": 1, "task_id": 1, "stock_code": 1, "created_at": 1, "completed_at": 1}
@@ -282,8 +282,8 @@ async def get_report_detail(
                 "id": tasks_doc.get("task_id", report_id),
                 "analysis_id": r.get("analysis_id", ""),
                 "stock_symbol": stock_symbol,
-                "stock_name": stock_name,  # 🔥 添加股票名称字段
-                "model_info": r.get("model_info", "Unknown"),  # 🔥 添加模型信息字段
+                "stock_name": stock_name,  # [HOT] 添加股票名称字段
+                "model_info": r.get("model_info", "Unknown"),  # [HOT] 添加模型信息字段
                 "analysis_date": r.get("analysis_date", ""),
                 "status": r.get("status", "completed"),
                 "created_at": to_iso(created_at_tz),
@@ -320,8 +320,8 @@ async def get_report_detail(
                 "id": str(doc["_id"]),
                 "analysis_id": doc.get("analysis_id", ""),
                 "stock_symbol": stock_symbol,
-                "stock_name": stock_name,  # 🔥 添加股票名称字段
-                "model_info": doc.get("model_info", "Unknown"),  # 🔥 添加模型信息字段
+                "stock_name": stock_name,  # [HOT] 添加股票名称字段
+                "model_info": doc.get("model_info", "Unknown"),  # [HOT] 添加模型信息字段
                 "analysis_date": doc.get("analysis_date", ""),
                 "status": doc.get("status", "completed"),
                 "created_at": created_at_tz.isoformat() if created_at_tz else str(created_at),
@@ -349,7 +349,7 @@ async def get_report_detail(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ 获取报告详情失败: {e}")
+        logger.error(f"[FAIL] 获取报告详情失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{report_id}/content/{module}")
@@ -360,7 +360,7 @@ async def get_report_module_content(
 ):
     """获取报告特定模块的内容"""
     try:
-        logger.info(f"🔍 获取报告模块内容: {report_id}/{module}")
+        logger.info(f"[SEARCH] 获取报告模块内容: {report_id}/{module}")
 
         db = get_mongo_db()
 
@@ -391,7 +391,7 @@ async def get_report_module_content(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ 获取报告模块内容失败: {e}")
+        logger.error(f"[FAIL] 获取报告模块内容失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/{report_id}")
@@ -412,7 +412,7 @@ async def delete_report(
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="报告不存在")
 
-        logger.info(f"✅ 报告删除成功: {report_id}")
+        logger.info(f"[OK] 报告删除成功: {report_id}")
 
         return {
             "success": True,
@@ -422,7 +422,7 @@ async def delete_report(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ 删除报告失败: {e}")
+        logger.error(f"[FAIL] 删除报告失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{report_id}/download")
@@ -440,7 +440,7 @@ async def download_report(
     - pdf: PDF 格式（需要 pandoc 和 PDF 引擎）
     """
     try:
-        logger.info(f"📥 下载报告: {report_id}, 格式: {format}")
+        logger.info(f"[IMPORT] 下载报告: {report_id}, 格式: {format}")
 
         db = get_mongo_db()
 
@@ -534,7 +534,7 @@ async def download_report(
                     headers={"Content-Disposition": f"attachment; filename={filename}"}
                 )
             except Exception as e:
-                logger.error(f"❌ Word 文档生成失败: {e}")
+                logger.error(f"[FAIL] Word 文档生成失败: {e}")
                 raise HTTPException(status_code=500, detail=f"Word 文档生成失败: {str(e)}")
 
         elif format == "pdf":
@@ -562,7 +562,7 @@ async def download_report(
                     headers={"Content-Disposition": f"attachment; filename={filename}"}
                 )
             except Exception as e:
-                logger.error(f"❌ PDF 文档生成失败: {e}")
+                logger.error(f"[FAIL] PDF 文档生成失败: {e}")
                 raise HTTPException(status_code=500, detail=f"PDF 文档生成失败: {str(e)}")
 
         else:
@@ -571,5 +571,5 @@ async def download_report(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ 下载报告失败: {e}")
+        logger.error(f"[FAIL] 下载报告失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))

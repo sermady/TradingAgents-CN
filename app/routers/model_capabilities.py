@@ -184,13 +184,13 @@ async def recommend_models(request: ModelRecommendationRequest):
             request.research_depth
         )
 
-        logger.info(f"🔍 推荐模型: quick={quick_model}, deep={deep_model}")
+        logger.info(f"[SEARCH] 推荐模型: quick={quick_model}, deep={deep_model}")
 
         # 获取模型详细信息
         quick_info = capability_service.get_model_config(quick_model)
         deep_info = capability_service.get_model_config(deep_model)
 
-        logger.info(f"🔍 模型详细信息: quick_info={quick_info}, deep_info={deep_info}")
+        logger.info(f"[SEARCH] 模型详细信息: quick_info={quick_info}, deep_info={deep_info}")
 
         # 生成推荐理由
         depth_req = ANALYSIS_DEPTH_REQUIREMENTS.get(
@@ -223,7 +223,7 @@ async def recommend_models(request: ModelRecommendationRequest):
             "reason": reason
         }
 
-        logger.info(f"🔍 返回的响应数据: {response_data}")
+        logger.info(f"[SEARCH] 返回的响应数据: {response_data}")
 
         return ok(response_data, "模型推荐成功")
     except Exception as e:

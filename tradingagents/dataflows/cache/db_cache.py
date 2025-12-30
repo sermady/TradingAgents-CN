@@ -26,7 +26,7 @@ try:
     MONGODB_AVAILABLE = True
 except ImportError:
     MONGODB_AVAILABLE = False
-    logger.warning(f"⚠️ pymongo 未安装，MongoDB功能不可用")
+    logger.warning(f"[WARN] pymongo 未安装，MongoDB功能不可用")
 
 # Redis
 try:
@@ -35,7 +35,7 @@ try:
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
-    logger.warning(f"⚠️ redis 未安装，Redis功能不可用")
+    logger.warning(f"[WARN] redis 未安装，Redis功能不可用")
 
 
 class DatabaseCacheManager:
@@ -75,8 +75,8 @@ class DatabaseCacheManager:
         self._init_redis()
 
         logger.info(f"🗄️ 数据库缓存管理器初始化完成")
-        logger.error(f"   MongoDB: {'✅ 已连接' if self.mongodb_client else '❌ 未连接'}")
-        logger.error(f"   Redis: {'✅ 已连接' if self.redis_client else '❌ 未连接'}")
+        logger.error(f"   MongoDB: {'[OK] 已连接' if self.mongodb_client else '[FAIL] 未连接'}")
+        logger.error(f"   Redis: {'[OK] 已连接' if self.redis_client else '[FAIL] 未连接'}")
 
     def _init_mongodb(self):
         """初始化MongoDB连接"""
@@ -103,11 +103,11 @@ class DatabaseCacheManager:
             # 创建索引
             self._create_mongodb_indexes()
 
-            logger.info(f"✅ MongoDB连接成功: {self.mongodb_url}")
-            logger.info(f"⏱️  超时配置: connectTimeout={connect_timeout}ms, socketTimeout={socket_timeout}ms")
+            logger.info(f"[OK] MongoDB连接成功: {self.mongodb_url}")
+            logger.info(f"[TIME]  超时配置: connectTimeout={connect_timeout}ms, socketTimeout={socket_timeout}ms")
 
         except Exception as e:
-            logger.error(f"❌ MongoDB连接失败: {e}")
+            logger.error(f"[FAIL] MongoDB连接失败: {e}")
             self.mongodb_client = None
             self.mongodb_db = None
 
@@ -127,10 +127,10 @@ class DatabaseCacheManager:
             # 测试连接
             self.redis_client.ping()
 
-            logger.info(f"✅ Redis连接成功: {self.redis_url}")
+            logger.info(f"[OK] Redis连接成功: {self.redis_url}")
 
         except Exception as e:
-            logger.error(f"❌ Redis连接失败: {e}")
+            logger.error(f"[FAIL] Redis连接失败: {e}")
             self.redis_client = None
 
     def _create_mongodb_indexes(self):
@@ -167,10 +167,10 @@ class DatabaseCacheManager:
             ])
             fundamentals_collection.create_index([("created_at", 1)])
 
-            logger.info(f"✅ MongoDB索引创建完成")
+            logger.info(f"[OK] MongoDB索引创建完成")
 
         except Exception as e:
-            logger.error(f"⚠️ MongoDB索引创建失败: {e}")
+            logger.error(f"[WARN] MongoDB索引创建失败: {e}")
 
     def _generate_cache_key(self, data_type: str, symbol: str, **kwargs) -> str:
         """生成缓存键"""
@@ -239,9 +239,9 @@ class DatabaseCacheManager:
             try:
                 collection = self.mongodb_db.stock_data
                 collection.replace_one({"_id": cache_key}, doc, upsert=True)
-                logger.info(f"💾 股票数据已保存到MongoDB: {symbol} -> {cache_key}")
+                logger.info(f"[SAVE] 股票数据已保存到MongoDB: {symbol} -> {cache_key}")
             except Exception as e:
-                logger.error(f"⚠️ MongoDB保存失败: {e}")
+                logger.error(f"[WARN] MongoDB保存失败: {e}")
 
         # 保存到Redis（快速缓存，6小时过期）
         if self.redis_client:
@@ -258,9 +258,9 @@ class DatabaseCacheManager:
                     6 * 3600,  # 6小时过期
                     json.dumps(redis_data, ensure_ascii=False)
                 )
-                logger.info(f"⚡ 股票数据已缓存到Redis: {symbol} -> {cache_key}")
+                logger.info(f"[FAST] 股票数据已缓存到Redis: {symbol} -> {cache_key}")
             except Exception as e:
-                logger.error(f"⚠️ Redis缓存失败: {e}")
+                logger.error(f"[WARN] Redis缓存失败: {e}")
 
         return cache_key
 
@@ -273,14 +273,14 @@ class DatabaseCacheManager:
                 redis_data = self.redis_client.get(cache_key)
                 if redis_data:
                     data_dict = json.loads(redis_data)
-                    logger.info(f"⚡ 从Redis加载数据: {cache_key}")
+                    logger.info(f"[FAST] 从Redis加载数据: {cache_key}")
 
                     if data_dict["data_format"] == "dataframe_json":
                         return pd.read_json(data_dict["data"], orient='records')
                     else:
                         return data_dict["data"]
             except Exception as e:
-                logger.error(f"⚠️ Redis加载失败: {e}")
+                logger.error(f"[WARN] Redis加载失败: {e}")
 
         # 如果Redis没有，从MongoDB加载
         if self.mongodb_db is not None:
@@ -289,7 +289,7 @@ class DatabaseCacheManager:
                 doc = collection.find_one({"_id": cache_key})
 
                 if doc:
-                    logger.info(f"💾 从MongoDB加载数据: {cache_key}")
+                    logger.info(f"[SAVE] 从MongoDB加载数据: {cache_key}")
 
                     # 同时更新到Redis缓存
                     if self.redis_client:
@@ -306,9 +306,9 @@ class DatabaseCacheManager:
                                 6 * 3600,
                                 json.dumps(redis_data, ensure_ascii=False)
                             )
-                            logger.info(f"⚡ 数据已同步到Redis缓存")
+                            logger.info(f"[FAST] 数据已同步到Redis缓存")
                         except Exception as e:
-                            logger.error(f"⚠️ Redis同步失败: {e}")
+                            logger.error(f"[WARN] Redis同步失败: {e}")
 
                     if doc["data_format"] == "dataframe_json":
                         return pd.read_json(doc["data"], orient='records')
@@ -316,7 +316,7 @@ class DatabaseCacheManager:
                         return doc["data"]
 
             except Exception as e:
-                logger.error(f"⚠️ MongoDB加载失败: {e}")
+                logger.error(f"[WARN] MongoDB加载失败: {e}")
 
         return None
 
@@ -333,7 +333,7 @@ class DatabaseCacheManager:
 
         # 检查Redis中是否有精确匹配
         if self.redis_client and self.redis_client.exists(exact_key):
-            logger.info(f"⚡ Redis中找到精确匹配: {symbol} -> {exact_key}")
+            logger.info(f"[FAST] Redis中找到精确匹配: {symbol} -> {exact_key}")
             return exact_key
 
         # 检查MongoDB中的匹配项
@@ -358,13 +358,13 @@ class DatabaseCacheManager:
 
                 if doc:
                     cache_key = doc["_id"]
-                    logger.info(f"💾 MongoDB中找到匹配: {symbol} -> {cache_key}")
+                    logger.info(f"[SAVE] MongoDB中找到匹配: {symbol} -> {cache_key}")
                     return cache_key
 
             except Exception as e:
-                logger.error(f"⚠️ MongoDB查询失败: {e}")
+                logger.error(f"[WARN] MongoDB查询失败: {e}")
 
-        logger.error(f"❌ 未找到有效缓存: {symbol}")
+        logger.error(f"[FAIL] 未找到有效缓存: {symbol}")
         return None
 
     def save_news_data(self, symbol: str, news_data: str,
@@ -396,7 +396,7 @@ class DatabaseCacheManager:
                 collection.replace_one({"_id": cache_key}, doc, upsert=True)
                 logger.info(f"📰 新闻数据已保存到MongoDB: {symbol} -> {cache_key}")
             except Exception as e:
-                logger.error(f"⚠️ MongoDB保存失败: {e}")
+                logger.error(f"[WARN] MongoDB保存失败: {e}")
 
         # 保存到Redis（24小时过期）
         if self.redis_client:
@@ -412,9 +412,9 @@ class DatabaseCacheManager:
                     24 * 3600,  # 24小时过期
                     json.dumps(redis_data, ensure_ascii=False)
                 )
-                logger.info(f"⚡ 新闻数据已缓存到Redis: {symbol} -> {cache_key}")
+                logger.info(f"[FAST] 新闻数据已缓存到Redis: {symbol} -> {cache_key}")
             except Exception as e:
-                logger.error(f"⚠️ Redis缓存失败: {e}")
+                logger.error(f"[WARN] Redis缓存失败: {e}")
 
         return cache_key
 
@@ -447,7 +447,7 @@ class DatabaseCacheManager:
                 collection.replace_one({"_id": cache_key}, doc, upsert=True)
                 logger.info(f"💼 基本面数据已保存到MongoDB: {symbol} -> {cache_key}")
             except Exception as e:
-                logger.error(f"⚠️ MongoDB保存失败: {e}")
+                logger.error(f"[WARN] MongoDB保存失败: {e}")
 
         # 保存到Redis（24小时过期）
         if self.redis_client:
@@ -464,9 +464,9 @@ class DatabaseCacheManager:
                     24 * 3600,  # 24小时过期
                     json.dumps(redis_data, ensure_ascii=False)
                 )
-                logger.info(f"⚡ 基本面数据已缓存到Redis: {symbol} -> {cache_key}")
+                logger.info(f"[FAST] 基本面数据已缓存到Redis: {symbol} -> {cache_key}")
             except Exception as e:
-                logger.error(f"⚠️ Redis缓存失败: {e}")
+                logger.error(f"[WARN] Redis缓存失败: {e}")
 
         return cache_key
 
@@ -515,7 +515,7 @@ class DatabaseCacheManager:
                         stats['fundamentals_count'] += count
 
             except Exception as e:
-                logger.error(f"⚠️ MongoDB统计获取失败: {e}")
+                logger.error(f"[WARN] MongoDB统计获取失败: {e}")
 
         # Redis统计
         if self.redis_client:
@@ -524,7 +524,7 @@ class DatabaseCacheManager:
                 backend_info["redis"]["keys"] = info.get("db0", {}).get("keys", 0)
                 backend_info["redis"]["memory_usage"] = f"{info.get('used_memory_human', 'N/A')}"
             except Exception as e:
-                logger.error(f"⚠️ Redis统计获取失败: {e}")
+                logger.error(f"[WARN] Redis统计获取失败: {e}")
 
         # 设置总大小
         stats['total_size'] = total_size_bytes
@@ -549,7 +549,7 @@ class DatabaseCacheManager:
                     cleared_count += result.deleted_count
                     logger.info(f"🧹 MongoDB {collection_name} 清理了 {result.deleted_count} 条记录")
             except Exception as e:
-                logger.error(f"⚠️ MongoDB清理失败: {e}")
+                logger.error(f"[WARN] MongoDB清理失败: {e}")
 
         # Redis会自动过期，不需要手动清理
         logger.info(f"🧹 总共清理了 {cleared_count} 条过期记录")
@@ -559,11 +559,11 @@ class DatabaseCacheManager:
         """关闭数据库连接"""
         if self.mongodb_client:
             self.mongodb_client.close()
-            logger.info(f"🔒 MongoDB连接已关闭")
+            logger.info(f"[LOCK] MongoDB连接已关闭")
 
         if self.redis_client:
             self.redis_client.close()
-            logger.info(f"🔒 Redis连接已关闭")
+            logger.info(f"[LOCK] Redis连接已关闭")
 
 
 # 全局数据库缓存实例

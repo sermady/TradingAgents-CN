@@ -45,9 +45,9 @@ async def submit_single_analysis(
 ):
     """提交单股分析任务 - 使用 BackgroundTasks 异步执行"""
     try:
-        logger.info(f"🎯 收到单股分析请求")
-        logger.info(f"👤 用户信息: {user}")
-        logger.info(f"📊 请求数据: {request}")
+        logger.info(f"[TARGET] 收到单股分析请求")
+        logger.info(f"[USER] 用户信息: {user}")
+        logger.info(f"[CHART] 请求数据: {request}")
 
         # 立即创建任务记录并返回，不等待执行完成
         analysis_service = get_simple_analysis_service()
@@ -61,29 +61,29 @@ async def submit_single_analysis(
         async def run_analysis_task():
             """包装函数：在后台运行分析任务"""
             try:
-                logger.info(f"🚀 [BackgroundTask] 开始执行分析任务: {task_id}")
-                logger.info(f"📝 [BackgroundTask] task_id={task_id}, user_id={user_id}")
-                logger.info(f"📝 [BackgroundTask] request={request}")
+                logger.info(f"[START] [BackgroundTask] 开始执行分析任务: {task_id}")
+                logger.info(f"[LOG] [BackgroundTask] task_id={task_id}, user_id={user_id}")
+                logger.info(f"[LOG] [BackgroundTask] request={request}")
 
                 # 重新获取服务实例，确保在正确的上下文中
-                logger.info(f"🔧 [BackgroundTask] 正在获取服务实例...")
+                logger.info(f"[CONFIG] [BackgroundTask] 正在获取服务实例...")
                 service = get_simple_analysis_service()
-                logger.info(f"✅ [BackgroundTask] 服务实例获取成功: {id(service)}")
+                logger.info(f"[OK] [BackgroundTask] 服务实例获取成功: {id(service)}")
 
-                logger.info(f"🚀 [BackgroundTask] 准备调用 execute_analysis_background...")
+                logger.info(f"[START] [BackgroundTask] 准备调用 execute_analysis_background...")
                 await service.execute_analysis_background(
                     task_id,
                     user_id,
                     request
                 )
-                logger.info(f"✅ [BackgroundTask] 分析任务完成: {task_id}")
+                logger.info(f"[OK] [BackgroundTask] 分析任务完成: {task_id}")
             except Exception as e:
-                logger.error(f"❌ [BackgroundTask] 分析任务失败: {task_id}, 错误: {e}", exc_info=True)
+                logger.error(f"[FAIL] [BackgroundTask] 分析任务失败: {task_id}, 错误: {e}", exc_info=True)
 
         # 使用 BackgroundTasks 执行异步任务
         background_tasks.add_task(run_analysis_task)
 
-        logger.info(f"✅ 分析任务已在后台启动: {result}")
+        logger.info(f"[OK] 分析任务已在后台启动: {result}")
 
         return {
             "success": True,
@@ -91,7 +91,7 @@ async def submit_single_analysis(
             "message": "分析任务已在后台启动"
         }
     except Exception as e:
-        logger.error(f"❌ 提交单股分析任务失败: {e}")
+        logger.error(f"[FAIL] 提交单股分析任务失败: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -109,14 +109,14 @@ async def get_task_status_new(
 ):
     """获取分析任务状态（新版异步实现）"""
     try:
-        logger.info(f"🔍 [NEW ROUTE] 进入新版状态查询路由: {task_id}")
-        logger.info(f"👤 [NEW ROUTE] 用户: {user}")
+        logger.info(f"[SEARCH] [NEW ROUTE] 进入新版状态查询路由: {task_id}")
+        logger.info(f"[USER] [NEW ROUTE] 用户: {user}")
 
         analysis_service = get_simple_analysis_service()
-        logger.info(f"🔧 [NEW ROUTE] 获取分析服务实例: {id(analysis_service)}")
+        logger.info(f"[CONFIG] [NEW ROUTE] 获取分析服务实例: {id(analysis_service)}")
 
         result = await analysis_service.get_task_status(task_id)
-        logger.info(f"📊 [NEW ROUTE] 查询结果: {result is not None}")
+        logger.info(f"[CHART] [NEW ROUTE] 查询结果: {result is not None}")
 
         if result:
             return {
@@ -126,7 +126,7 @@ async def get_task_status_new(
             }
         else:
             # 内存中没有找到，尝试从MongoDB中查找
-            logger.info(f"📊 [STATUS] 内存中未找到，尝试从MongoDB查找: {task_id}")
+            logger.info(f"[CHART] [STATUS] 内存中未找到，尝试从MongoDB查找: {task_id}")
 
             from app.core.database import get_mongo_db
             db = get_mongo_db()
@@ -135,7 +135,7 @@ async def get_task_status_new(
             task_result = await db.analysis_tasks.find_one({"task_id": task_id})
 
             if task_result:
-                logger.info(f"✅ [STATUS] 从analysis_tasks找到任务: {task_id}")
+                logger.info(f"[OK] [STATUS] 从analysis_tasks找到任务: {task_id}")
 
                 # 构造状态响应（正在进行的任务）
                 status = task_result.get("status", "pending")
@@ -175,7 +175,7 @@ async def get_task_status_new(
             mongo_result = await db.analysis_reports.find_one({"task_id": task_id})
 
             if mongo_result:
-                logger.info(f"✅ [STATUS] 从analysis_reports找到任务: {task_id}")
+                logger.info(f"[OK] [STATUS] 从analysis_reports找到任务: {task_id}")
 
                 # 构造状态响应（模拟已完成的任务）
                 # 计算已完成任务的时间信息
@@ -209,13 +209,13 @@ async def get_task_status_new(
                     "message": "任务状态获取成功（从历史记录恢复）"
                 }
             else:
-                logger.warning(f"❌ [STATUS] MongoDB中也未找到: {task_id} trace={task_id}")
+                logger.warning(f"[FAIL] [STATUS] MongoDB中也未找到: {task_id} trace={task_id}")
                 raise HTTPException(status_code=404, detail="任务不存在")
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ 获取任务状态失败: {e}")
+        logger.error(f"[FAIL] 获取任务状态失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/tasks/{task_id}/result", response_model=Dict[str, Any])
@@ -225,8 +225,8 @@ async def get_task_result(
 ):
     """获取分析任务结果"""
     try:
-        logger.info(f"🔍 [RESULT] 获取任务结果: {task_id}")
-        logger.info(f"👤 [RESULT] 用户: {user}")
+        logger.info(f"[SEARCH] [RESULT] 获取任务结果: {task_id}")
+        logger.info(f"[USER] [RESULT] 用户: {user}")
 
         analysis_service = get_simple_analysis_service()
         task_status = await analysis_service.get_task_status(task_id)
@@ -236,23 +236,23 @@ async def get_task_result(
         if task_status and task_status.get('status') == 'completed':
             # 从内存中获取结果数据
             result_data = task_status.get('result_data')
-            logger.info(f"📊 [RESULT] 从内存中获取到结果数据")
+            logger.info(f"[CHART] [RESULT] 从内存中获取到结果数据")
 
-            # 🔍 调试：检查内存中的数据结构
+            # [SEARCH] 调试：检查内存中的数据结构
             if result_data:
-                logger.info(f"📊 [RESULT] 内存数据键: {list(result_data.keys())}")
-                logger.info(f"📊 [RESULT] 内存中有decision字段: {bool(result_data.get('decision'))}")
-                logger.info(f"📊 [RESULT] 内存中summary长度: {len(result_data.get('summary', ''))}")
-                logger.info(f"📊 [RESULT] 内存中recommendation长度: {len(result_data.get('recommendation', ''))}")
+                logger.info(f"[CHART] [RESULT] 内存数据键: {list(result_data.keys())}")
+                logger.info(f"[CHART] [RESULT] 内存中有decision字段: {bool(result_data.get('decision'))}")
+                logger.info(f"[CHART] [RESULT] 内存中summary长度: {len(result_data.get('summary', ''))}")
+                logger.info(f"[CHART] [RESULT] 内存中recommendation长度: {len(result_data.get('recommendation', ''))}")
                 if result_data.get('decision'):
                     decision = result_data['decision']
-                    logger.info(f"📊 [RESULT] 内存decision内容: action={decision.get('action')}, target_price={decision.get('target_price')}")
+                    logger.info(f"[CHART] [RESULT] 内存decision内容: action={decision.get('action')}, target_price={decision.get('target_price')}")
             else:
-                logger.warning(f"⚠️ [RESULT] 内存中result_data为空")
+                logger.warning(f"[WARN] [RESULT] 内存中result_data为空")
 
         if not result_data:
             # 内存中没有找到，尝试从MongoDB中查找
-            logger.info(f"📊 [RESULT] 内存中未找到，尝试从MongoDB查找: {task_id}")
+            logger.info(f"[CHART] [RESULT] 内存中未找到，尝试从MongoDB查找: {task_id}")
 
             from app.core.database import get_mongo_db
             db = get_mongo_db()
@@ -269,7 +269,7 @@ async def get_task_result(
                     mongo_result = await db.analysis_reports.find_one({"analysis_id": analysis_id})
 
             if mongo_result:
-                logger.info(f"✅ [RESULT] 从MongoDB找到结果: {task_id}")
+                logger.info(f"[OK] [RESULT] 从MongoDB找到结果: {task_id}")
 
                 # 直接使用MongoDB中的数据结构（与web目录保持一致）
                 result_data = {
@@ -295,13 +295,13 @@ async def get_task_result(
                 }
 
                 # 添加调试信息
-                logger.info(f"📊 [RESULT] MongoDB数据结构: {list(result_data.keys())}")
-                logger.info(f"📊 [RESULT] MongoDB summary长度: {len(result_data['summary'])}")
-                logger.info(f"📊 [RESULT] MongoDB recommendation长度: {len(result_data['recommendation'])}")
-                logger.info(f"📊 [RESULT] MongoDB decision字段: {bool(result_data.get('decision'))}")
+                logger.info(f"[CHART] [RESULT] MongoDB数据结构: {list(result_data.keys())}")
+                logger.info(f"[CHART] [RESULT] MongoDB summary长度: {len(result_data['summary'])}")
+                logger.info(f"[CHART] [RESULT] MongoDB recommendation长度: {len(result_data['recommendation'])}")
+                logger.info(f"[CHART] [RESULT] MongoDB decision字段: {bool(result_data.get('decision'))}")
                 if result_data.get('decision'):
                     decision = result_data['decision']
-                    logger.info(f"📊 [RESULT] MongoDB decision内容: action={decision.get('action')}, target_price={decision.get('target_price')}, confidence={decision.get('confidence')}")
+                    logger.info(f"[CHART] [RESULT] MongoDB decision内容: action={decision.get('action')}, target_price={decision.get('target_price')}, confidence={decision.get('confidence')}")
             else:
                 # 兜底：analysis_tasks 集合中的 result 字段
                 tasks_doc = await db.analysis_tasks.find_one(
@@ -310,7 +310,7 @@ async def get_task_result(
                 )
                 if tasks_doc and tasks_doc.get("result"):
                     r = tasks_doc["result"] or {}
-                    logger.info("✅ [RESULT] 从analysis_tasks.result 找到结果")
+                    logger.info("[OK] [RESULT] 从analysis_tasks.result 找到结果")
                     # 获取股票代码 (优先使用symbol)
                     symbol = (tasks_doc.get("symbol") or tasks_doc.get("stock_code") or
                              r.get("stock_symbol") or r.get("stock_code"))
@@ -339,7 +339,7 @@ async def get_task_result(
                     }
 
         if not result_data:
-            logger.warning(f"❌ [RESULT] 所有数据源都未找到结果: {task_id}")
+            logger.warning(f"[FAIL] [RESULT] 所有数据源都未找到结果: {task_id}")
             raise HTTPException(status_code=404, detail="分析结果不存在")
 
         if not result_data:
@@ -391,12 +391,12 @@ async def get_task_result(
                         result_data['summary'] = loaded_reports.get('summary')
                     if not result_data.get('recommendation') and loaded_reports.get('recommendation'):
                         result_data['recommendation'] = loaded_reports.get('recommendation')
-                    logger.info(f"📁 [RESULT] 从文件系统加载到 {len(loaded_reports)} 个报告: {list(loaded_reports.keys())}")
+                    logger.info(f"[FOLDER] [RESULT] 从文件系统加载到 {len(loaded_reports)} 个报告: {list(loaded_reports.keys())}")
             except Exception as fs_err:
-                logger.warning(f"⚠️ [RESULT] 从文件系统加载报告失败: {fs_err}")
+                logger.warning(f"[WARN] [RESULT] 从文件系统加载报告失败: {fs_err}")
 
             if 'reports' not in result_data or not result_data['reports']:
-                logger.info(f"📊 [RESULT] reports字段缺失，尝试从state中提取")
+                logger.info(f"[CHART] [RESULT] reports字段缺失，尝试从state中提取")
 
                 # 从state中提取报告内容
                 reports = {}
@@ -461,10 +461,10 @@ async def get_task_result(
                         if isinstance(risk_decision, str) and len(risk_decision.strip()) > 10:
                             reports['risk_management_decision'] = risk_decision.strip()
 
-                    logger.info(f"📊 [RESULT] 从state中提取到 {len(reports)} 个报告: {list(reports.keys())}")
+                    logger.info(f"[CHART] [RESULT] 从state中提取到 {len(reports)} 个报告: {list(reports.keys())}")
                     result_data['reports'] = reports
                 else:
-                    logger.warning(f"⚠️ [RESULT] state字段不是字典类型: {type(state)}")
+                    logger.warning(f"[WARN] [RESULT] state字段不是字典类型: {type(state)}")
 
         # 确保reports字段中的所有内容都是字符串类型
         if 'reports' in result_data and result_data['reports']:
@@ -484,14 +484,14 @@ async def get_task_result(
                     # 如果value为None或空字符串，则跳过该报告
 
                 result_data['reports'] = cleaned_reports
-                logger.info(f"📊 [RESULT] 清理reports字段，包含 {len(cleaned_reports)} 个有效报告")
+                logger.info(f"[CHART] [RESULT] 清理reports字段，包含 {len(cleaned_reports)} 个有效报告")
 
                 # 如果清理后没有有效报告，设置为空字典
                 if not cleaned_reports:
-                    logger.warning(f"⚠️ [RESULT] 清理后没有有效报告")
+                    logger.warning(f"[WARN] [RESULT] 清理后没有有效报告")
                     result_data['reports'] = {}
             else:
-                logger.warning(f"⚠️ [RESULT] reports字段不是字典类型: {type(reports)}")
+                logger.warning(f"[WARN] [RESULT] reports字段不是字典类型: {type(reports)}")
                 result_data['reports'] = {}
 
         # 补全关键字段：recommendation/summary/key_points
@@ -546,7 +546,7 @@ async def get_task_result(
                 if kp:
                     result_data['key_points'] = kp[:5]
         except Exception as fill_err:
-            logger.warning(f"⚠️ [RESULT] 补全关键字段时出错: {fill_err}")
+            logger.warning(f"[WARN] [RESULT] 补全关键字段时出错: {fill_err}")
 
 
         # 进一步兜底：从 detailed_analysis 推断并补全
@@ -593,7 +593,7 @@ async def get_task_result(
                     if rec:
                         result_data['recommendation'] = rec[:2000]
         except Exception as da_err:
-            logger.warning(f"⚠️ [RESULT] 从detailed_analysis补全失败: {da_err}")
+            logger.warning(f"[WARN] [RESULT] 从detailed_analysis补全失败: {da_err}")
 
         # 严格的数据格式化和验证
         def safe_string(value, default=""):
@@ -635,11 +635,11 @@ async def get_task_result(
                 return value
             return default
 
-        # 🔍 调试：检查最终构建前的result_data
-        logger.info(f"🔍 [FINAL] 构建最终结果前，result_data键: {list(result_data.keys())}")
-        logger.info(f"🔍 [FINAL] result_data中有decision: {bool(result_data.get('decision'))}")
+        # [SEARCH] 调试：检查最终构建前的result_data
+        logger.info(f"[SEARCH] [FINAL] 构建最终结果前，result_data键: {list(result_data.keys())}")
+        logger.info(f"[SEARCH] [FINAL] result_data中有decision: {bool(result_data.get('decision'))}")
         if result_data.get('decision'):
-            logger.info(f"🔍 [FINAL] decision内容: {result_data['decision']}")
+            logger.info(f"[SEARCH] [FINAL] decision内容: {result_data['decision']}")
 
         # 构建严格验证的结果数据
         final_result_data = {
@@ -658,7 +658,7 @@ async def get_task_result(
             "research_depth": safe_string(result_data.get("research_depth"), "快速"),
             "detailed_analysis": safe_dict(result_data.get("detailed_analysis")),
             "state": safe_dict(result_data.get("state")),
-            # 🔥 关键修复：添加decision字段！
+            # [HOT] 关键修复：添加decision字段！
             "decision": safe_dict(result_data.get("decision"))
         }
 
@@ -682,14 +682,14 @@ async def get_task_result(
 
         final_result_data["reports"] = validated_reports
 
-        logger.info(f"✅ [RESULT] 成功获取任务结果: {task_id}")
-        logger.info(f"📊 [RESULT] 最终返回 {len(final_result_data.get('reports', {}))} 个报告")
+        logger.info(f"[OK] [RESULT] 成功获取任务结果: {task_id}")
+        logger.info(f"[CHART] [RESULT] 最终返回 {len(final_result_data.get('reports', {}))} 个报告")
 
-        # 🔍 调试：检查最终返回的数据
-        logger.info(f"🔍 [FINAL] 最终返回数据键: {list(final_result_data.keys())}")
-        logger.info(f"🔍 [FINAL] 最终返回中有decision: {bool(final_result_data.get('decision'))}")
+        # [SEARCH] 调试：检查最终返回的数据
+        logger.info(f"[SEARCH] [FINAL] 最终返回数据键: {list(final_result_data.keys())}")
+        logger.info(f"[SEARCH] [FINAL] 最终返回中有decision: {bool(final_result_data.get('decision'))}")
         if final_result_data.get('decision'):
-            logger.info(f"🔍 [FINAL] 最终decision内容: {final_result_data['decision']}")
+            logger.info(f"[SEARCH] [FINAL] 最终decision内容: {final_result_data['decision']}")
 
         return {
             "success": True,
@@ -700,7 +700,7 @@ async def get_task_result(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ [RESULT] 获取任务结果失败: {e}")
+        logger.error(f"[FAIL] [RESULT] 获取任务结果失败: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/tasks/all", response_model=Dict[str, Any])
@@ -712,7 +712,7 @@ async def list_all_tasks(
 ):
     """获取所有任务列表（不限用户）"""
     try:
-        logger.info(f"📋 查询所有任务列表")
+        logger.info(f"[CLIPBOARD] 查询所有任务列表")
 
         tasks = await get_simple_analysis_service().list_all_tasks(
             status=status,
@@ -732,7 +732,7 @@ async def list_all_tasks(
         }
 
     except Exception as e:
-        logger.error(f"❌ 获取任务列表失败: {e}")
+        logger.error(f"[FAIL] 获取任务列表失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/tasks", response_model=Dict[str, Any])
@@ -744,7 +744,7 @@ async def list_user_tasks(
 ):
     """获取用户的任务列表"""
     try:
-        logger.info(f"📋 查询用户任务列表: {user['id']}")
+        logger.info(f"[CLIPBOARD] 查询用户任务列表: {user['id']}")
 
         tasks = await get_simple_analysis_service().list_user_tasks(
             user_id=user["id"],
@@ -765,7 +765,7 @@ async def list_user_tasks(
         }
 
     except Exception as e:
-        logger.error(f"❌ 获取任务列表失败: {e}")
+        logger.error(f"[FAIL] 获取任务列表失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/batch", response_model=Dict[str, Any])
@@ -775,11 +775,11 @@ async def submit_batch_analysis(
 ):
     """提交批量分析任务（真正的并发执行）
 
-    ⚠️ 注意：不使用 BackgroundTasks，因为它是串行执行的！
+    [WARN] 注意：不使用 BackgroundTasks，因为它是串行执行的！
     改用 asyncio.create_task 实现真正的并发执行。
     """
     try:
-        logger.info(f"🎯 [批量分析] 收到批量分析请求: title={request.title}")
+        logger.info(f"[TARGET] [批量分析] 收到批量分析请求: title={request.title}")
 
         simple_service = get_simple_analysis_service()
         batch_id = str(uuid.uuid4())
@@ -788,20 +788,20 @@ async def submit_batch_analysis(
 
         # 获取股票代码列表 (兼容旧字段)
         stock_symbols = request.get_symbols()
-        logger.info(f"📊 [批量分析] 股票代码列表: {stock_symbols}")
+        logger.info(f"[CHART] [批量分析] 股票代码列表: {stock_symbols}")
 
         # 验证股票代码列表
         if not stock_symbols:
             raise ValueError("股票代码列表不能为空")
 
-        # 🔧 限制批量分析的股票数量（最多10个）
+        # [CONFIG] 限制批量分析的股票数量（最多10个）
         MAX_BATCH_SIZE = 10
         if len(stock_symbols) > MAX_BATCH_SIZE:
             raise ValueError(f"批量分析最多支持 {MAX_BATCH_SIZE} 个股票，当前提交了 {len(stock_symbols)} 个")
 
         # 为每只股票创建单股分析任务
         for i, symbol in enumerate(stock_symbols):
-            logger.info(f"📝 [批量分析] 正在创建第 {i+1}/{len(stock_symbols)} 个任务: {symbol}")
+            logger.info(f"[LOG] [批量分析] 正在创建第 {i+1}/{len(stock_symbols)} 个任务: {symbol}")
 
             single_req = SingleAnalysisRequest(
                 symbol=symbol,
@@ -816,12 +816,12 @@ async def submit_batch_analysis(
                     raise RuntimeError(f"创建任务失败：未返回task_id (symbol={symbol})")
                 task_ids.append(task_id)
                 mapping.append({"symbol": symbol, "stock_code": symbol, "task_id": task_id})
-                logger.info(f"✅ [批量分析] 已创建任务: {task_id} - {symbol}")
+                logger.info(f"[OK] [批量分析] 已创建任务: {task_id} - {symbol}")
             except Exception as create_error:
-                logger.error(f"❌ [批量分析] 创建任务失败: {symbol}, 错误: {create_error}", exc_info=True)
+                logger.error(f"[FAIL] [批量分析] 创建任务失败: {symbol}, 错误: {create_error}", exc_info=True)
                 raise
 
-        # 🔧 使用 asyncio.create_task 实现真正的并发执行
+        # [CONFIG] 使用 asyncio.create_task 实现真正的并发执行
         # 不使用 BackgroundTasks，因为它是串行执行的
         async def run_concurrent_analysis():
             """并发执行所有分析任务"""
@@ -837,24 +837,24 @@ async def submit_batch_analysis(
                 # 创建异步任务
                 async def run_single_analysis(tid: str, req: SingleAnalysisRequest, uid: str):
                     try:
-                        logger.info(f"🚀 [并发任务] 开始执行: {tid} - {req.stock_code}")
+                        logger.info(f"[START] [并发任务] 开始执行: {tid} - {req.stock_code}")
                         await simple_service.execute_analysis_background(tid, uid, req)
-                        logger.info(f"✅ [并发任务] 执行完成: {tid}")
+                        logger.info(f"[OK] [并发任务] 执行完成: {tid}")
                     except Exception as e:
-                        logger.error(f"❌ [并发任务] 执行失败: {tid}, 错误: {e}", exc_info=True)
+                        logger.error(f"[FAIL] [并发任务] 执行失败: {tid}, 错误: {e}", exc_info=True)
 
                 # 添加到任务列表
                 task = asyncio.create_task(run_single_analysis(task_id, single_req, user["id"]))
                 tasks.append(task)
-                logger.info(f"✅ [批量分析] 已创建并发任务: {task_id} - {symbol}")
+                logger.info(f"[OK] [批量分析] 已创建并发任务: {task_id} - {symbol}")
 
             # 等待所有任务完成（不阻塞响应）
             await asyncio.gather(*tasks, return_exceptions=True)
-            logger.info(f"🎉 [批量分析] 所有任务执行完成: batch_id={batch_id}")
+            logger.info(f"[SUCCESS] [批量分析] 所有任务执行完成: batch_id={batch_id}")
 
         # 在后台启动并发任务（不等待完成）
         asyncio.create_task(run_concurrent_analysis())
-        logger.info(f"🚀 [批量分析] 已启动 {len(task_ids)} 个并发任务")
+        logger.info(f"[START] [批量分析] 已启动 {len(task_ids)} 个并发任务")
 
         return {
             "success": True,
@@ -868,7 +868,7 @@ async def submit_batch_analysis(
             "message": f"批量分析任务已提交，共{len(task_ids)}个股票，正在并发执行"
         }
     except Exception as e:
-        logger.error(f"❌ [批量分析] 提交失败: {e}", exc_info=True)
+        logger.error(f"[FAIL] [批量分析] 提交失败: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
 
 # 兼容性：保留原有端点
@@ -1085,13 +1085,13 @@ async def websocket_task_progress(websocket: WebSocket, task_id: str):
             except WebSocketDisconnect:
                 break
             except Exception as e:
-                logger.warning(f"⚠️ WebSocket 消息处理错误: {e}")
+                logger.warning(f"[WARN] WebSocket 消息处理错误: {e}")
                 break
 
     except WebSocketDisconnect:
-        logger.info(f"🔌 WebSocket 客户端断开连接: {task_id}")
+        logger.info(f"[PORT] WebSocket 客户端断开连接: {task_id}")
     except Exception as e:
-        logger.error(f"❌ WebSocket 连接错误: {e}")
+        logger.error(f"[FAIL] WebSocket 连接错误: {e}")
     finally:
         await websocket_manager.disconnect(websocket, task_id)
 
@@ -1135,7 +1135,7 @@ async def get_zombie_tasks(
             "max_running_hours": max_running_hours
         }
     except Exception as e:
-        logger.error(f"❌ 获取僵尸任务失败: {e}")
+        logger.error(f"[FAIL] 获取僵尸任务失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取僵尸任务失败: {str(e)}")
 
 
@@ -1162,7 +1162,7 @@ async def cleanup_zombie_tasks(
             "message": f"已清理 {result.get('total_cleaned', 0)} 个僵尸任务"
         }
     except Exception as e:
-        logger.error(f"❌ 清理僵尸任务失败: {e}")
+        logger.error(f"[FAIL] 清理僵尸任务失败: {e}")
         raise HTTPException(status_code=500, detail=f"清理僵尸任务失败: {str(e)}")
 
 
@@ -1205,19 +1205,19 @@ async def mark_task_as_failed(
         )
 
         if result.modified_count > 0:
-            logger.info(f"✅ 任务 {task_id} 已标记为失败")
+            logger.info(f"[OK] 任务 {task_id} 已标记为失败")
             return {
                 "success": True,
                 "message": "任务已标记为失败"
             }
         else:
-            logger.warning(f"⚠️ 任务 {task_id} 未找到或已是失败状态")
+            logger.warning(f"[WARN] 任务 {task_id} 未找到或已是失败状态")
             return {
                 "success": True,
                 "message": "任务未找到或已是失败状态"
             }
     except Exception as e:
-        logger.error(f"❌ 标记任务失败: {e}")
+        logger.error(f"[FAIL] 标记任务失败: {e}")
         raise HTTPException(status_code=500, detail=f"标记任务失败: {str(e)}")
 
 
@@ -1243,17 +1243,17 @@ async def delete_task(
         result = await db.analysis_tasks.delete_one({"task_id": task_id})
 
         if result.deleted_count > 0:
-            logger.info(f"✅ 任务 {task_id} 已删除")
+            logger.info(f"[OK] 任务 {task_id} 已删除")
             return {
                 "success": True,
                 "message": "任务已删除"
             }
         else:
-            logger.warning(f"⚠️ 任务 {task_id} 未找到")
+            logger.warning(f"[WARN] 任务 {task_id} 未找到")
             return {
                 "success": True,
                 "message": "任务未找到"
             }
     except Exception as e:
-        logger.error(f"❌ 删除任务失败: {e}")
+        logger.error(f"[FAIL] 删除任务失败: {e}")
         raise HTTPException(status_code=500, detail=f"删除任务失败: {str(e)}")

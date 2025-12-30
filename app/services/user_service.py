@@ -64,7 +64,7 @@ class UserService:
                 sha256_hash = hashlib.sha256(plain_password.encode()).hexdigest()
                 return sha256_hash == hashed_password
         except Exception as e:
-            logger.error(f"❌ 密码验证错误: {e}")
+            logger.error(f"[FAIL] 密码验证错误: {e}")
             return False
     
     async def create_user(self, user_data: UserCreate) -> Optional[User]:
@@ -131,33 +131,33 @@ class UserService:
             result = await asyncio.to_thread(self.users_collection.insert_one, user_doc)
             user_doc["_id"] = result.inserted_id
             
-            logger.info(f"✅ 用户创建成功: {user_data.username}")
+            logger.info(f"[OK] 用户创建成功: {user_data.username}")
             
             return User(**user_doc)
             
         except Exception as e:
-            logger.error(f"❌ 创建用户失败: {e}")
+            logger.error(f"[FAIL] 创建用户失败: {e}")
             return None
     
     async def authenticate_user(self, username: str, password: str) -> Optional[User]:
         """用户认证"""
         try:
-            logger.info(f"🔍 [authenticate_user] 开始认证用户: {username}")
+            logger.info(f"[SEARCH] [authenticate_user] 开始认证用户: {username}")
 
             # 查找用户 (在线程池中执行)
             user_doc = await asyncio.to_thread(
                 self.users_collection.find_one, {"username": username}
             )
-            logger.info(f"🔍 [authenticate_user] 数据库查询结果: {'找到用户' if user_doc else '用户不存在'}")
+            logger.info(f"[SEARCH] [authenticate_user] 数据库查询结果: {'找到用户' if user_doc else '用户不存在'}")
 
             if not user_doc:
-                logger.warning(f"❌ [authenticate_user] 用户不存在: {username}")
+                logger.warning(f"[FAIL] [authenticate_user] 用户不存在: {username}")
                 return None
 
             # 检查密码字段是否存在
             stored_password_hash = user_doc.get("hashed_password") or user_doc.get("password_hash")
             if not stored_password_hash:
-                logger.error(f"❌ [authenticate_user] 用户 {username} 缺少密码字段")
+                logger.error(f"[FAIL] [authenticate_user] 用户 {username} 缺少密码字段")
                 return None
 
             # 验证密码 (CPU密集型，在线程池中执行)
@@ -169,12 +169,12 @@ class UserService:
             # await asyncio.to_thread(self.hash_password, password) # 这里不需要重新计算，除非为了日志
 
             if not is_valid_password:
-                logger.warning(f"❌ [authenticate_user] 密码错误: {username}")
+                logger.warning(f"[FAIL] [authenticate_user] 密码错误: {username}")
                 return None
 
             # 检查用户是否激活
             if not user_doc.get("is_active", True):
-                logger.warning(f"❌ [authenticate_user] 用户已禁用: {username}")
+                logger.warning(f"[FAIL] [authenticate_user] 用户已禁用: {username}")
                 return None
 
             # 更新最后登录时间 (在线程池中执行)
@@ -184,7 +184,7 @@ class UserService:
                 {"$set": {"last_login": datetime.utcnow()}}
             )
 
-            logger.info(f"✅ [authenticate_user] 用户认证成功: {username}")
+            logger.info(f"[OK] [authenticate_user] 用户认证成功: {username}")
             
             # 确保字段映射正确
             user_data = user_doc.copy()
@@ -194,7 +194,7 @@ class UserService:
             return User(**user_data)
             
         except Exception as e:
-            logger.error(f"❌ 用户认证失败: {e}")
+            logger.error(f"[FAIL] 用户认证失败: {e}")
             return None
     
     async def get_user_by_username(self, username: str) -> Optional[User]:
@@ -212,7 +212,7 @@ class UserService:
                 return User(**user_data)
             return None
         except Exception as e:
-            logger.error(f"❌ 获取用户失败: {e}")
+            logger.error(f"[FAIL] 获取用户失败: {e}")
             return None
     
     async def get_user_by_id(self, user_id: str) -> Optional[User]:
@@ -233,7 +233,7 @@ class UserService:
                 return User(**user_data)
             return None
         except Exception as e:
-            logger.error(f"❌ 获取用户失败: {e}")
+            logger.error(f"[FAIL] 获取用户失败: {e}")
             return None
     
     async def update_user(self, username: str, user_data: UserUpdate) -> Optional[User]:
@@ -273,14 +273,14 @@ class UserService:
             )
             
             if result.modified_count > 0:
-                logger.info(f"✅ 用户信息更新成功: {username}")
+                logger.info(f"[OK] 用户信息更新成功: {username}")
                 return await self.get_user_by_username(username)
             else:
                 logger.warning(f"用户不存在或无需更新: {username}")
                 return None
                 
         except Exception as e:
-            logger.error(f"❌ 更新用户信息失败: {e}")
+            logger.error(f"[FAIL] 更新用户信息失败: {e}")
             return None
     
     async def change_password(self, username: str, old_password: str, new_password: str) -> bool:
@@ -308,14 +308,14 @@ class UserService:
             )
             
             if result.modified_count > 0:
-                logger.info(f"✅ 密码修改成功: {username}")
+                logger.info(f"[OK] 密码修改成功: {username}")
                 return True
             else:
-                logger.error(f"❌ 密码修改失败: {username}")
+                logger.error(f"[FAIL] 密码修改失败: {username}")
                 return False
                 
         except Exception as e:
-            logger.error(f"❌ 修改密码失败: {e}")
+            logger.error(f"[FAIL] 修改密码失败: {e}")
             return False
     
     async def reset_password(self, username: str, new_password: str) -> bool:
@@ -334,14 +334,14 @@ class UserService:
             )
             
             if result.modified_count > 0:
-                logger.info(f"✅ 密码重置成功: {username}")
+                logger.info(f"[OK] 密码重置成功: {username}")
                 return True
             else:
-                logger.error(f"❌ 密码重置失败: {username}")
+                logger.error(f"[FAIL] 密码重置失败: {username}")
                 return False
                 
         except Exception as e:
-            logger.error(f"❌ 重置密码失败: {e}")
+            logger.error(f"[FAIL] 重置密码失败: {e}")
             return False
     
     async def create_admin_user(self, username: str = "admin", password: str = "admin123", email: str = "admin@tradingagents.cn") -> Optional[User]:
@@ -387,14 +387,14 @@ class UserService:
             result = await asyncio.to_thread(self.users_collection.insert_one, admin_doc)
             admin_doc["_id"] = result.inserted_id
             
-            logger.info(f"✅ 管理员用户创建成功: {username}")
+            logger.info(f"[OK] 管理员用户创建成功: {username}")
             logger.info(f"   密码: {password}")
-            logger.info("   ⚠️  请立即修改默认密码！")
+            logger.info("   [WARN]  请立即修改默认密码！")
             
             return User(**admin_doc)
             
         except Exception as e:
-            logger.error(f"❌ 创建管理员用户失败: {e}")
+            logger.error(f"[FAIL] 创建管理员用户失败: {e}")
             return None
     
     async def list_users(self, skip: int = 0, limit: int = 100) -> List[UserResponse]:
@@ -434,7 +434,7 @@ class UserService:
             return users
             
         except Exception as e:
-            logger.error(f"❌ 获取用户列表失败: {e}")
+            logger.error(f"[FAIL] 获取用户列表失败: {e}")
             return []
     
     async def deactivate_user(self, username: str) -> bool:
@@ -452,14 +452,14 @@ class UserService:
             )
             
             if result.modified_count > 0:
-                logger.info(f"✅ 用户已禁用: {username}")
+                logger.info(f"[OK] 用户已禁用: {username}")
                 return True
             else:
                 logger.warning(f"用户不存在: {username}")
                 return False
                 
         except Exception as e:
-            logger.error(f"❌ 禁用用户失败: {e}")
+            logger.error(f"[FAIL] 禁用用户失败: {e}")
             return False
     
     async def activate_user(self, username: str) -> bool:
@@ -477,14 +477,14 @@ class UserService:
             )
             
             if result.modified_count > 0:
-                logger.info(f"✅ 用户已激活: {username}")
+                logger.info(f"[OK] 用户已激活: {username}")
                 return True
             else:
                 logger.warning(f"用户不存在: {username}")
                 return False
                 
         except Exception as e:
-            logger.error(f"❌ 激活用户失败: {e}")
+            logger.error(f"[FAIL] 激活用户失败: {e}")
             return False
 
 

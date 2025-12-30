@@ -16,7 +16,7 @@ from app.models.config import LLMProvider
 
 async def init_providers():
     """初始化大模型厂家数据"""
-    print("🚀 开始初始化大模型厂家数据...")
+    print("[START] 开始初始化大模型厂家数据...")
     
     # 初始化数据库连接
     await init_db()
@@ -117,9 +117,9 @@ async def init_providers():
         provider_data["updated_at"] = datetime.utcnow()
         
         result = await providers_collection.insert_one(provider_data)
-        print(f"✅ 添加厂家: {provider_data['display_name']} (ID: {result.inserted_id})")
+        print(f"[OK] 添加厂家: {provider_data['display_name']} (ID: {result.inserted_id})")
     
-    print(f"🎉 成功初始化 {len(providers_data)} 个厂家数据")
+    print(f"[SUCCESS] 成功初始化 {len(providers_data)} 个厂家数据")
 
 if __name__ == "__main__":
     asyncio.run(init_providers())

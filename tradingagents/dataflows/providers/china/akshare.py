@@ -47,10 +47,10 @@ class AKShareProvider(BaseStockDataProvider):
             try:
                 from curl_cffi import requests as curl_requests
                 use_curl_cffi = True
-                logger.info("🔧 检测到 curl_cffi，将使用它来模拟真实浏览器 TLS 指纹")
+                logger.info("[CONFIG] 检测到 curl_cffi，将使用它来模拟真实浏览器 TLS 指纹")
             except ImportError:
                 use_curl_cffi = False
-                logger.warning("⚠️ curl_cffi 未安装，将使用标准 requests（可能被反爬虫拦截）")
+                logger.warning("[WARN] curl_cffi 未安装，将使用标准 requests（可能被反爬虫拦截）")
                 logger.warning("   建议安装: pip install curl-cffi")
 
             # 修复AKShare的bug：设置requests的默认headers，并添加请求延迟
@@ -106,7 +106,7 @@ class AKShareProvider(BaseStockDataProvider):
                             error_msg = str(e)
                             # 忽略 TLS 库错误和 400 错误的详细日志（这是 Docker 环境的已知问题）
                             if 'invalid library' not in error_msg and '400' not in error_msg:
-                                logger.warning(f"⚠️ curl_cffi 请求失败，回退到标准 requests: {e}")
+                                logger.warning(f"[WARN] curl_cffi 请求失败，回退到标准 requests: {e}")
 
                     # 标准 requests 请求（非东方财富网，或 curl_cffi 不可用/失败）
                     # 设置浏览器请求头
@@ -155,9 +155,9 @@ class AKShareProvider(BaseStockDataProvider):
                 requests._akshare_headers_patched = True
 
                 if use_curl_cffi:
-                    logger.info("🔧 已修复AKShare的headers问题，使用 curl_cffi 模拟真实浏览器（Chrome 120）")
+                    logger.info("[CONFIG] 已修复AKShare的headers问题，使用 curl_cffi 模拟真实浏览器（Chrome 120）")
                 else:
-                    logger.info("🔧 已修复AKShare的headers问题，并添加请求延迟（0.5秒）")
+                    logger.info("[CONFIG] 已修复AKShare的headers问题，并添加请求延迟（0.5秒）")
 
             self.ak = ak
             self.connected = True
@@ -167,10 +167,10 @@ class AKShareProvider(BaseStockDataProvider):
 
             logger.info("[SUCCESS] AKShare连接成功")
         except ImportError as e:
-            logger.error(f"❌ AKShare未安装: {e}")
+            logger.error(f"[FAIL] AKShare未安装: {e}")
             self.connected = False
         except Exception as e:
-            logger.error(f"❌ AKShare初始化失败: {e}")
+            logger.error(f"[FAIL] AKShare初始化失败: {e}")
             self.connected = False
 
     def _get_stock_news_direct(self, symbol: str, limit: int = 10) -> Optional[pd.DataFrame]:
@@ -230,7 +230,7 @@ class AKShareProvider(BaseStockDataProvider):
             )
 
             if response.status_code != 200:
-                self.logger.error(f"❌ {symbol} 东方财富网 API 返回错误: {response.status_code}")
+                self.logger.error(f"[FAIL] {symbol} 东方财富网 API 返回错误: {response.status_code}")
                 return None
 
             # 解析 JSONP 响应
@@ -242,13 +242,13 @@ class AKShareProvider(BaseStockDataProvider):
 
             # 检查返回数据
             if "result" not in data or "cmsArticleWebOld" not in data["result"]:
-                self.logger.error(f"❌ {symbol} 东方财富网 API 返回数据结构异常")
+                self.logger.error(f"[FAIL] {symbol} 东方财富网 API 返回数据结构异常")
                 return None
 
             articles = data["result"]["cmsArticleWebOld"]
 
             if not articles:
-                self.logger.warning(f"⚠️ {symbol} 未获取到新闻")
+                self.logger.warning(f"[WARN] {symbol} 未获取到新闻")
                 return None
 
             # 转换为 DataFrame（与 AKShare 格式兼容）
@@ -279,7 +279,7 @@ class AKShareProvider(BaseStockDataProvider):
             socket.setdefaulttimeout(60)  # 60秒超时
             logger.info("[INFO] AKShare超时配置完成: 60秒")
         except Exception as e:
-            logger.warning(f"⚠️ AKShare超时配置失败: {e}")
+            logger.warning(f"[WARN] AKShare超时配置失败: {e}")
     
     async def connect(self) -> bool:
         """连接到AKShare数据源"""
@@ -302,18 +302,18 @@ class AKShareProvider(BaseStockDataProvider):
             return None
 
         try:
-            logger.info("📋 获取AKShare股票列表（同步）...")
+            logger.info("[CLIPBOARD] 获取AKShare股票列表（同步）...")
             stock_df = self.ak.stock_info_a_code_name()
 
             if stock_df is None or stock_df.empty:
-                logger.warning("⚠️ AKShare股票列表为空")
+                logger.warning("[WARN] AKShare股票列表为空")
                 return None
 
             logger.info(f"[SUCCESS] AKShare股票列表获取成功: {len(stock_df)}只股票")
             return stock_df
 
         except Exception as e:
-            logger.error(f"❌ AKShare获取股票列表失败: {e}")
+            logger.error(f"[FAIL] AKShare获取股票列表失败: {e}")
             return None
 
     async def get_stock_list(self) -> List[Dict[str, Any]]:
@@ -327,7 +327,7 @@ class AKShareProvider(BaseStockDataProvider):
             return []
 
         try:
-            logger.info("📋 获取AKShare股票列表...")
+            logger.info("[CLIPBOARD] 获取AKShare股票列表...")
 
             # 使用线程池异步获取股票列表，添加超时保护
             def fetch_stock_list():
@@ -336,7 +336,7 @@ class AKShareProvider(BaseStockDataProvider):
             stock_df = await asyncio.to_thread(fetch_stock_list)
 
             if stock_df is None or stock_df.empty:
-                logger.warning("⚠️ AKShare股票列表为空")
+                logger.warning("[WARN] AKShare股票列表为空")
                 return []
 
             # 转换为标准格式
@@ -352,7 +352,7 @@ class AKShareProvider(BaseStockDataProvider):
             return stock_list
 
         except Exception as e:
-            logger.error(f"❌ AKShare获取股票列表失败: {e}")
+            logger.error(f"[FAIL] AKShare获取股票列表失败: {e}")
             return []
     
     async def get_stock_basic_info(self, code: str) -> Optional[Dict[str, Any]]:
@@ -369,13 +369,13 @@ class AKShareProvider(BaseStockDataProvider):
             return None
         
         try:
-            logger.debug(f"📊 获取{code}基础信息...")
+            logger.debug(f"[CHART] 获取{code}基础信息...")
             
             # 获取股票基本信息
             stock_info = await self._get_stock_info_detail(code)
             
             if not stock_info:
-                logger.warning(f"⚠️ 未找到{code}的基础信息")
+                logger.warning(f"[WARN] 未找到{code}的基础信息")
                 return None
             
             # 转换为标准化字典
@@ -398,7 +398,7 @@ class AKShareProvider(BaseStockDataProvider):
             return basic_info
             
         except Exception as e:
-            logger.error(f"❌ 获取{code}基础信息失败: {e}")
+            logger.error(f"[FAIL] 获取{code}基础信息失败: {e}")
             return None
 
     def _get_stock_list_cached_sync(self):
@@ -417,7 +417,7 @@ class AKShareProvider(BaseStockDataProvider):
                 logger.info(f"[SUCCESS] 股票列表缓存更新: {len(stock_list)} 只股票")
                 return stock_list
         except Exception as e:
-            logger.error(f"❌ 获取股票列表失败: {e}")
+            logger.error(f"[FAIL] 获取股票列表失败: {e}")
 
         return None
 
@@ -474,11 +474,11 @@ class AKShareProvider(BaseStockDataProvider):
             return None
 
         try:
-            logger.debug(f"📊 获取{code}基础信息(同步)...")
+            logger.debug(f"[CHART] 获取{code}基础信息(同步)...")
 
             stock_info = self._get_stock_info_detail_sync(code)
             if not stock_info:
-                logger.warning(f"⚠️ 未找到{code}的基础信息")
+                logger.warning(f"[WARN] 未找到{code}的基础信息")
                 return None
 
             basic_info = {
@@ -499,7 +499,7 @@ class AKShareProvider(BaseStockDataProvider):
             return basic_info
 
         except Exception as e:
-            logger.error(f"❌ 获取{code}基础信息(同步)失败: {e}")
+            logger.error(f"[FAIL] 获取{code}基础信息(同步)失败: {e}")
             return None
     
     async def _get_stock_list_cached(self):
@@ -523,7 +523,7 @@ class AKShareProvider(BaseStockDataProvider):
                 logger.info(f"[SUCCESS] 股票列表缓存更新: {len(stock_list)} 只股票")
                 return stock_list
         except Exception as e:
-            logger.error(f"❌ 获取股票列表失败: {e}")
+            logger.error(f"[FAIL] 获取股票列表失败: {e}")
 
         return None
 
@@ -682,7 +682,7 @@ class AKShareProvider(BaseStockDataProvider):
 
         for attempt in range(max_retries):
             try:
-                logger.debug(f"📊 批量获取 {len(codes)} 只股票的实时行情... (尝试 {attempt + 1}/{max_retries})")
+                logger.debug(f"[CHART] 批量获取 {len(codes)} 只股票的实时行情... (尝试 {attempt + 1}/{max_retries})")
 
                 # 优先使用新浪财经接口（更稳定，不容易被封）
                 def fetch_spot_data_sina():
@@ -693,9 +693,9 @@ class AKShareProvider(BaseStockDataProvider):
                 try:
                     spot_df = await asyncio.to_thread(fetch_spot_data_sina)
                     data_source = "sina"
-                    logger.debug("✅ 使用新浪财经接口获取数据")
+                    logger.debug("[OK] 使用新浪财经接口获取数据")
                 except Exception as e:
-                    logger.warning(f"⚠️ 新浪财经接口失败: {e}，尝试东方财富接口...")
+                    logger.warning(f"[WARN] 新浪财经接口失败: {e}，尝试东方财富接口...")
                     # 回退到东方财富接口
                     def fetch_spot_data_em():
                         import time
@@ -703,10 +703,10 @@ class AKShareProvider(BaseStockDataProvider):
                         return self.ak.stock_zh_a_spot_em()
                     spot_df = await asyncio.to_thread(fetch_spot_data_em)
                     data_source = "eastmoney"
-                    logger.debug("✅ 使用东方财富接口获取数据")
+                    logger.debug("[OK] 使用东方财富接口获取数据")
 
                 if spot_df is None or spot_df.empty:
-                    logger.warning("⚠️ 全市场快照为空")
+                    logger.warning("[WARN] 全市场快照为空")
                     if attempt < max_retries - 1:
                         await asyncio.sleep(retry_delay)
                         continue
@@ -747,7 +747,7 @@ class AKShareProvider(BaseStockDataProvider):
                             "high": self._safe_float(row.get("最高", 0)),
                             "low": self._safe_float(row.get("最低", 0)),
                             "pre_close": self._safe_float(row.get("昨收", 0)),
-                            # 🔥 新增：财务指标字段
+                            # [HOT] 新增：财务指标字段
                             "turnover_rate": self._safe_float(row.get("换手率", None)),  # 换手率（%）
                             "volume_ratio": self._safe_float(row.get("量比", None)),  # 量比
                             "pe": self._safe_float(row.get("市盈率-动态", None)),  # 动态市盈率
@@ -770,7 +770,7 @@ class AKShareProvider(BaseStockDataProvider):
                             "high_price": float(quotes_data.get("high", 0)),
                             "low_price": float(quotes_data.get("low", 0)),
                             "pre_close": float(quotes_data.get("pre_close", 0)),
-                            # 🔥 新增：财务指标字段
+                            # [HOT] 新增：财务指标字段
                             "turnover_rate": quotes_data.get("turnover_rate"),  # 换手率（%）
                             "volume_ratio": quotes_data.get("volume_ratio"),  # 量比
                             "pe": quotes_data.get("pe"),  # 动态市盈率
@@ -788,31 +788,31 @@ class AKShareProvider(BaseStockDataProvider):
 
                 found_count = len(quotes_map)
                 missing_count = len(codes) - found_count
-                logger.debug(f"✅ 批量获取完成: 找到 {found_count} 只, 未找到 {missing_count} 只")
+                logger.debug(f"[OK] 批量获取完成: 找到 {found_count} 只, 未找到 {missing_count} 只")
 
                 # 记录未找到的股票
                 if missing_count > 0:
                     missing_codes = codes_set - set(quotes_map.keys())
                     if missing_count <= 10:
-                        logger.debug(f"⚠️ 未找到行情的股票: {list(missing_codes)}")
+                        logger.debug(f"[WARN] 未找到行情的股票: {list(missing_codes)}")
                     else:
-                        logger.debug(f"⚠️ 未找到行情的股票: {list(missing_codes)[:10]}... (共{missing_count}只)")
+                        logger.debug(f"[WARN] 未找到行情的股票: {list(missing_codes)[:10]}... (共{missing_count}只)")
 
                 return quotes_map
 
             except Exception as e:
-                logger.warning(f"⚠️ 批量获取实时行情失败 (尝试 {attempt + 1}/{max_retries}): {e}")
+                logger.warning(f"[WARN] 批量获取实时行情失败 (尝试 {attempt + 1}/{max_retries}): {e}")
                 if attempt < max_retries - 1:
                     await asyncio.sleep(retry_delay)
                 else:
-                    logger.error(f"❌ 批量获取实时行情失败，已达最大重试次数: {e}")
+                    logger.error(f"[FAIL] 批量获取实时行情失败，已达最大重试次数: {e}")
                     return {}
 
     async def get_stock_quotes(self, code: str) -> Optional[Dict[str, Any]]:
         """
         获取单个股票实时行情
 
-        🔥 策略：使用 stock_bid_ask_em 接口获取单个股票的实时行情报价
+        [HOT] 策略：使用 stock_bid_ask_em 接口获取单个股票的实时行情报价
         - 优点：只获取单个股票数据，速度快，不浪费资源
         - 适用场景：手动同步单个股票
 
@@ -826,40 +826,40 @@ class AKShareProvider(BaseStockDataProvider):
             return None
 
         try:
-            logger.info(f"📈 使用 stock_bid_ask_em 接口获取 {code} 实时行情...")
+            logger.info(f"[CHART-UP] 使用 stock_bid_ask_em 接口获取 {code} 实时行情...")
 
-            # 🔥 使用 stock_bid_ask_em 接口获取单个股票实时行情
+            # [HOT] 使用 stock_bid_ask_em 接口获取单个股票实时行情
             def fetch_bid_ask():
                 return self.ak.stock_bid_ask_em(symbol=code)
 
             bid_ask_df = await asyncio.to_thread(fetch_bid_ask)
 
-            # 🔥 打印原始返回数据
-            logger.info(f"📊 stock_bid_ask_em 返回数据类型: {type(bid_ask_df)}")
+            # [HOT] 打印原始返回数据
+            logger.info(f"[CHART] stock_bid_ask_em 返回数据类型: {type(bid_ask_df)}")
             if bid_ask_df is not None:
-                logger.info(f"📊 DataFrame shape: {bid_ask_df.shape}")
-                logger.info(f"📊 DataFrame columns: {list(bid_ask_df.columns)}")
-                logger.info(f"📊 DataFrame 完整数据:\n{bid_ask_df.to_string()}")
+                logger.info(f"[CHART] DataFrame shape: {bid_ask_df.shape}")
+                logger.info(f"[CHART] DataFrame columns: {list(bid_ask_df.columns)}")
+                logger.info(f"[CHART] DataFrame 完整数据:\n{bid_ask_df.to_string()}")
 
             if bid_ask_df is None or bid_ask_df.empty:
-                logger.warning(f"⚠️ 未找到{code}的行情数据")
+                logger.warning(f"[WARN] 未找到{code}的行情数据")
                 return None
 
             # 将 DataFrame 转换为字典
             data_dict = dict(zip(bid_ask_df['item'], bid_ask_df['value']))
-            logger.info(f"📊 转换后的字典: {data_dict}")
+            logger.info(f"[CHART] 转换后的字典: {data_dict}")
 
             # 转换为标准化字典
-            # 🔥 注意：字段名必须与 app/routers/stocks.py 中的查询字段一致
+            # [HOT] 注意：字段名必须与 app/routers/stocks.py 中的查询字段一致
             # 前端查询使用的是 high/low/open，不是 high_price/low_price/open_price
 
-            # 🔥 获取当前日期（UTC+8）
+            # [HOT] 获取当前日期（UTC+8）
             from datetime import datetime, timezone, timedelta
             cn_tz = timezone(timedelta(hours=8))
             now_cn = datetime.now(cn_tz)
             trade_date = now_cn.strftime("%Y-%m-%d")  # 格式：2025-11-05
 
-            # 🔥 成交量单位转换：手 → 股（1手 = 100股）
+            # [HOT] 成交量单位转换：手 → 股（1手 = 100股）
             volume_in_lots = int(data_dict.get("总手", 0))  # 单位：手
             volume_in_shares = volume_in_lots * 100  # 单位：股
 
@@ -868,18 +868,18 @@ class AKShareProvider(BaseStockDataProvider):
                 "symbol": code,
                 "name": f"股票{code}",  # stock_bid_ask_em 不返回股票名称
                 "price": float(data_dict.get("最新", 0)),
-                "close": float(data_dict.get("最新", 0)),  # 🔥 close 字段（与 price 相同）
-                "current_price": float(data_dict.get("最新", 0)),  # 🔥 current_price 字段（兼容旧数据）
+                "close": float(data_dict.get("最新", 0)),  # [HOT] close 字段（与 price 相同）
+                "current_price": float(data_dict.get("最新", 0)),  # [HOT] current_price 字段（兼容旧数据）
                 "change": float(data_dict.get("涨跌", 0)),
                 "change_percent": float(data_dict.get("涨幅", 0)),
-                "pct_chg": float(data_dict.get("涨幅", 0)),  # 🔥 pct_chg 字段（兼容旧数据）
-                "volume": volume_in_shares,  # 🔥 单位：股（已转换）
+                "pct_chg": float(data_dict.get("涨幅", 0)),  # [HOT] pct_chg 字段（兼容旧数据）
+                "volume": volume_in_shares,  # [HOT] 单位：股（已转换）
                 "amount": float(data_dict.get("金额", 0)),  # 单位：元
-                "open": float(data_dict.get("今开", 0)),  # 🔥 使用 open 而不是 open_price
-                "high": float(data_dict.get("最高", 0)),  # 🔥 使用 high 而不是 high_price
-                "low": float(data_dict.get("最低", 0)),  # 🔥 使用 low 而不是 low_price
+                "open": float(data_dict.get("今开", 0)),  # [HOT] 使用 open 而不是 open_price
+                "high": float(data_dict.get("最高", 0)),  # [HOT] 使用 high 而不是 high_price
+                "low": float(data_dict.get("最低", 0)),  # [HOT] 使用 low 而不是 low_price
                 "pre_close": float(data_dict.get("昨收", 0)),
-                # 🔥 新增：财务指标字段
+                # [HOT] 新增：财务指标字段
                 "turnover_rate": float(data_dict.get("换手", 0)),  # 换手率（%）
                 "volume_ratio": float(data_dict.get("量比", 0)),  # 量比
                 "pe": None,  # stock_bid_ask_em 不返回市盈率
@@ -887,7 +887,7 @@ class AKShareProvider(BaseStockDataProvider):
                 "pb": None,  # stock_bid_ask_em 不返回市净率
                 "total_mv": None,  # stock_bid_ask_em 不返回总市值
                 "circ_mv": None,  # stock_bid_ask_em 不返回流通市值
-                # 🔥 新增：交易日期和更新时间
+                # [HOT] 新增：交易日期和更新时间
                 "trade_date": trade_date,  # 交易日期（格式：2025-11-05）
                 "updated_at": now_cn.isoformat(),  # 更新时间（ISO格式，带时区）
                 # 扩展字段
@@ -898,11 +898,11 @@ class AKShareProvider(BaseStockDataProvider):
                 "sync_status": "success"
             }
 
-            logger.info(f"✅ {code} 实时行情获取成功: 最新价={quotes['price']}, 涨跌幅={quotes['change_percent']}%, 成交量={quotes['volume']}, 成交额={quotes['amount']}")
+            logger.info(f"[OK] {code} 实时行情获取成功: 最新价={quotes['price']}, 涨跌幅={quotes['change_percent']}%, 成交量={quotes['volume']}, 成交额={quotes['amount']}")
             return quotes
 
         except Exception as e:
-            logger.error(f"❌ 获取{code}实时行情失败: {e}", exc_info=True)
+            logger.error(f"[FAIL] 获取{code}实时行情失败: {e}", exc_info=True)
             return None
     
     async def _get_realtime_quotes_data(self, code: str) -> Dict[str, Any]:
@@ -934,7 +934,7 @@ class AKShareProvider(BaseStockDataProvider):
                             "high": self._safe_float(row.get("最高", 0)),
                             "low": self._safe_float(row.get("最低", 0)),
                             "pre_close": self._safe_float(row.get("昨收", 0)),
-                            # 🔥 新增：财务指标字段
+                            # [HOT] 新增：财务指标字段
                             "turnover_rate": self._safe_float(row.get("换手率", None)),  # 换手率（%）
                             "volume_ratio": self._safe_float(row.get("量比", None)),  # 量比
                             "pe": self._safe_float(row.get("市盈率-动态", None)),  # 动态市盈率
@@ -1023,7 +1023,7 @@ class AKShareProvider(BaseStockDataProvider):
             return None
 
         try:
-            logger.debug(f"📊 获取{code}历史数据(同步): {start_date} 到 {end_date}")
+            logger.debug(f"[CHART] 获取{code}历史数据(同步): {start_date} 到 {end_date}")
 
             # 转换周期格式
             period_map = {
@@ -1047,17 +1047,17 @@ class AKShareProvider(BaseStockDataProvider):
             )
 
             if hist_df is None or hist_df.empty:
-                logger.warning(f"⚠️ {code}历史数据(同步)为空")
+                logger.warning(f"[WARN] {code}历史数据(同步)为空")
                 return None
 
             # 标准化列名
             hist_df = self._standardize_historical_columns(hist_df, code)
 
-            logger.debug(f"✅ {code}历史数据(同步)获取成功: {len(hist_df)}条记录")
+            logger.debug(f"[OK] {code}历史数据(同步)获取成功: {len(hist_df)}条记录")
             return hist_df
 
         except Exception as e:
-            logger.error(f"❌ 获取{code}历史数据(同步)失败: {e}")
+            logger.error(f"[FAIL] 获取{code}历史数据(同步)失败: {e}")
             return None
 
     async def get_historical_data(
@@ -1083,7 +1083,7 @@ class AKShareProvider(BaseStockDataProvider):
             return None
 
         try:
-            logger.debug(f"📊 获取{code}历史数据: {start_date} 到 {end_date}")
+            logger.debug(f"[CHART] 获取{code}历史数据: {start_date} 到 {end_date}")
 
             # 转换周期格式
             period_map = {
@@ -1110,17 +1110,17 @@ class AKShareProvider(BaseStockDataProvider):
             hist_df = await asyncio.to_thread(fetch_historical_data)
 
             if hist_df is None or hist_df.empty:
-                logger.warning(f"⚠️ {code}历史数据为空")
+                logger.warning(f"[WARN] {code}历史数据为空")
                 return None
 
             # 标准化列名
             hist_df = self._standardize_historical_columns(hist_df, code)
 
-            logger.debug(f"✅ {code}历史数据获取成功: {len(hist_df)}条记录")
+            logger.debug(f"[OK] {code}历史数据获取成功: {len(hist_df)}条记录")
             return hist_df
 
         except Exception as e:
-            logger.error(f"❌ 获取{code}历史数据失败: {e}")
+            logger.error(f"[FAIL] 获取{code}历史数据失败: {e}")
             return None
 
     def _standardize_historical_columns(self, df: pd.DataFrame, code: str) -> pd.DataFrame:
@@ -1190,7 +1190,7 @@ class AKShareProvider(BaseStockDataProvider):
                 main_indicators = await asyncio.to_thread(fetch_financial_abstract)
                 if main_indicators is not None and not main_indicators.empty:
                     financial_data['main_indicators'] = main_indicators.to_dict('records')
-                    logger.debug(f"✅ {code}主要财务指标获取成功")
+                    logger.debug(f"[OK] {code}主要财务指标获取成功")
             except Exception as e:
                 logger.debug(f"获取{code}主要财务指标失败: {e}")
 
@@ -1202,7 +1202,7 @@ class AKShareProvider(BaseStockDataProvider):
                 balance_sheet = await asyncio.to_thread(fetch_balance_sheet)
                 if balance_sheet is not None and not balance_sheet.empty:
                     financial_data['balance_sheet'] = balance_sheet.to_dict('records')
-                    logger.debug(f"✅ {code}资产负债表获取成功")
+                    logger.debug(f"[OK] {code}资产负债表获取成功")
             except Exception as e:
                 logger.debug(f"获取{code}资产负债表失败: {e}")
 
@@ -1214,7 +1214,7 @@ class AKShareProvider(BaseStockDataProvider):
                 income_statement = await asyncio.to_thread(fetch_income_statement)
                 if income_statement is not None and not income_statement.empty:
                     financial_data['income_statement'] = income_statement.to_dict('records')
-                    logger.debug(f"✅ {code}利润表获取成功")
+                    logger.debug(f"[OK] {code}利润表获取成功")
             except Exception as e:
                 logger.debug(f"获取{code}利润表失败: {e}")
 
@@ -1226,19 +1226,19 @@ class AKShareProvider(BaseStockDataProvider):
                 cash_flow = await asyncio.to_thread(fetch_cash_flow)
                 if cash_flow is not None and not cash_flow.empty:
                     financial_data['cash_flow'] = cash_flow.to_dict('records')
-                    logger.debug(f"✅ {code}现金流量表获取成功")
+                    logger.debug(f"[OK] {code}现金流量表获取成功")
             except Exception as e:
                 logger.debug(f"获取{code}现金流量表失败: {e}")
 
             if financial_data:
-                logger.debug(f"✅ {code}财务数据获取完成: {len(financial_data)}个数据集")
+                logger.debug(f"[OK] {code}财务数据获取完成: {len(financial_data)}个数据集")
             else:
-                logger.warning(f"⚠️ {code}未获取到任何财务数据")
+                logger.warning(f"[WARN] {code}未获取到任何财务数据")
 
             return financial_data
 
         except Exception as e:
-            logger.error(f"❌ 获取{code}财务数据失败: {e}")
+            logger.error(f"[FAIL] 获取{code}财务数据失败: {e}")
             return {}
 
     def get_financial_data_sync(self, code: str) -> Dict[str, Any]:
@@ -1255,7 +1255,7 @@ class AKShareProvider(BaseStockDataProvider):
                 main_indicators = self.ak.stock_financial_abstract(symbol=code)
                 if main_indicators is not None and not main_indicators.empty:
                     financial_data['main_indicators'] = main_indicators.to_dict('records')
-                    logger.debug(f"✅ {code}主要财务指标获取成功(同步)")
+                    logger.debug(f"[OK] {code}主要财务指标获取成功(同步)")
             except Exception as e:
                 logger.debug(f"获取{code}主要财务指标失败(同步): {e}")
 
@@ -1263,7 +1263,7 @@ class AKShareProvider(BaseStockDataProvider):
                 balance_sheet = self.ak.stock_balance_sheet_by_report_em(symbol=code)
                 if balance_sheet is not None and not balance_sheet.empty:
                     financial_data['balance_sheet'] = balance_sheet.to_dict('records')
-                    logger.debug(f"✅ {code}资产负债表获取成功(同步)")
+                    logger.debug(f"[OK] {code}资产负债表获取成功(同步)")
             except Exception as e:
                 logger.debug(f"获取{code}资产负债表失败(同步): {e}")
 
@@ -1271,7 +1271,7 @@ class AKShareProvider(BaseStockDataProvider):
                 income_statement = self.ak.stock_profit_sheet_by_report_em(symbol=code)
                 if income_statement is not None and not income_statement.empty:
                     financial_data['income_statement'] = income_statement.to_dict('records')
-                    logger.debug(f"✅ {code}利润表获取成功(同步)")
+                    logger.debug(f"[OK] {code}利润表获取成功(同步)")
             except Exception as e:
                 logger.debug(f"获取{code}利润表失败(同步): {e}")
 
@@ -1279,19 +1279,19 @@ class AKShareProvider(BaseStockDataProvider):
                 cash_flow = self.ak.stock_cash_flow_sheet_by_report_em(symbol=code)
                 if cash_flow is not None and not cash_flow.empty:
                     financial_data['cash_flow'] = cash_flow.to_dict('records')
-                    logger.debug(f"✅ {code}现金流量表获取成功(同步)")
+                    logger.debug(f"[OK] {code}现金流量表获取成功(同步)")
             except Exception as e:
                 logger.debug(f"获取{code}现金流量表失败(同步): {e}")
 
             if financial_data:
-                logger.debug(f"✅ {code}财务数据获取完成(同步): {len(financial_data)}个数据集")
+                logger.debug(f"[OK] {code}财务数据获取完成(同步): {len(financial_data)}个数据集")
             else:
-                logger.warning(f"⚠️ {code}未获取到任何财务数据(同步)")
+                logger.warning(f"[WARN] {code}未获取到任何财务数据(同步)")
 
             return financial_data
 
         except Exception as e:
-            logger.error(f"❌ 获取{code}财务数据失败(同步): {e}")
+            logger.error(f"[FAIL] 获取{code}财务数据失败(同步): {e}")
             return {}
 
     async def get_market_status(self) -> Dict[str, Any]:
@@ -1319,7 +1319,7 @@ class AKShareProvider(BaseStockDataProvider):
             }
 
         except Exception as e:
-            logger.error(f"❌ 获取市场状态失败: {e}")
+            logger.error(f"[FAIL] 获取市场状态失败: {e}")
             return {
                 "market_status": "unknown",
                 "current_time": datetime.now().isoformat(),
@@ -1360,7 +1360,7 @@ class AKShareProvider(BaseStockDataProvider):
                     return news_df
 
                 # 策略 2: 如果直接调用失败，回退到 AKShare 原生接口
-                self.logger.info(f"⚠️ {symbol} 直接调用 API 失败或未返回数据，回退到 AKShare 原生接口")
+                self.logger.info(f"[WARN] {symbol} 直接调用 API 失败或未返回数据，回退到 AKShare 原生接口")
 
                 # 获取东方财富个股新闻，添加重试机制
                 max_retries = 3
@@ -1373,25 +1373,25 @@ class AKShareProvider(BaseStockDataProvider):
                         break  # 成功则跳出重试循环
                     except json.JSONDecodeError as e:
                         if attempt < max_retries - 1:
-                            self.logger.warning(f"⚠️ {symbol} 第{attempt+1}次获取新闻失败(JSON解析错误)，{retry_delay}秒后重试...")
+                            self.logger.warning(f"[WARN] {symbol} 第{attempt+1}次获取新闻失败(JSON解析错误)，{retry_delay}秒后重试...")
                             time.sleep(retry_delay)
                             retry_delay *= 2  # 指数退避
                         else:
-                            self.logger.error(f"❌ {symbol} 获取新闻失败(JSON解析错误): {e}")
+                            self.logger.error(f"[FAIL] {symbol} 获取新闻失败(JSON解析错误): {e}")
                             return None
                     except Exception as e:
                         if attempt < max_retries - 1:
-                            self.logger.warning(f"⚠️ {symbol} 第{attempt+1}次获取新闻失败: {e}，{retry_delay}秒后重试...")
+                            self.logger.warning(f"[WARN] {symbol} 第{attempt+1}次获取新闻失败: {e}，{retry_delay}秒后重试...")
                             time.sleep(retry_delay)
                             retry_delay *= 2
                         else:
                             raise
 
                 if news_df is not None and not news_df.empty:
-                    self.logger.info(f"✅ {symbol} AKShare新闻获取成功: {len(news_df)} 条")
+                    self.logger.info(f"[OK] {symbol} AKShare新闻获取成功: {len(news_df)} 条")
                     return news_df.head(limit) if limit else news_df
                 else:
-                    self.logger.warning(f"⚠️ {symbol} 未获取到AKShare新闻数据")
+                    self.logger.warning(f"[WARN] {symbol} 未获取到AKShare新闻数据")
                     return None
             else:
                 # 获取市场新闻
@@ -1399,14 +1399,14 @@ class AKShareProvider(BaseStockDataProvider):
                 news_df = ak.news_cctv()
 
                 if news_df is not None and not news_df.empty:
-                    self.logger.info(f"✅ AKShare市场新闻获取成功: {len(news_df)} 条")
+                    self.logger.info(f"[OK] AKShare市场新闻获取成功: {len(news_df)} 条")
                     return news_df.head(limit) if limit else news_df
                 else:
-                    self.logger.warning("⚠️ 未获取到AKShare市场新闻数据")
+                    self.logger.warning("[WARN] 未获取到AKShare市场新闻数据")
                     return None
 
         except Exception as e:
-            self.logger.error(f"❌ AKShare新闻获取失败: {e}")
+            self.logger.error(f"[FAIL] AKShare新闻获取失败: {e}")
             return None
 
     async def get_stock_news(self, symbol: str = None, limit: int = 10) -> Optional[List[Dict[str, Any]]]:
@@ -1446,19 +1446,19 @@ class AKShareProvider(BaseStockDataProvider):
                     # 检查 curl_cffi 是否可用
                     import importlib.util
                     if importlib.util.find_spec("curl_cffi"):
-                        self.logger.debug(f"🔧 检测到 curl_cffi，尝试直接调用 API")
+                        self.logger.debug(f"[CONFIG] 检测到 curl_cffi，尝试直接调用 API")
                         news_df = await asyncio.to_thread(
                             self._get_stock_news_direct,
                             symbol=symbol_6,
                             limit=limit
                         )
                         if news_df is not None and not news_df.empty:
-                            self.logger.info(f"✅ {symbol} 直接调用 API 成功")
+                            self.logger.info(f"[OK] {symbol} 直接调用 API 成功")
                         else:
-                            self.logger.warning(f"⚠️ {symbol} 直接调用 API 失败或无数据，回退到 AKShare")
+                            self.logger.warning(f"[WARN] {symbol} 直接调用 API 失败或无数据，回退到 AKShare")
                             news_df = None  # 回退到 AKShare
                 except Exception as e:
-                    self.logger.warning(f"⚠️ {symbol} 直接调用 API 异常: {e}，回退到 AKShare")
+                    self.logger.warning(f"[WARN] {symbol} 直接调用 API 异常: {e}，回退到 AKShare")
                     news_df = None
 
                 # 策略 2: 如果直接调用失败，使用 AKShare 原生接口
@@ -1472,31 +1472,31 @@ class AKShareProvider(BaseStockDataProvider):
                             break  # 成功则跳出重试循环
                         except json.JSONDecodeError as e:
                             if attempt < max_retries - 1:
-                                self.logger.warning(f"⚠️ {symbol} 第{attempt+1}次获取新闻失败(JSON解析错误)，{retry_delay}秒后重试...")
+                                self.logger.warning(f"[WARN] {symbol} 第{attempt+1}次获取新闻失败(JSON解析错误)，{retry_delay}秒后重试...")
                                 await asyncio.sleep(retry_delay)
                                 retry_delay *= 2  # 指数退避
                             else:
-                                self.logger.error(f"❌ {symbol} 获取新闻失败(JSON解析错误): {e}")
+                                self.logger.error(f"[FAIL] {symbol} 获取新闻失败(JSON解析错误): {e}")
                                 return []
                         except KeyError as e:
                             # 东方财富网接口变更或反爬虫拦截，返回的字段结构改变
                             if str(e) == "'cmsArticleWebOld'":
-                                self.logger.error(f"❌ {symbol} AKShare新闻接口返回数据结构异常: 缺少 'cmsArticleWebOld' 字段")
+                                self.logger.error(f"[FAIL] {symbol} AKShare新闻接口返回数据结构异常: 缺少 'cmsArticleWebOld' 字段")
                                 self.logger.error(f"   这通常是因为：1) 反爬虫拦截 2) 接口变更 3) 网络问题")
                                 self.logger.error(f"   建议：检查 AKShare 版本是否为最新 (当前要求 >=1.17.86)")
                                 # 返回空列表，避免程序崩溃
                                 return []
                             else:
                                 if attempt < max_retries - 1:
-                                    self.logger.warning(f"⚠️ {symbol} 第{attempt+1}次获取新闻失败(字段错误): {e}，{retry_delay}秒后重试...")
+                                    self.logger.warning(f"[WARN] {symbol} 第{attempt+1}次获取新闻失败(字段错误): {e}，{retry_delay}秒后重试...")
                                     await asyncio.sleep(retry_delay)
                                     retry_delay *= 2
                                 else:
-                                    self.logger.error(f"❌ {symbol} 获取新闻失败(字段错误): {e}")
+                                    self.logger.error(f"[FAIL] {symbol} 获取新闻失败(字段错误): {e}")
                                     return []
                         except Exception as e:
                             if attempt < max_retries - 1:
-                                self.logger.warning(f"⚠️ {symbol} 第{attempt+1}次获取新闻失败: {e}，{retry_delay}秒后重试...")
+                                self.logger.warning(f"[WARN] {symbol} 第{attempt+1}次获取新闻失败: {e}，{retry_delay}秒后重试...")
                                 await asyncio.sleep(retry_delay)
                                 retry_delay *= 2
                             else:
@@ -1531,10 +1531,10 @@ class AKShareProvider(BaseStockDataProvider):
                         if news_item["title"]:
                             news_list.append(news_item)
 
-                    self.logger.info(f"✅ {symbol} AKShare新闻获取成功: {len(news_list)} 条")
+                    self.logger.info(f"[OK] {symbol} AKShare新闻获取成功: {len(news_list)} 条")
                     return news_list
                 else:
-                    self.logger.warning(f"⚠️ {symbol} 未获取到AKShare新闻数据")
+                    self.logger.warning(f"[WARN] {symbol} 未获取到AKShare新闻数据")
                     return []
             else:
                 # 获取市场新闻
@@ -1574,7 +1574,7 @@ class AKShareProvider(BaseStockDataProvider):
                             if news_item["title"]:
                                 news_list.append(news_item)
 
-                        self.logger.info(f"✅ AKShare市场新闻获取成功: {len(news_list)} 条")
+                        self.logger.info(f"[OK] AKShare市场新闻获取成功: {len(news_list)} 条")
                         return news_list
 
                 except Exception as e:
@@ -1583,7 +1583,7 @@ class AKShareProvider(BaseStockDataProvider):
                 return []
 
         except Exception as e:
-            self.logger.error(f"❌ 获取AKShare新闻失败 symbol={symbol}: {e}")
+            self.logger.error(f"[FAIL] 获取AKShare新闻失败 symbol={symbol}: {e}")
             return None
 
     def _parse_news_time(self, time_str: str) -> Optional[datetime]:
@@ -1618,7 +1618,7 @@ class AKShareProvider(BaseStockDataProvider):
                     continue
 
             # 如果都失败了，返回当前时间
-            self.logger.debug(f"⚠️ 无法解析新闻时间: {time_str}")
+            self.logger.debug(f"[WARN] 无法解析新闻时间: {time_str}")
             return datetime.utcnow()
 
         except Exception as e:

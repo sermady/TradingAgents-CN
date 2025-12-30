@@ -28,7 +28,7 @@ class WebSocketManager:
                 self.active_connections[task_id] = set()
             self.active_connections[task_id].add(websocket)
         
-        logger.info(f"🔌 WebSocket 连接建立: {task_id}")
+        logger.info(f"[PORT] WebSocket 连接建立: {task_id}")
     
     async def disconnect(self, websocket: WebSocket, task_id: str):
         """断开 WebSocket 连接"""
@@ -38,7 +38,7 @@ class WebSocketManager:
                 if not self.active_connections[task_id]:
                     del self.active_connections[task_id]
         
-        logger.info(f"🔌 WebSocket 连接断开: {task_id}")
+        logger.info(f"[PORT] WebSocket 连接断开: {task_id}")
     
     async def send_progress_update(self, task_id: str, message: Dict[str, Any]):
         """发送进度更新到指定任务的所有连接"""
@@ -52,7 +52,7 @@ class WebSocketManager:
             try:
                 await connection.send_text(json.dumps(message))
             except Exception as e:
-                logger.warning(f"⚠️ 发送 WebSocket 消息失败: {e}")
+                logger.warning(f"[WARN] 发送 WebSocket 消息失败: {e}")
                 # 移除失效的连接
                 async with self._lock:
                     if task_id in self.active_connections:

@@ -21,7 +21,7 @@ def _consume_task_result(task: asyncio.Task, context: str = "") -> None:
     except asyncio.CancelledError:
         return
     except Exception:
-        logger.warning(f"⚠️ 后台任务异常{context}", exc_info=True)
+        logger.warning(f"[WARN] 后台任务异常{context}", exc_info=True)
 
 class TaskStatus(Enum):
     """任务状态枚举"""
@@ -106,7 +106,7 @@ class MemoryStateManager:
 
     def __init__(self):
         self._tasks: Dict[str, TaskState] = {}
-        # 🔧 使用 threading.Lock 代替 asyncio.Lock，避免事件循环冲突
+        # [CONFIG] 使用 threading.Lock 代替 asyncio.Lock，避免事件循环冲突
         # 当在线程池中执行分析时，会创建新的事件循环，asyncio.Lock 会导致
         # "is bound to a different event loop" 错误
         self._lock = threading.Lock()
@@ -141,10 +141,10 @@ class MemoryStateManager:
                 message="任务已创建，等待执行..."
             )
             self._tasks[task_id] = task_state
-            logger.info(f"📝 创建任务状态: {task_id}")
-            logger.info(f"⏱️ 预估总时长: {estimated_duration:.1f}秒 ({estimated_duration/60:.1f}分钟)")
-            logger.info(f"📊 当前内存中任务数量: {len(self._tasks)}")
-            logger.info(f"🔍 内存管理器实例ID: {id(self)}")
+            logger.info(f"[LOG] 创建任务状态: {task_id}")
+            logger.info(f"[TIME] 预估总时长: {estimated_duration:.1f}秒 ({estimated_duration/60:.1f}分钟)")
+            logger.info(f"[CHART] 当前内存中任务数量: {len(self._tasks)}")
+            logger.info(f"[SEARCH] 内存管理器实例ID: {id(self)}")
             return task_state
 
     def _calculate_estimated_duration(self, parameters: Dict[str, Any]) -> float:
@@ -200,7 +200,7 @@ class MemoryStateManager:
         """更新任务状态"""
         with self._lock:
             if task_id not in self._tasks:
-                logger.warning(f"⚠️ 任务不存在: {task_id}")
+                logger.warning(f"[WARN] 任务不存在: {task_id}")
                 return False
             
             task = self._tasks[task_id]
@@ -213,12 +213,12 @@ class MemoryStateManager:
             if current_step is not None:
                 task.current_step = current_step
             if result_data is not None:
-                # 🔍 调试：检查保存到内存的result_data
-                logger.info(f"🔍 [MEMORY] 保存result_data到内存: {task_id}")
-                logger.info(f"🔍 [MEMORY] result_data键: {list(result_data.keys()) if result_data else '无'}")
-                logger.info(f"🔍 [MEMORY] result_data中有decision: {bool(result_data.get('decision')) if result_data else False}")
+                # [SEARCH] 调试：检查保存到内存的result_data
+                logger.info(f"[SEARCH] [MEMORY] 保存result_data到内存: {task_id}")
+                logger.info(f"[SEARCH] [MEMORY] result_data键: {list(result_data.keys()) if result_data else '无'}")
+                logger.info(f"[SEARCH] [MEMORY] result_data中有decision: {bool(result_data.get('decision')) if result_data else False}")
                 if result_data and result_data.get('decision'):
-                    logger.info(f"🔍 [MEMORY] decision内容: {result_data['decision']}")
+                    logger.info(f"[SEARCH] [MEMORY] decision内容: {result_data['decision']}")
 
                 task.result_data = result_data
             if error_message is not None:
@@ -230,7 +230,7 @@ class MemoryStateManager:
                 if task.start_time:
                     task.execution_time = (task.end_time - task.start_time).total_seconds()
             
-            logger.info(f"📊 更新任务状态: {task_id} -> {status.value} ({progress}%)")
+            logger.info(f"[CHART] 更新任务状态: {task_id} -> {status.value} ({progress}%)")
 
             # 推送状态更新到 WebSocket
             if self._websocket_manager:
@@ -250,21 +250,21 @@ class MemoryStateManager:
                     )
                     t.add_done_callback(lambda _t: _consume_task_result(_t, context=f" (task_id={task_id})"))
                 except Exception as e:
-                    logger.warning(f"⚠️ WebSocket 推送失败: {e}")
+                    logger.warning(f"[WARN] WebSocket 推送失败: {e}")
 
             return True
     
     async def get_task(self, task_id: str) -> Optional[TaskState]:
         """获取任务状态"""
         with self._lock:
-            logger.debug(f"🔍 查询任务: {task_id}")
-            logger.debug(f"📊 当前内存中任务数量: {len(self._tasks)}")
+            logger.debug(f"[SEARCH] 查询任务: {task_id}")
+            logger.debug(f"[CHART] 当前内存中任务数量: {len(self._tasks)}")
             logger.debug(f"🔑 内存中的任务ID列表: {list(self._tasks.keys())}")
             task = self._tasks.get(task_id)
             if task:
-                logger.debug(f"✅ 找到任务: {task_id}")
+                logger.debug(f"[OK] 找到任务: {task_id}")
             else:
-                logger.debug(f"❌ 未找到任务: {task_id}")
+                logger.debug(f"[FAIL] 未找到任务: {task_id}")
             return task
     
     async def get_task_dict(self, task_id: str) -> Optional[Dict[str, Any]]:
@@ -395,7 +395,7 @@ class MemoryStateManager:
                 if task.start_time:
                     task.execution_time = (task.end_time - task.start_time).total_seconds()
 
-                logger.warning(f"⚠️ 僵尸任务已标记为失败: {task_id} (运行时间: {task.execution_time:.1f}秒)")
+                logger.warning(f"[WARN] 僵尸任务已标记为失败: {task_id} (运行时间: {task.execution_time:.1f}秒)")
 
             if zombie_tasks:
                 logger.info(f"🧹 清理了 {len(zombie_tasks)} 个僵尸任务")
@@ -417,7 +417,7 @@ class MemoryStateManager:
                 logger.info(f"🗑️ 任务已从内存中删除: {task_id}")
                 return True
             else:
-                logger.warning(f"⚠️ 任务不存在于内存中: {task_id}")
+                logger.warning(f"[WARN] 任务不存在于内存中: {task_id}")
                 return False
 
 # 全局实例

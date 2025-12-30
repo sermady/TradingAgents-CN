@@ -213,7 +213,7 @@ class ErrorFormatter:
         if category == ErrorCategory.LLM_API_KEY:
             return {
                 "category": "大模型配置错误",
-                "title": f"❌ {friendly_name or '大模型'} API Key 无效",
+                "title": f"[FAIL] {friendly_name or '大模型'} API Key 无效",
                 "message": f"{friendly_name or '大模型'} 的 API Key 无效或未配置。",
                 "suggestion": (
                     "请检查以下几点：\n"
@@ -228,7 +228,7 @@ class ErrorFormatter:
         elif category == ErrorCategory.LLM_QUOTA:
             return {
                 "category": "大模型配额不足",
-                "title": f"⚠️ {friendly_name or '大模型'} 配额不足或限流",
+                "title": f"[WARN] {friendly_name or '大模型'} 配额不足或限流",
                 "message": f"{friendly_name or '大模型'} 的调用配额已用完或触发了限流。",
                 "suggestion": (
                     "请尝试以下解决方案：\n"
@@ -252,7 +252,7 @@ class ErrorFormatter:
                     "3. 如果是阿里百炼，可以尝试使用 qwen-max 或 qwen-plus 模型\n"
                     "4. 联系技术支持报告此问题，我们会优化内容过滤逻辑\n"
                     "\n"
-                    "💡 提示：不同大模型的内容审核策略不同，切换模型通常可以解决此问题。"
+                    "[INFO] 提示：不同大模型的内容审核策略不同，切换模型通常可以解决此问题。"
                 ),
                 "technical_detail": original_error
             }
@@ -260,7 +260,7 @@ class ErrorFormatter:
         elif category == ErrorCategory.LLM_NETWORK:
             return {
                 "category": "大模型网络错误",
-                "title": f"🌐 无法连接到 {friendly_name or '大模型'}",
+                "title": f"[WEB] 无法连接到 {friendly_name or '大模型'}",
                 "message": f"连接 {friendly_name or '大模型'} 服务时网络超时或连接失败。",
                 "suggestion": (
                     "请检查以下几点：\n"
@@ -275,7 +275,7 @@ class ErrorFormatter:
         elif category == ErrorCategory.LLM_OTHER:
             return {
                 "category": "大模型调用错误",
-                "title": f"❌ {friendly_name or '大模型'} 调用失败",
+                "title": f"[FAIL] {friendly_name or '大模型'} 调用失败",
                 "message": f"调用 {friendly_name or '大模型'} 时发生错误。",
                 "suggestion": (
                     "建议：\n"
@@ -290,7 +290,7 @@ class ErrorFormatter:
         elif category == ErrorCategory.DATA_SOURCE_API_KEY:
             return {
                 "category": "数据源配置错误",
-                "title": f"❌ {friendly_name or '数据源'} Token/API Key 无效",
+                "title": f"[FAIL] {friendly_name or '数据源'} Token/API Key 无效",
                 "message": f"{friendly_name or '数据源'} 的 Token 或 API Key 无效或未配置。",
                 "suggestion": (
                     "请检查以下几点：\n"
@@ -305,7 +305,7 @@ class ErrorFormatter:
         elif category == ErrorCategory.DATA_SOURCE_NOT_FOUND:
             return {
                 "category": "数据获取失败",
-                "title": f"📊 {friendly_name or '数据源'} 未找到数据",
+                "title": f"[CHART] {friendly_name or '数据源'} 未找到数据",
                 "message": f"从 {friendly_name or '数据源'} 获取股票数据失败，可能是股票代码不存在或数据暂未更新。",
                 "suggestion": (
                     "建议：\n"
@@ -320,7 +320,7 @@ class ErrorFormatter:
         elif category == ErrorCategory.DATA_SOURCE_NETWORK:
             return {
                 "category": "数据源网络错误",
-                "title": f"🌐 无法连接到 {friendly_name or '数据源'}",
+                "title": f"[WEB] 无法连接到 {friendly_name or '数据源'}",
                 "message": f"连接 {friendly_name or '数据源'} 时网络超时或连接失败。",
                 "suggestion": (
                     "请检查：\n"
@@ -335,7 +335,7 @@ class ErrorFormatter:
         elif category == ErrorCategory.DATA_SOURCE_OTHER:
             return {
                 "category": "数据源错误",
-                "title": f"❌ {friendly_name or '数据源'} 调用失败",
+                "title": f"[FAIL] {friendly_name or '数据源'} 调用失败",
                 "message": f"从 {friendly_name or '数据源'} 获取数据时发生错误。",
                 "suggestion": (
                     "建议：\n"
@@ -350,7 +350,7 @@ class ErrorFormatter:
         elif category == ErrorCategory.STOCK_CODE_INVALID:
             return {
                 "category": "股票代码错误",
-                "title": "❌ 股票代码无效",
+                "title": "[FAIL] 股票代码无效",
                 "message": "输入的股票代码格式不正确或不存在。",
                 "suggestion": (
                     "请检查：\n"
@@ -365,7 +365,7 @@ class ErrorFormatter:
         elif category == ErrorCategory.NETWORK:
             return {
                 "category": "网络连接错误",
-                "title": "🌐 网络连接失败",
+                "title": "[WEB] 网络连接失败",
                 "message": "网络连接超时或无法访问服务。",
                 "suggestion": (
                     "请检查：\n"
@@ -380,7 +380,7 @@ class ErrorFormatter:
         elif category == ErrorCategory.SYSTEM:
             return {
                 "category": "系统错误",
-                "title": "⚠️ 系统内部错误",
+                "title": "[WARN] 系统内部错误",
                 "message": "系统处理请求时发生内部错误。",
                 "suggestion": (
                     "建议：\n"
@@ -394,7 +394,7 @@ class ErrorFormatter:
         else:  # UNKNOWN
             return {
                 "category": "未知错误",
-                "title": "❌ 分析失败",
+                "title": "[FAIL] 分析失败",
                 "message": "分析过程中发生错误。",
                 "suggestion": (
                     "建议：\n"

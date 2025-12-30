@@ -38,7 +38,7 @@ class RateLimiter:
         self.total_waits = 0
         self.total_wait_time = 0.0
         
-        logger.info(f"🔧 {self.name} 初始化: {max_calls}次/{time_window}秒")
+        logger.info(f"[CONFIG] {self.name} 初始化: {max_calls}次/{time_window}秒")
     
     async def acquire(self):
         """
@@ -94,7 +94,7 @@ class RateLimiter:
         self.total_calls = 0
         self.total_waits = 0
         self.total_wait_time = 0.0
-        logger.info(f"🔄 {self.name} 统计信息已重置")
+        logger.info(f"[SYNC] {self.name} 统计信息已重置")
 
 
 class TushareRateLimiter(RateLimiter):
@@ -122,7 +122,7 @@ class TushareRateLimiter(RateLimiter):
             safety_margin: 安全边际（0-1），实际限制为理论限制的百分比
         """
         if tier not in self.TIER_LIMITS:
-            logger.warning(f"⚠️ 未知的Tushare积分等级: {tier}，使用默认值 'standard'")
+            logger.warning(f"[WARN] 未知的Tushare积分等级: {tier}，使用默认值 'standard'")
             tier = "standard"
         
         limits = self.TIER_LIMITS[tier]
@@ -140,7 +140,7 @@ class TushareRateLimiter(RateLimiter):
         self.tier = tier
         self.safety_margin = safety_margin
         
-        logger.info(f"✅ Tushare速率限制器已配置: {tier}等级, "
+        logger.info(f"[OK] Tushare速率限制器已配置: {tier}等级, "
                    f"{max_calls}次/{time_window}秒 (安全边际: {safety_margin*100:.0f}%)")
 
 
@@ -224,5 +224,5 @@ def reset_all_limiters():
     _tushare_limiter = None
     _akshare_limiter = None
     _baostock_limiter = None
-    logger.info("🔄 所有速率限制器已重置")
+    logger.info("[SYNC] 所有速率限制器已重置")
 

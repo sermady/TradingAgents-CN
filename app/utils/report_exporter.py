@@ -26,17 +26,17 @@ try:
     try:
         pypandoc.get_pandoc_version()
         PANDOC_AVAILABLE = True
-        logger.info("✅ Pandoc 可用")
+        logger.info("[OK] Pandoc 可用")
     except OSError:
         PANDOC_AVAILABLE = False
-        logger.warning("⚠️ Pandoc 不可用，Word 和 PDF 导出功能将不可用")
+        logger.warning("[WARN] Pandoc 不可用，Word 和 PDF 导出功能将不可用")
 
     EXPORT_AVAILABLE = True
 except ImportError as e:
     EXPORT_AVAILABLE = False
     PANDOC_AVAILABLE = False
-    logger.warning(f"⚠️ 导出功能依赖包缺失: {e}")
-    logger.info("💡 请安装: pip install pypandoc markdown")
+    logger.warning(f"[WARN] 导出功能依赖包缺失: {e}")
+    logger.info("[INFO] 请安装: pip install pypandoc markdown")
 
 # 检查 pdfkit（唯一的 PDF 生成工具）
 PDFKIT_AVAILABLE = False
@@ -48,17 +48,17 @@ try:
     try:
         pdfkit.configuration()
         PDFKIT_AVAILABLE = True
-        logger.info("✅ pdfkit + wkhtmltopdf 可用（PDF 生成工具）")
+        logger.info("[OK] pdfkit + wkhtmltopdf 可用（PDF 生成工具）")
     except Exception as e:
         PDFKIT_ERROR = str(e)
-        logger.warning("⚠️ wkhtmltopdf 未安装，PDF 导出功能不可用")
-        logger.info("💡 安装方法: https://wkhtmltopdf.org/downloads.html")
+        logger.warning("[WARN] wkhtmltopdf 未安装，PDF 导出功能不可用")
+        logger.info("[INFO] 安装方法: https://wkhtmltopdf.org/downloads.html")
 except ImportError:
-    logger.warning("⚠️ pdfkit 未安装，PDF 导出功能不可用")
-    logger.info("💡 安装方法: pip install pdfkit")
+    logger.warning("[WARN] pdfkit 未安装，PDF 导出功能不可用")
+    logger.info("[INFO] 安装方法: pip install pdfkit")
 except Exception as e:
     PDFKIT_ERROR = str(e)
-    logger.warning(f"⚠️ pdfkit 检测失败: {e}")
+    logger.warning(f"[WARN] pdfkit 检测失败: {e}")
 
 
 class ReportExporter:
@@ -69,14 +69,14 @@ class ReportExporter:
         self.pandoc_available = PANDOC_AVAILABLE
         self.pdfkit_available = PDFKIT_AVAILABLE
 
-        logger.info("📋 ReportExporter 初始化:")
+        logger.info("[CLIPBOARD] ReportExporter 初始化:")
         logger.info(f"  - export_available: {self.export_available}")
         logger.info(f"  - pandoc_available: {self.pandoc_available}")
         logger.info(f"  - pdfkit_available: {self.pdfkit_available}")
     
     def generate_markdown_report(self, report_doc: Dict[str, Any]) -> str:
         """生成 Markdown 格式报告"""
-        logger.info("📝 生成 Markdown 报告...")
+        logger.info("[LOG] 生成 Markdown 报告...")
         
         stock_symbol = report_doc.get("stock_symbol", "unknown")
         analysis_date = report_doc.get("analysis_date", "")
@@ -100,7 +100,7 @@ class ReportExporter:
         
         # 执行摘要
         if summary:
-            content_parts.append("## 📊 执行摘要")
+            content_parts.append("## [CHART] 执行摘要")
             content_parts.append("")
             content_parts.append(summary)
             content_parts.append("")
@@ -121,11 +121,11 @@ class ReportExporter:
         module_titles = {
             "company_overview": "🏢 公司概况",
             "financial_analysis": "💰 财务分析",
-            "technical_analysis": "📈 技术分析",
-            "market_analysis": "🌍 市场分析",
-            "risk_analysis": "⚠️ 风险分析",
+            "technical_analysis": "[CHART-UP] 技术分析",
+            "market_analysis": "[ENV] 市场分析",
+            "risk_analysis": "[WARN] 风险分析",
             "valuation_analysis": "💎 估值分析",
-            "investment_recommendation": "🎯 投资建议"
+            "investment_recommendation": "[TARGET] 投资建议"
         }
         
         # 按顺序添加模块
@@ -160,7 +160,7 @@ class ReportExporter:
         content_parts.append("")
         
         markdown_content = "\n".join(content_parts)
-        logger.info(f"✅ Markdown 报告生成完成，长度: {len(markdown_content)} 字符")
+        logger.info(f"[OK] Markdown 报告生成完成，长度: {len(markdown_content)} 字符")
         
         return markdown_content
     
@@ -173,7 +173,7 @@ class ReportExporter:
         if md_content.strip().startswith("---"):
             md_content = "\n" + md_content
 
-        # 🔥 移除可能导致竖排的 HTML 标签和样式
+        # [HOT] 移除可能导致竖排的 HTML 标签和样式
         # 移除 writing-mode 相关的样式
         md_content = re.sub(r'<[^>]*writing-mode[^>]*>', '', md_content, flags=re.IGNORECASE)
         md_content = re.sub(r'<[^>]*text-orientation[^>]*>', '', md_content, flags=re.IGNORECASE)
@@ -182,11 +182,11 @@ class ReportExporter:
         md_content = re.sub(r'<div\s+style="[^"]*">', '<div>', md_content, flags=re.IGNORECASE)
         md_content = re.sub(r'<span\s+style="[^"]*">', '<span>', md_content, flags=re.IGNORECASE)
 
-        # 🔥 移除可能导致问题的 HTML 标签
+        # [HOT] 移除可能导致问题的 HTML 标签
         # 保留基本的 Markdown 格式，移除复杂的 HTML
         md_content = re.sub(r'<style[^>]*>.*?</style>', '', md_content, flags=re.DOTALL | re.IGNORECASE)
 
-        # 🔥 确保所有段落都是正常的横排文本
+        # [HOT] 确保所有段落都是正常的横排文本
         # 在每个段落前后添加明确的换行，避免 Pandoc 误判
         lines = md_content.split('\n')
         cleaned_lines = []
@@ -211,7 +211,7 @@ class ReportExporter:
         """创建 PDF 样式表，控制表格分页和文本方向"""
         return """
 <style>
-/* 🔥 强制所有文本横排显示（修复中文竖排问题） */
+/* [HOT] 强制所有文本横排显示（修复中文竖排问题） */
 * {
     writing-mode: horizontal-tb !important;
     text-orientation: mixed !important;
@@ -283,7 +283,7 @@ pre, code {
     
     def generate_docx_report(self, report_doc: Dict[str, Any]) -> bytes:
         """生成 Word 文档格式报告"""
-        logger.info("📄 开始生成 Word 文档...")
+        logger.info("[FILE] 开始生成 Word 文档...")
 
         if not self.pandoc_available:
             raise Exception("Pandoc 不可用，无法生成 Word 文档。请安装 pandoc 或使用 Markdown 格式导出。")
@@ -296,7 +296,7 @@ pre, code {
             with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as tmp_file:
                 output_file = tmp_file.name
 
-            logger.info(f"📁 临时文件路径: {output_file}")
+            logger.info(f"[FOLDER] 临时文件路径: {output_file}")
 
             # Pandoc 参数
             extra_args = [
@@ -304,8 +304,8 @@ pre, code {
                 '--standalone',  # 生成独立文档
                 '--wrap=preserve',  # 保留换行
                 '--columns=120',  # 设置列宽
-                '-M', 'lang=zh-CN',  # 🔥 明确指定语言为简体中文
-                '-M', 'dir=ltr',  # 🔥 明确指定文本方向为从左到右
+                '-M', 'lang=zh-CN',  # [HOT] 明确指定语言为简体中文
+                '-M', 'dir=ltr',  # [HOT] 明确指定文本方向为从左到右
             ]
 
             # 清理内容
@@ -320,9 +320,9 @@ pre, code {
                 extra_args=extra_args
             )
 
-            logger.info("✅ pypandoc 转换完成")
+            logger.info("[OK] pypandoc 转换完成")
 
-            # 🔥 后处理：修复 Word 文档中的文本方向
+            # [HOT] 后处理：修复 Word 文档中的文本方向
             try:
                 from docx import Document
                 doc = Document(output_file)
@@ -348,17 +348,17 @@ pre, code {
 
                 # 保存修复后的文档
                 doc.save(output_file)
-                logger.info("✅ Word 文档文本方向修复完成")
+                logger.info("[OK] Word 文档文本方向修复完成")
             except ImportError:
-                logger.warning("⚠️ python-docx 未安装，跳过文本方向修复")
+                logger.warning("[WARN] python-docx 未安装，跳过文本方向修复")
             except Exception as e:
-                logger.warning(f"⚠️ Word 文档文本方向修复失败: {e}")
+                logger.warning(f"[WARN] Word 文档文本方向修复失败: {e}")
 
             # 读取生成的文件
             with open(output_file, 'rb') as f:
                 docx_content = f.read()
 
-            logger.info(f"✅ Word 文档生成成功，大小: {len(docx_content)} 字节")
+            logger.info(f"[OK] Word 文档生成成功，大小: {len(docx_content)} 字节")
 
             # 清理临时文件
             os.unlink(output_file)
@@ -366,7 +366,7 @@ pre, code {
             return docx_content
             
         except Exception as e:
-            logger.error(f"❌ Word 文档生成失败: {e}", exc_info=True)
+            logger.error(f"[FAIL] Word 文档生成失败: {e}", exc_info=True)
             # 清理临时文件
             try:
                 if 'output_file' in locals() and os.path.exists(output_file):
@@ -614,7 +614,7 @@ pre, code {
         """使用 pdfkit 生成 PDF"""
         import pdfkit
 
-        logger.info("🔧 使用 pdfkit + wkhtmltopdf 生成 PDF...")
+        logger.info("[CONFIG] 使用 pdfkit + wkhtmltopdf 生成 PDF...")
 
         # 配置选项
         options = {
@@ -630,12 +630,12 @@ pre, code {
         # 生成 PDF
         pdf_bytes = pdfkit.from_string(html_content, False, options=options)
 
-        logger.info(f"✅ pdfkit PDF 生成成功，大小: {len(pdf_bytes)} 字节")
+        logger.info(f"[OK] pdfkit PDF 生成成功，大小: {len(pdf_bytes)} 字节")
         return pdf_bytes
 
     def generate_pdf_report(self, report_doc: Dict[str, Any]) -> bytes:
         """生成 PDF 格式报告（使用 pdfkit + wkhtmltopdf）"""
-        logger.info("📊 开始生成 PDF 文档...")
+        logger.info("[CHART] 开始生成 PDF 文档...")
 
         # 检查 pdfkit 是否可用
         if not self.pdfkit_available:
@@ -648,7 +648,7 @@ pre, code {
             if PDFKIT_ERROR:
                 error_msg += f"\n错误详情: {PDFKIT_ERROR}"
 
-            logger.error(f"❌ {error_msg}")
+            logger.error(f"[FAIL] {error_msg}")
             raise Exception(error_msg)
 
         # 生成 Markdown 内容
@@ -660,7 +660,7 @@ pre, code {
             return self._generate_pdf_with_pdfkit(html_content)
         except Exception as e:
             error_msg = f"PDF 生成失败: {e}"
-            logger.error(f"❌ {error_msg}")
+            logger.error(f"[FAIL] {error_msg}")
             raise Exception(error_msg)
 
 

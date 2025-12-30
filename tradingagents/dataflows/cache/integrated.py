@@ -45,7 +45,7 @@ class IntegratedCacheManager:
                 self.adaptive_cache = AdaptiveCacheSystem(cache_dir)
                 self.db_manager = get_database_manager()
                 self.use_adaptive = True
-                self.logger.info("✅ 自适应缓存系统已启用")
+                self.logger.info("[OK] 自适应缓存系统已启用")
             except Exception as e:
                 self.logger.warning(f"自适应缓存系统初始化失败，使用传统缓存: {e}")
                 self.use_adaptive = False
@@ -62,13 +62,13 @@ class IntegratedCacheManager:
             mongodb_available = self.db_manager.is_mongodb_available()
             redis_available = self.db_manager.is_redis_available()
             
-            self.logger.info(f"📊 缓存配置:")
+            self.logger.info(f"[CHART] 缓存配置:")
             self.logger.info(f"  主要后端: {backend}")
-            self.logger.info(f"  MongoDB: {'✅ 可用' if mongodb_available else '❌ 不可用'}")
-            self.logger.info(f"  Redis: {'✅ 可用' if redis_available else '❌ 不可用'}")
-            self.logger.info(f"  降级支持: {'✅ 启用' if self.adaptive_cache.fallback_enabled else '❌ 禁用'}")
+            self.logger.info(f"  MongoDB: {'[OK] 可用' if mongodb_available else '[FAIL] 不可用'}")
+            self.logger.info(f"  Redis: {'[OK] 可用' if redis_available else '[FAIL] 不可用'}")
+            self.logger.info(f"  降级支持: {'[OK] 启用' if self.adaptive_cache.fallback_enabled else '[FAIL] 禁用'}")
         else:
-            self.logger.info("📁 使用传统文件缓存系统")
+            self.logger.info("[FOLDER] 使用传统文件缓存系统")
     
     def save_stock_data(self, symbol: str, data: Any, start_date: str = None, 
                        end_date: str = None, data_source: str = "default") -> str:
@@ -294,7 +294,7 @@ class IntegratedCacheManager:
                     # Redis 会自动过期，这里只记录日志
                     self.logger.info(f"🧹 Redis 缓存会自动过期（TTL机制）")
             except Exception as e:
-                self.logger.error(f"⚠️ Redis 缓存清理失败: {e}")
+                self.logger.error(f"[WARN] Redis 缓存清理失败: {e}")
 
         # 2. 清理 MongoDB 缓存
         if self.use_adaptive and self.db_manager.is_mongodb_available():
@@ -319,7 +319,7 @@ class IntegratedCacheManager:
                         cleared_count += result.deleted_count
                         self.logger.info(f"🧹 MongoDB {collection_name} 清理了 {result.deleted_count} 条记录")
             except Exception as e:
-                self.logger.error(f"⚠️ MongoDB 缓存清理失败: {e}")
+                self.logger.error(f"[WARN] MongoDB 缓存清理失败: {e}")
 
         # 3. 清理文件缓存
         try:
@@ -331,7 +331,7 @@ class IntegratedCacheManager:
             else:
                 self.logger.info(f"🧹 文件缓存清理完成（返回值为None）")
         except Exception as e:
-            self.logger.error(f"⚠️ 文件缓存清理失败: {e}")
+            self.logger.error(f"[WARN] 文件缓存清理失败: {e}")
 
         self.logger.info(f"🧹 总共清理了 {cleared_count} 条缓存记录")
         return cleared_count

@@ -51,11 +51,11 @@ class StockDataService:
             try:
                 self.db_manager = get_database_manager()
                 if self.db_manager.is_mongodb_available():
-                    logger.info(f"✅ MongoDB连接成功")
+                    logger.info(f"[OK] MongoDB连接成功")
                 else:
-                    logger.error(f"⚠️ MongoDB连接失败，将使用其他数据源")
+                    logger.error(f"[WARN] MongoDB连接失败，将使用其他数据源")
             except Exception as e:
-                logger.error(f"⚠️ 数据库管理器初始化失败: {e}")
+                logger.error(f"[WARN] 数据库管理器初始化失败: {e}")
                 self.db_manager = None
     
     def get_stock_basic_info(self, stock_code: str = None) -> Optional[Dict[str, Any]]:
@@ -68,33 +68,33 @@ class StockDataService:
         Returns:
             Dict: 股票基础信息
         """
-        logger.info(f"📊 获取股票基础信息: {stock_code or '全部股票'}")
+        logger.info(f"[CHART] 获取股票基础信息: {stock_code or '全部股票'}")
         
         # 1. 优先从MongoDB获取
         if self.db_manager and self.db_manager.is_mongodb_available():
             try:
                 result = self._get_from_mongodb(stock_code)
                 if result:
-                    logger.info(f"✅ 从MongoDB获取成功: {len(result) if isinstance(result, list) else 1}条记录")
+                    logger.info(f"[OK] 从MongoDB获取成功: {len(result) if isinstance(result, list) else 1}条记录")
                     return result
             except Exception as e:
-                logger.error(f"⚠️ MongoDB查询失败: {e}")
+                logger.error(f"[WARN] MongoDB查询失败: {e}")
         
         # 2. 降级到增强获取器
-        logger.info(f"🔄 MongoDB不可用，降级到增强获取器")
+        logger.info(f"[SYNC] MongoDB不可用，降级到增强获取器")
         if ENHANCED_FETCHER_AVAILABLE:
             try:
                 result = self._get_from_enhanced_fetcher(stock_code)
                 if result:
-                    logger.info(f"✅ 从增强获取器获取成功: {len(result) if isinstance(result, list) else 1}条记录")
+                    logger.info(f"[OK] 从增强获取器获取成功: {len(result) if isinstance(result, list) else 1}条记录")
                     # 尝试缓存到MongoDB（如果可用）
                     self._cache_to_mongodb(result)
                     return result
             except Exception as e:
-                logger.error(f"⚠️ 增强获取器查询失败: {e}")
+                logger.error(f"[WARN] 增强获取器查询失败: {e}")
         
         # 3. 最后的降级方案
-        logger.error(f"❌ 所有数据源都不可用")
+        logger.error(f"[FAIL] 所有数据源都不可用")
         return self._get_fallback_data(stock_code)
     
     def _get_from_mongodb(self, stock_code: str = None) -> Optional[Dict[str, Any]]:
@@ -197,7 +197,7 @@ class StockDataService:
                         {'$set': item},
                         upsert=True
                     )
-                logger.info(f"💾 已缓存{len(data)}条记录到MongoDB")
+                logger.info(f"[SAVE] 已缓存{len(data)}条记录到MongoDB")
             elif isinstance(data, dict):
                 # 单条插入
                 collection.update_one(
@@ -205,7 +205,7 @@ class StockDataService:
                     {'$set': data},
                     upsert=True
                 )
-                logger.info(f"💾 已缓存股票{data['code']}到MongoDB")
+                logger.info(f"[SAVE] 已缓存股票{data['code']}到MongoDB")
             
             return True
             
@@ -260,12 +260,12 @@ class StockDataService:
         获取股票数据（带降级机制）
         这是对现有get_china_stock_data函数的增强
         """
-        logger.info(f"📊 获取股票数据: {stock_code} ({start_date} 到 {end_date})")
+        logger.info(f"[CHART] 获取股票数据: {stock_code} ({start_date} 到 {end_date})")
         
         # 首先确保股票基础信息可用
         stock_info = self.get_stock_basic_info(stock_code)
         if stock_info and 'error' in stock_info:
-            return f"❌ 无法获取股票{stock_code}的基础信息: {stock_info.get('error', '未知错误')}"
+            return f"[FAIL] 无法获取股票{stock_code}的基础信息: {stock_info.get('error', '未知错误')}"
         
         # 调用统一的中国股票数据接口
         try:
@@ -273,7 +273,7 @@ class StockDataService:
 
             return get_china_stock_data_unified(stock_code, start_date, end_date)
         except Exception as e:
-            return f"❌ 获取股票数据失败: {str(e)}\n\n💡 建议：\n1. 检查网络连接\n2. 确认股票代码格式正确\n3. 检查MongoDB配置"
+            return f"[FAIL] 获取股票数据失败: {str(e)}\n\n[INFO] 建议：\n1. 检查网络连接\n2. 确认股票代码格式正确\n3. 检查MongoDB配置"
 
 # 全局服务实例
 _stock_data_service = None

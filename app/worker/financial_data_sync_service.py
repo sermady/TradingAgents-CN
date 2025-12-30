@@ -66,10 +66,10 @@ class FinancialDataSyncService:
                 "baostock": get_baostock_provider()
             }
             
-            logger.info("✅ 财务数据同步服务初始化成功")
+            logger.info("[OK] 财务数据同步服务初始化成功")
             
         except Exception as e:
-            logger.error(f"❌ 财务数据同步服务初始化失败: {e}")
+            logger.error(f"[FAIL] 财务数据同步服务初始化失败: {e}")
             raise
     
     async def sync_financial_data(
@@ -102,27 +102,27 @@ class FinancialDataSyncService:
         if report_types is None:
             report_types = ["quarterly", "annual"]  # 同时同步季报和年报
         
-        logger.info(f"🔄 开始财务数据同步: 数据源={data_sources}, 报告类型={report_types}")
+        logger.info(f"[SYNC] 开始财务数据同步: 数据源={data_sources}, 报告类型={report_types}")
         
         # 获取股票列表
         if symbols is None:
             symbols = await self._get_stock_symbols()
         
         if not symbols:
-            logger.warning("⚠️ 没有找到要同步的股票")
+            logger.warning("[WARN] 没有找到要同步的股票")
             return {}
         
-        logger.info(f"📊 准备同步 {len(symbols)} 只股票的财务数据")
+        logger.info(f"[CHART] 准备同步 {len(symbols)} 只股票的财务数据")
         
         # 为每个数据源执行同步
         results = {}
         
         for data_source in data_sources:
             if data_source not in self.providers:
-                logger.warning(f"⚠️ 不支持的数据源: {data_source}")
+                logger.warning(f"[WARN] 不支持的数据源: {data_source}")
                 continue
             
-            logger.info(f"🚀 开始 {data_source} 财务数据同步...")
+            logger.info(f"[START] 开始 {data_source} 财务数据同步...")
             
             stats = await self._sync_source_financial_data(
                 data_source=data_source,
@@ -134,7 +134,7 @@ class FinancialDataSyncService:
             
             results[data_source] = stats
             
-            logger.info(f"✅ {data_source} 财务数据同步完成: "
+            logger.info(f"[OK] {data_source} 财务数据同步完成: "
                        f"成功 {stats.success_count}/{stats.total_symbols} "
                        f"({stats.success_count/max(stats.total_symbols,1)*100:.1f}%)")
         
@@ -157,7 +157,7 @@ class FinancialDataSyncService:
         
         # 检查数据源可用性
         if not provider.is_available():
-            logger.warning(f"⚠️ {data_source} 数据源不可用")
+            logger.warning(f"[WARN] {data_source} 数据源不可用")
             stats.skipped_count = len(symbols)
             stats.end_time = datetime.now(timezone.utc)
             return stats
@@ -166,7 +166,7 @@ class FinancialDataSyncService:
         for i in range(0, len(symbols), batch_size):
             batch_symbols = symbols[i:i + batch_size]
             
-            logger.info(f"📈 {data_source} 处理批次 {i//batch_size + 1}: "
+            logger.info(f"[CHART-UP] {data_source} 处理批次 {i//batch_size + 1}: "
                        f"{len(batch_symbols)} 只股票")
             
             # 并发处理批次内的股票
@@ -195,10 +195,10 @@ class FinancialDataSyncService:
                         "error": str(result),
                         "timestamp": datetime.now(timezone.utc).isoformat()
                     })
-                    logger.error(f"❌ {symbol} 财务数据同步失败 ({data_source}): {result}")
+                    logger.error(f"[FAIL] {symbol} 财务数据同步失败 ({data_source}): {result}")
                 elif result:
                     stats.success_count += 1
-                    logger.debug(f"✅ {symbol} 财务数据同步成功 ({data_source})")
+                    logger.debug(f"[OK] {symbol} 财务数据同步成功 ({data_source})")
                 else:
                     stats.skipped_count += 1
                     logger.debug(f"⏭️ {symbol} 财务数据跳过 ({data_source})")
@@ -225,7 +225,7 @@ class FinancialDataSyncService:
             financial_data = await provider.get_financial_data(symbol)
             
             if not financial_data:
-                logger.debug(f"⚠️ {symbol} 无财务数据 ({data_source})")
+                logger.debug(f"[WARN] {symbol} 无财务数据 ({data_source})")
                 return False
             
             # 为每种报告类型保存数据
@@ -242,7 +242,7 @@ class FinancialDataSyncService:
             return saved_count > 0
             
         except Exception as e:
-            logger.error(f"❌ {symbol} 财务数据同步异常 ({data_source}): {e}")
+            logger.error(f"[FAIL] {symbol} 财务数据同步异常 ({data_source}): {e}")
             raise
     
     async def _get_stock_symbols(self) -> List[str]:
@@ -260,12 +260,12 @@ class FinancialDataSyncService:
             )
 
             symbols = [doc["code"] async for doc in cursor]
-            logger.info(f"📋 从 stock_basic_info 获取到 {len(symbols)} 只股票代码")
+            logger.info(f"[CLIPBOARD] 从 stock_basic_info 获取到 {len(symbols)} 只股票代码")
 
             return symbols
 
         except Exception as e:
-            logger.error(f"❌ 获取股票代码列表失败: {e}")
+            logger.error(f"[FAIL] 获取股票代码列表失败: {e}")
             return []
     
     async def get_sync_statistics(self) -> Dict[str, Any]:
@@ -277,7 +277,7 @@ class FinancialDataSyncService:
             return await self.financial_service.get_financial_statistics()
             
         except Exception as e:
-            logger.error(f"❌ 获取同步统计失败: {e}")
+            logger.error(f"[FAIL] 获取同步统计失败: {e}")
             return {}
     
     async def sync_single_stock(
@@ -316,7 +316,7 @@ class FinancialDataSyncService:
                 results[data_source] = result
                 
             except Exception as e:
-                logger.error(f"❌ {symbol} 单股票财务数据同步失败 ({data_source}): {e}")
+                logger.error(f"[FAIL] {symbol} 单股票财务数据同步失败 ({data_source}): {e}")
                 results[data_source] = False
         
         return results

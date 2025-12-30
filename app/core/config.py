@@ -104,7 +104,7 @@ class Settings(BaseSettings):
     # 代理配置
     # 用于配置需要绕过代理的域名（国内数据源）
     # 多个域名用逗号分隔
-    # ⚠️ Windows 不支持通配符 *，必须使用完整域名
+    # [WARN] Windows 不支持通配符 *，必须使用完整域名
     # 详细说明: docs/proxy_configuration.md
     HTTP_PROXY: str = Field(default="")
     HTTPS_PROXY: str = Field(default="")

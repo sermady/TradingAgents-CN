@@ -635,18 +635,18 @@ class RealtimeNewsAggregator:
         logger.info(f"[新闻报告] {ticker} 新闻来源分布: {sources_info}")
 
         report = f"# {ticker} 实时新闻分析报告\n\n"
-        report += f"📅 生成时间: {datetime.now(ZoneInfo(get_timezone_name())).strftime('%Y-%m-%d %H:%M:%S')}\n"
-        report += f"📊 新闻总数: {len(news_items)}条\n\n"
+        report += f"[DATE] 生成时间: {datetime.now(ZoneInfo(get_timezone_name())).strftime('%Y-%m-%d %H:%M:%S')}\n"
+        report += f"[CHART] 新闻总数: {len(news_items)}条\n\n"
 
         if high_urgency:
-            report += "## 🚨 紧急新闻\n\n"
+            report += "## [ALERT] 紧急新闻\n\n"
             for news in high_urgency[:3]:  # 最多显示3条
                 report += f"### {news.title}\n"
                 report += f"**来源**: {news.source} | **时间**: {news.publish_time.strftime('%H:%M')}\n"
                 report += f"{news.content}\n\n"
 
         if medium_urgency:
-            report += "## 📢 重要新闻\n\n"
+            report += "## [ANNOUNCE] 重要新闻\n\n"
             for news in medium_urgency[:5]:  # 最多显示5条
                 report += f"### {news.title}\n"
                 report += f"**来源**: {news.source} | **时间**: {news.publish_time.strftime('%H:%M')}\n"
@@ -664,7 +664,7 @@ class RealtimeNewsAggregator:
         elif time_diff.total_seconds() < 3600:  # 1小时内
             report += "🟡 数据时效性: 良好 (1小时内)\n"
         else:
-            report += "🔴 数据时效性: 一般 (超过1小时)\n"
+            report += "[REDIS] 数据时效性: 一般 (超过1小时)\n"
 
         # 记录报告生成完成信息
         end_time = datetime.now(ZoneInfo(get_timezone_name()))
@@ -777,8 +777,8 @@ def get_realtime_stock_news(ticker: str, curr_date: str, hours_back: int = 6) ->
                 logger.info(f"[新闻分析] 成功获取 {news_count} 条东方财富新闻，耗时 {time_taken:.2f} 秒")
 
                 report = f"# {ticker} 东方财富新闻报告\n\n"
-                report += f"📅 生成时间: {datetime.now(ZoneInfo(get_timezone_name())).strftime('%Y-%m-%d %H:%M:%S')}\n"
-                report += f"📊 新闻总数: {news_count}条\n"
+                report += f"[DATE] 生成时间: {datetime.now(ZoneInfo(get_timezone_name())).strftime('%Y-%m-%d %H:%M:%S')}\n"
+                report += f"[CHART] 新闻总数: {news_count}条\n"
                 report += f"🕒 获取耗时: {time_taken:.2f}秒\n\n"
 
                 # 记录一些新闻标题示例
@@ -790,8 +790,8 @@ def get_realtime_stock_news(ticker: str, curr_date: str, hours_back: int = 6) ->
                     if idx < 3:  # 只记录前3条的详细信息
                         logger.info(f"[新闻分析] 第{idx+1}条新闻: 标题={row.get('新闻标题', '无标题')}, 时间={row.get('发布时间', '无时间')}")
                     report += f"### {row.get('新闻标题', '')}\n"
-                    report += f"📅 {row.get('发布时间', '')}\n"
-                    report += f"🔗 {row.get('新闻链接', '')}\n\n"
+                    report += f"[DATE] {row.get('发布时间', '')}\n"
+                    report += f"[LINK] {row.get('新闻链接', '')}\n\n"
                     report += f"{row.get('新闻内容', '无内容')}\n\n"
 
                 total_time_taken = (datetime.now(ZoneInfo(get_timezone_name())) - start_total_time).total_seconds()
@@ -880,8 +880,8 @@ def get_realtime_stock_news(ticker: str, curr_date: str, hours_back: int = 6) ->
                 logger.info(f"[新闻分析] 成功获取 {news_count} 条东方财富港股新闻，耗时 {time_taken:.2f} 秒")
 
                 report = f"# {ticker} 东方财富新闻报告\n\n"
-                report += f"📅 生成时间: {datetime.now(ZoneInfo(get_timezone_name())).strftime('%Y-%m-%d %H:%M:%S')}\n"
-                report += f"📊 新闻总数: {news_count}条\n"
+                report += f"[DATE] 生成时间: {datetime.now(ZoneInfo(get_timezone_name())).strftime('%Y-%m-%d %H:%M:%S')}\n"
+                report += f"[CHART] 新闻总数: {news_count}条\n"
                 report += f"🕒 获取耗时: {time_taken:.2f}秒\n\n"
 
                 # 记录一些新闻标题示例
@@ -890,8 +890,8 @@ def get_realtime_stock_news(ticker: str, curr_date: str, hours_back: int = 6) ->
 
                 for _, row in news_df.iterrows():
                     report += f"### {row.get('新闻标题', '')}\n"
-                    report += f"📅 {row.get('发布时间', '')}\n"
-                    report += f"🔗 {row.get('新闻链接', '')}\n\n"
+                    report += f"[DATE] {row.get('发布时间', '')}\n"
+                    report += f"[LINK] {row.get('新闻链接', '')}\n\n"
                     report += f"{row.get('新闻内容', '无内容')}\n\n"
 
                 logger.info(f"[新闻分析] 成功生成东方财富新闻报告，新闻来源: 东方财富")
@@ -964,9 +964,9 @@ def get_realtime_stock_news(ticker: str, curr_date: str, hours_back: int = 6) ->
 实时新闻获取失败 - {ticker}
 分析日期: {curr_date}
 
-❌ 错误信息: 所有可用的新闻源都未能获取到相关新闻
+[FAIL] 错误信息: 所有可用的新闻源都未能获取到相关新闻
 
-💡 备用建议:
+[INFO] 备用建议:
 1. 检查网络连接和API密钥配置
 2. 使用基础新闻分析作为备选
 3. 关注官方财经媒体的最新报道

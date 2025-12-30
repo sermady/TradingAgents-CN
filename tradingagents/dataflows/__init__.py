@@ -34,7 +34,7 @@ except ImportError:
         from .yfin_utils import YFinanceUtils
         YFINANCE_AVAILABLE = True
     except ImportError as e:
-        logger.warning(f"⚠️ yfinance模块不可用: {e}")
+        logger.warning(f"[WARN] yfinance模块不可用: {e}")
         YFinanceUtils = None
         YFINANCE_AVAILABLE = False
 
@@ -47,7 +47,7 @@ except ImportError as e:
         from .technical.stockstats import StockstatsUtils
         STOCKSTATS_AVAILABLE = True
     except ImportError as e:
-        logger.warning(f"⚠️ stockstats模块不可用: {e}")
+        logger.warning(f"[WARN] stockstats模块不可用: {e}")
         StockstatsUtils = None
         STOCKSTATS_AVAILABLE = False
 

@@ -100,16 +100,16 @@ def get_cache() -> Union[StockDataCache, IntegratedCacheManager]:
             if INTEGRATED_CACHE_AVAILABLE:
                 try:
                     _cache_instance = IntegratedCacheManager()
-                    logger.info("✅ 使用集成缓存系统（支持 MongoDB/Redis/File 自动选择）")
+                    logger.info("[OK] 使用集成缓存系统（支持 MongoDB/Redis/File 自动选择）")
                 except Exception as e:
-                    logger.warning(f"⚠️ 集成缓存初始化失败，降级到文件缓存: {e}")
+                    logger.warning(f"[WARN] 集成缓存初始化失败，降级到文件缓存: {e}")
                     _cache_instance = StockDataCache()
             else:
-                logger.warning("⚠️ 集成缓存不可用，使用文件缓存")
+                logger.warning("[WARN] 集成缓存不可用，使用文件缓存")
                 _cache_instance = StockDataCache()
         else:
             _cache_instance = StockDataCache()
-            logger.info("✅ 使用文件缓存系统")
+            logger.info("[OK] 使用文件缓存系统")
 
     return _cache_instance
 

@@ -52,7 +52,7 @@ class DataSourceHealthMonitor:
         """启动健康监控"""
         if self._monitoring_task is None or self._monitoring_task.done():
             self._monitoring_task = asyncio.create_task(self._monitoring_loop())
-            logger.info("✅ 数据源健康监控已启动")
+            logger.info("[OK] 数据源健康监控已启动")
     
     async def stop_monitoring(self):
         """停止健康监控"""
@@ -73,12 +73,12 @@ class DataSourceHealthMonitor:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error(f"❌ 健康监控循环异常: {e}")
+                logger.error(f"[FAIL] 健康监控循环异常: {e}")
                 await asyncio.sleep(60)  # 出错后等待1分钟再试
     
     async def check_all_sources(self):
         """检查所有数据源健康状态"""
-        logger.info("🔍 开始数据源健康检查...")
+        logger.info("[SEARCH] 开始数据源健康检查...")
         
         # 检查Tushare
         await self._check_tushare_health()
@@ -126,13 +126,13 @@ class DataSourceHealthMonitor:
             ok, err = await asyncio.to_thread(_check_sync)
             self._update_metrics(source_name, ok, err, time.time() - start_time)
             if ok:
-                logger.debug(f"✅ {source_name} 健康检查通过")
+                logger.debug(f"[OK] {source_name} 健康检查通过")
             else:
-                logger.debug(f"⚠️ {source_name} 健康检查失败: {err}")
+                logger.debug(f"[WARN] {source_name} 健康检查失败: {err}")
                 
         except Exception as e:
             self._update_metrics(source_name, False, str(e), time.time() - start_time)
-            logger.debug(f"⚠️ {source_name} 健康检查失败: {e}")
+            logger.debug(f"[WARN] {source_name} 健康检查失败: {e}")
     
     async def _check_akshare_health(self):
         """检查AKShare健康状态"""
@@ -150,13 +150,13 @@ class DataSourceHealthMonitor:
             ok, err = await asyncio.to_thread(_check_sync)
             self._update_metrics(source_name, ok, err, time.time() - start_time)
             if ok:
-                logger.debug(f"✅ {source_name} 健康检查通过")
+                logger.debug(f"[OK] {source_name} 健康检查通过")
             else:
-                logger.debug(f"⚠️ {source_name} 健康检查失败: {err}")
+                logger.debug(f"[WARN] {source_name} 健康检查失败: {err}")
                 
         except Exception as e:
             self._update_metrics(source_name, False, str(e), time.time() - start_time)
-            logger.debug(f"⚠️ {source_name} 健康检查失败: {e}")
+            logger.debug(f"[WARN] {source_name} 健康检查失败: {e}")
     
     async def _check_baostock_health(self):
         """检查BaoStock健康状态"""
@@ -184,13 +184,13 @@ class DataSourceHealthMonitor:
             ok, err = await asyncio.to_thread(_check_sync)
             self._update_metrics(source_name, ok, err, time.time() - start_time)
             if ok:
-                logger.debug(f"✅ {source_name} 健康检查通过")
+                logger.debug(f"[OK] {source_name} 健康检查通过")
             else:
-                logger.debug(f"⚠️ {source_name} 健康检查失败: {err}")
+                logger.debug(f"[WARN] {source_name} 健康检查失败: {err}")
                 
         except Exception as e:
             self._update_metrics(source_name, False, str(e), time.time() - start_time)
-            logger.debug(f"⚠️ {source_name} 健康检查失败: {e}")
+            logger.debug(f"[WARN] {source_name} 健康检查失败: {e}")
     
     async def _check_mongodb_health(self):
         """检查MongoDB健康状态"""
@@ -210,13 +210,13 @@ class DataSourceHealthMonitor:
             ok, err = await asyncio.to_thread(_check_sync)
             self._update_metrics(source_name, ok, err, time.time() - start_time)
             if ok:
-                logger.debug(f"✅ {source_name} 健康检查通过")
+                logger.debug(f"[OK] {source_name} 健康检查通过")
             else:
-                logger.debug(f"⚠️ {source_name} 健康检查失败: {err}")
+                logger.debug(f"[WARN] {source_name} 健康检查失败: {err}")
                 
         except Exception as e:
             self._update_metrics(source_name, False, str(e), time.time() - start_time)
-            logger.debug(f"⚠️ {source_name} 健康检查失败: {e}")
+            logger.debug(f"[WARN] {source_name} 健康检查失败: {e}")
     
     def _update_metrics(self, source_name: str, success: bool, error_message: Optional[str], response_time: float):
         """更新健康指标"""
@@ -264,13 +264,13 @@ class DataSourceHealthMonitor:
     
     async def _generate_health_report(self):
         """生成健康报告"""
-        logger.info("📊 数据源健康报告:")
+        logger.info("[CHART] 数据源健康报告:")
         
         for source_name, metrics in self.metrics.items():
             status_emoji = {
                 DataSourceStatus.HEALTHY: "🟢",
                 DataSourceStatus.DEGRADED: "🟡", 
-                DataSourceStatus.UNAVAILABLE: "🔴",
+                DataSourceStatus.UNAVAILABLE: "[REDIS]",
                 DataSourceStatus.UNKNOWN: "⚪"
             }
             

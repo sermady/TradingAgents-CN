@@ -44,14 +44,14 @@ def check_env_file():
     import logging
     logger = logging.getLogger("app.startup")
     
-    logger.info("🔍 检查环境配置文件...")
+    logger.info("[SEARCH] 检查环境配置文件...")
 
     # 检查当前工作目录
     current_dir = Path.cwd()
-    logger.info(f"📂 当前工作目录: {current_dir}")
+    logger.info(f"[FOLDER-OPEN] 当前工作目录: {current_dir}")
 
     # 检查项目根目录
-    logger.info(f"📂 项目根目录: {project_root}")
+    logger.info(f"[FOLDER-OPEN] 项目根目录: {project_root}")
     
     # 检查可能的.env文件位置（按优先级排序）
     env_locations = [
@@ -65,7 +65,7 @@ def check_env_file():
     for env_path in env_locations:
         if env_path.exists():
             if not env_found:  # 只显示第一个找到的文件详情
-                logger.info(f"✅ 找到.env文件: {env_path}")
+                logger.info(f"[OK] 找到.env文件: {env_path}")
                 logger.info(f"📏 文件大小: {env_path.stat().st_size} bytes")
                 env_found = True
 
@@ -73,7 +73,7 @@ def check_env_file():
                 try:
                     with open(env_path, 'r', encoding='utf-8') as f:
                         lines = f.readlines()
-                    logger.info(f"📄 .env文件内容预览 (共{len(lines)}行):")
+                    logger.info(f"[FILE] .env文件内容预览 (共{len(lines)}行):")
                     for i, line in enumerate(lines[:10]):  # 只显示前10行
                         line = line.strip()
                         if line and not line.startswith('#'):
@@ -86,14 +86,14 @@ def check_env_file():
                     if len(lines) > 10:
                         logger.info(f"  ... (还有{len(lines) - 10}行)")
                 except Exception as e:
-                    logger.warning(f"⚠️ 读取.env文件时出错: {e}")
+                    logger.warning(f"[WARN] 读取.env文件时出错: {e}")
             else:
                 # 如果已经找到一个，只记录其他位置也有文件（可能重复）
-                logger.debug(f"ℹ️  其他位置也有.env文件: {env_path}")
+                logger.debug(f"[INFO]  其他位置也有.env文件: {env_path}")
 
     if not env_found:
-        logger.warning("⚠️ 未找到.env文件，将使用默认配置")
-        logger.info(f"💡 提示: 请在项目根目录 ({project_root}) 创建 .env 文件")
+        logger.warning("[WARN] 未找到.env文件，将使用默认配置")
+        logger.info(f"[INFO] 提示: 请在项目根目录 ({project_root}) 创建 .env 文件")
     
     logger.info("-" * 50)
 
@@ -102,8 +102,8 @@ try:
     from app.core.dev_config import DEV_CONFIG
 except Exception as e:
     import traceback
-    print(f"❌ 导入配置模块失败: {e}")
-    print("📋 详细错误信息:")
+    print(f"[FAIL] 导入配置模块失败: {e}")
+    print("[CLIPBOARD] 详细错误信息:")
     print("-" * 50)
     traceback.print_exc()
     print("-" * 50)
@@ -115,21 +115,21 @@ def main():
     import logging
     logger = logging.getLogger("app.startup")
     
-    logger.info("🚀 Starting TradingAgents-CN Backend...")
-    logger.info(f"📍 Host: {settings.HOST}")
-    logger.info(f"🔌 Port: {settings.PORT}")
-    logger.info(f"🐛 Debug Mode: {settings.DEBUG}")
-    logger.info(f"📚 API Docs: http://{settings.HOST}:{settings.PORT}/docs" if settings.DEBUG else "📚 API Docs: Disabled in production")
+    logger.info("[START] Starting TradingAgents-CN Backend...")
+    logger.info(f"[LOC] Host: {settings.HOST}")
+    logger.info(f"[PORT] Port: {settings.PORT}")
+    logger.info(f"[DEBUG] Debug Mode: {settings.DEBUG}")
+    logger.info(f"[DOCS] API Docs: http://{settings.HOST}:{settings.PORT}/docs" if settings.DEBUG else "[DOCS] API Docs: Disabled in production")
     
     # 打印关键配置信息
-    logger.info("🔧 关键配置信息:")
-    logger.info(f"  📊 MongoDB: {settings.MONGODB_HOST}:{settings.MONGODB_PORT}/{settings.MONGODB_DATABASE}")
-    logger.info(f"  🔴 Redis: {settings.REDIS_HOST}:{settings.REDIS_PORT}/{settings.REDIS_DB}")
-    logger.info(f"  🔐 JWT Secret: {'已配置' if settings.JWT_SECRET != 'change-me-in-production' else '⚠️ 使用默认值'}")
-    logger.info(f"  📝 日志级别: {settings.LOG_LEVEL}")
+    logger.info("[CONFIG] 关键配置信息:")
+    logger.info(f"  [CHART] MongoDB: {settings.MONGODB_HOST}:{settings.MONGODB_PORT}/{settings.MONGODB_DATABASE}")
+    logger.info(f"  [REDIS] Redis: {settings.REDIS_HOST}:{settings.REDIS_PORT}/{settings.REDIS_DB}")
+    logger.info(f"  [SECURE] JWT Secret: {'已配置' if settings.JWT_SECRET != 'change-me-in-production' else '[WARN] 使用默认值'}")
+    logger.info(f"  [LOG] 日志级别: {settings.LOG_LEVEL}")
     
     # 检查环境变量加载状态
-    logger.info("🌍 环境变量加载状态:")
+    logger.info("[ENV] 环境变量加载状态:")
     env_vars_to_check = [
         ('MONGODB_HOST', settings.MONGODB_HOST, 'localhost'),
         ('MONGODB_PORT', str(settings.MONGODB_PORT), '27017'),
@@ -140,7 +140,7 @@ def main():
     ]
     
     for env_name, current_value, default_value in env_vars_to_check:
-        status = "✅ 已设置" if current_value != default_value else "⚠️ 默认值"
+        status = "[OK] 已设置" if current_value != default_value else "[WARN] 默认值"
         logger.info(f"  {env_name}: {current_value} ({status})")
     
     logger.info("-" * 50)
@@ -149,17 +149,17 @@ def main():
     uvicorn_config = DEV_CONFIG.get_uvicorn_config(settings.DEBUG)
 
     # 设置简化的日志配置
-    logger.info("🔧 正在设置日志配置...")
+    logger.info("[CONFIG] 正在设置日志配置...")
     try:
         from app.core.logging_config import setup_logging as app_setup_logging
         app_setup_logging(settings.LOG_LEVEL)
     except Exception:
         # 回退到开发环境简化日志配置
         DEV_CONFIG.setup_logging(settings.DEBUG)
-    logger.info("✅ 日志配置设置完成")
+    logger.info("[OK] 日志配置设置完成")
 
     # 在日志系统初始化后检查.env文件
-    logger.info("📋 Configuration Loading Phase:")
+    logger.info("[CLIPBOARD] Configuration Loading Phase:")
     check_env_file()
 
     try:
@@ -170,11 +170,11 @@ def main():
             **uvicorn_config
         )
     except KeyboardInterrupt:
-        logger.info("🛑 Server stopped by user")
+        logger.info("[STOP] Server stopped by user")
     except Exception as e:
         import traceback
-        logger.error(f"❌ Failed to start server: {e}")
-        logger.error("📋 详细错误信息:")
+        logger.error(f"[FAIL] Failed to start server: {e}")
+        logger.error("[CLIPBOARD] 详细错误信息:")
         logger.error("-" * 50)
         traceback.print_exc()
         logger.error("-" * 50)

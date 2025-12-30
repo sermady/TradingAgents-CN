@@ -66,7 +66,7 @@ class AnalysisResult(BaseModel):
     tokens_used: int = 0
     execution_time: float = 0.0
     error_message: Optional[str] = None
-    model_info: Optional[str] = None  # 🔥 添加模型信息字段
+    model_info: Optional[str] = None  # [HOT] 添加模型信息字段
 
 
 class AnalysisTask(BaseModel):

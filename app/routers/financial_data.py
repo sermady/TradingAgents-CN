@@ -83,7 +83,7 @@ async def query_financial_data(
         )
         
     except Exception as e:
-        logger.error(f"❌ 查询财务数据失败 {symbol}: {e}")
+        logger.error(f"[FAIL] 查询财务数据失败 {symbol}: {e}")
         raise HTTPException(status_code=500, detail=f"查询财务数据失败: {str(e)}")
 
 
@@ -116,7 +116,7 @@ async def get_latest_financial_data(
             )
         
     except Exception as e:
-        logger.error(f"❌ 获取最新财务数据失败 {symbol}: {e}")
+        logger.error(f"[FAIL] 获取最新财务数据失败 {symbol}: {e}")
         raise HTTPException(status_code=500, detail=f"获取最新财务数据失败: {str(e)}")
 
 
@@ -140,7 +140,7 @@ async def get_financial_statistics() -> dict:
         )
         
     except Exception as e:
-        logger.error(f"❌ 获取财务数据统计失败: {e}")
+        logger.error(f"[FAIL] 获取财务数据统计失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取财务数据统计失败: {str(e)}")
 
 
@@ -176,7 +176,7 @@ async def start_financial_sync(
         )
         
     except Exception as e:
-        logger.error(f"❌ 启动财务数据同步失败: {e}")
+        logger.error(f"[FAIL] 启动财务数据同步失败: {e}")
         raise HTTPException(status_code=500, detail=f"启动财务数据同步失败: {str(e)}")
 
 
@@ -213,7 +213,7 @@ async def sync_single_stock_financial(
         )
         
     except Exception as e:
-        logger.error(f"❌ 单股票财务数据同步失败 {request.symbol}: {e}")
+        logger.error(f"[FAIL] 单股票财务数据同步失败 {request.symbol}: {e}")
         raise HTTPException(status_code=500, detail=f"单股票财务数据同步失败: {str(e)}")
 
 
@@ -234,7 +234,7 @@ async def get_sync_statistics() -> dict:
         )
         
     except Exception as e:
-        logger.error(f"❌ 获取同步统计信息失败: {e}")
+        logger.error(f"[FAIL] 获取同步统计信息失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取同步统计信息失败: {str(e)}")
 
 
@@ -263,7 +263,7 @@ async def health_check() -> dict:
         )
         
     except Exception as e:
-        logger.error(f"❌ 财务数据服务健康检查失败: {e}")
+        logger.error(f"[FAIL] 财务数据服务健康检查失败: {e}")
         return ok(success=False, data={
                 "service_status": "unhealthy",
                 "error": str(e)
@@ -280,7 +280,7 @@ async def _execute_financial_sync(
 ):
     """执行财务数据同步后台任务"""
     try:
-        logger.info(f"🚀 开始执行财务数据同步任务: {request.dict()}")
+        logger.info(f"[START] 开始执行财务数据同步任务: {request.dict()}")
         
         results = await service.sync_financial_data(
             symbols=request.symbols,
@@ -294,12 +294,12 @@ async def _execute_financial_sync(
         total_success = sum(stats.success_count for stats in results.values())
         total_symbols = sum(stats.total_symbols for stats in results.values())
         
-        logger.info(f"✅ 财务数据同步任务完成: {total_success}/{total_symbols} 成功")
+        logger.info(f"[OK] 财务数据同步任务完成: {total_success}/{total_symbols} 成功")
         
         # 这里可以添加通知逻辑，比如发送邮件或消息
         
     except Exception as e:
-        logger.error(f"❌ 财务数据同步任务执行失败: {e}")
+        logger.error(f"[FAIL] 财务数据同步任务执行失败: {e}")
 
 
 # 导入datetime用于时间戳

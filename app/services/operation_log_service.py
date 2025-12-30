@@ -40,7 +40,7 @@ class OperationLogService:
             db = get_mongo_db()
 
             # 构建日志文档
-            # 🔥 使用 naive datetime（不带时区信息），MongoDB 会按原样存储，不会转换为 UTC
+            # [HOT] 使用 naive datetime（不带时区信息），MongoDB 会按原样存储，不会转换为 UTC
             current_time = now_tz().replace(tzinfo=None)  # 移除时区信息，保留本地时间值
             log_doc = {
                 "user_id": user_id,
@@ -61,7 +61,7 @@ class OperationLogService:
             # 插入数据库
             result = await db[self.collection_name].insert_one(log_doc)
             
-            logger.info(f"📝 操作日志已记录: {username} - {log_data.action}")
+            logger.info(f"[LOG] 操作日志已记录: {username} - {log_data.action}")
             return str(result.inserted_id)
             
         except Exception as e:
@@ -121,7 +121,7 @@ class OperationLogService:
                 doc = convert_objectid_to_str(doc)
                 logs.append(OperationLogResponse(**doc))
 
-            logger.info(f"📋 获取操作日志: 总数={total}, 返回={len(logs)}")
+            logger.info(f"[CLIPBOARD] 获取操作日志: 总数={total}, 返回={len(logs)}")
             return logs, total
             
         except Exception as e:
@@ -187,7 +187,7 @@ class OperationLogService:
                 hourly_distribution=hourly_distribution
             )
             
-            logger.info(f"📊 操作日志统计: 总数={total_logs}, 成功率={success_rate:.1f}%")
+            logger.info(f"[CHART] 操作日志统计: 总数={total_logs}, 成功率={success_rate:.1f}%")
             return stats
             
         except Exception as e:

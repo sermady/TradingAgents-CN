@@ -41,7 +41,7 @@ class DatabaseManager:
     async def init_mongodb(self):
         """初始化MongoDB连接"""
         try:
-            logger.info("🔄 正在初始化MongoDB连接...")
+            logger.info("[SYNC] 正在初始化MongoDB连接...")
 
             # 创建MongoDB客户端，配置连接池
             self.mongo_client = AsyncIOMotorClient(
@@ -61,20 +61,20 @@ class DatabaseManager:
             await self.mongo_client.admin.command('ping')
             self._mongo_healthy = True
 
-            logger.info("✅ MongoDB连接成功建立")
-            logger.info(f"📊 数据库: {settings.MONGO_DB}")
-            logger.info(f"🔗 连接池: {settings.MONGO_MIN_CONNECTIONS}-{settings.MONGO_MAX_CONNECTIONS}")
-            logger.info(f"⏱️  超时配置: connectTimeout={settings.MONGO_CONNECT_TIMEOUT_MS}ms, socketTimeout={settings.MONGO_SOCKET_TIMEOUT_MS}ms")
+            logger.info("[OK] MongoDB连接成功建立")
+            logger.info(f"[CHART] 数据库: {settings.MONGO_DB}")
+            logger.info(f"[LINK] 连接池: {settings.MONGO_MIN_CONNECTIONS}-{settings.MONGO_MAX_CONNECTIONS}")
+            logger.info(f"[TIME]  超时配置: connectTimeout={settings.MONGO_CONNECT_TIMEOUT_MS}ms, socketTimeout={settings.MONGO_SOCKET_TIMEOUT_MS}ms")
 
         except Exception as e:
-            logger.error(f"❌ MongoDB连接失败: {e}")
+            logger.error(f"[FAIL] MongoDB连接失败: {e}")
             self._mongo_healthy = False
             raise
 
     async def init_redis(self):
         """初始化Redis连接"""
         try:
-            logger.info("🔄 正在初始化Redis连接...")
+            logger.info("[SYNC] 正在初始化Redis连接...")
 
             # 创建Redis连接池
             self.redis_pool = ConnectionPool.from_url(
@@ -93,43 +93,43 @@ class DatabaseManager:
             await self.redis_client.ping()
             self._redis_healthy = True
 
-            logger.info("✅ Redis连接成功建立")
-            logger.info(f"🔗 连接池大小: {settings.REDIS_MAX_CONNECTIONS}")
+            logger.info("[OK] Redis连接成功建立")
+            logger.info(f"[LINK] 连接池大小: {settings.REDIS_MAX_CONNECTIONS}")
 
         except Exception as e:
-            logger.error(f"❌ Redis连接失败: {e}")
+            logger.error(f"[FAIL] Redis连接失败: {e}")
             self._redis_healthy = False
             raise
 
     async def close_connections(self):
         """关闭所有数据库连接"""
-        logger.info("🔄 正在关闭数据库连接...")
+        logger.info("[SYNC] 正在关闭数据库连接...")
 
         # 关闭MongoDB连接
         if self.mongo_client:
             try:
                 self.mongo_client.close()
                 self._mongo_healthy = False
-                logger.info("✅ MongoDB连接已关闭")
+                logger.info("[OK] MongoDB连接已关闭")
             except Exception as e:
-                logger.error(f"❌ 关闭MongoDB连接时出错: {e}")
+                logger.error(f"[FAIL] 关闭MongoDB连接时出错: {e}")
 
         # 关闭Redis连接
         if self.redis_client:
             try:
                 await self.redis_client.close()
                 self._redis_healthy = False
-                logger.info("✅ Redis连接已关闭")
+                logger.info("[OK] Redis连接已关闭")
             except Exception as e:
-                logger.error(f"❌ 关闭Redis连接时出错: {e}")
+                logger.error(f"[FAIL] 关闭Redis连接时出错: {e}")
 
         # 关闭Redis连接池
         if self.redis_pool:
             try:
                 await self.redis_pool.disconnect()
-                logger.info("✅ Redis连接池已关闭")
+                logger.info("[OK] Redis连接池已关闭")
             except Exception as e:
-                logger.error(f"❌ 关闭Redis连接池时出错: {e}")
+                logger.error(f"[FAIL] 关闭Redis连接池时出错: {e}")
 
     async def health_check(self) -> dict:
         """数据库健康检查"""
@@ -201,9 +201,9 @@ async def init_database():
         redis_client = db_manager.redis_client
         redis_pool = db_manager.redis_pool
 
-        logger.info("🎉 所有数据库连接初始化完成")
+        logger.info("[SUCCESS] 所有数据库连接初始化完成")
 
-        # 🔥 初始化数据库视图和索引
+        # [HOT] 初始化数据库视图和索引
         await init_database_views_and_indexes()
 
     except Exception as e:
@@ -222,10 +222,10 @@ async def init_database_views_and_indexes():
         # 2. 创建必要的索引
         await create_database_indexes(db)
 
-        logger.info("✅ 数据库视图和索引初始化完成")
+        logger.info("[OK] 数据库视图和索引初始化完成")
 
     except Exception as e:
-        logger.warning(f"⚠️ 数据库视图和索引初始化失败: {e}")
+        logger.warning(f"[WARN] 数据库视图和索引初始化失败: {e}")
         # 不抛出异常，允许应用继续启动
 
 
@@ -235,7 +235,7 @@ async def create_stock_screening_view(db):
         # 检查视图是否已存在
         collections = await db.list_collection_names()
         if "stock_screening_view" in collections:
-            logger.info("📋 视图 stock_screening_view 已存在，跳过创建")
+            logger.info("[CLIPBOARD] 视图 stock_screening_view 已存在，跳过创建")
             return
 
         # 创建视图：将 stock_basic_info、market_quotes 和 stock_financial_data 关联
@@ -338,10 +338,10 @@ async def create_stock_screening_view(db):
             "pipeline": pipeline
         })
 
-        logger.info("✅ 视图 stock_screening_view 创建成功")
+        logger.info("[OK] 视图 stock_screening_view 创建成功")
 
     except Exception as e:
-        logger.warning(f"⚠️ 创建视图失败: {e}")
+        logger.warning(f"[WARN] 创建视图失败: {e}")
 
 
 async def create_database_indexes(db):
@@ -362,10 +362,10 @@ async def create_database_indexes(db):
         await market_quotes.create_index([("amount", -1)])
         await market_quotes.create_index([("updated_at", -1)])
 
-        logger.info("✅ 数据库索引创建完成")
+        logger.info("[OK] 数据库索引创建完成")
 
     except Exception as e:
-        logger.warning(f"⚠️ 创建索引失败: {e}")
+        logger.warning(f"[WARN] 创建索引失败: {e}")
 
 
 async def close_database():
@@ -379,7 +379,7 @@ async def close_database():
         try:
             _sync_mongo_client.close()
         except Exception as e:
-            logger.warning(f"⚠️ 关闭同步MongoDB客户端失败: {e}")
+            logger.warning(f"[WARN] 关闭同步MongoDB客户端失败: {e}")
         finally:
             _sync_mongo_client = None
             _sync_mongo_db = None

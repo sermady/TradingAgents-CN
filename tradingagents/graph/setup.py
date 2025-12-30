@@ -80,13 +80,13 @@ class GraphSetup:
             )
 
             if using_dashscope_openai:
-                logger.debug(f"📈 [DEBUG] 使用标准市场分析师（阿里百炼OpenAI兼容模式）")
+                logger.debug(f"[CHART-UP] [DEBUG] 使用标准市场分析师（阿里百炼OpenAI兼容模式）")
             elif "dashscope" in llm_provider or "阿里百炼" in self.config.get("llm_provider", ""):
-                logger.debug(f"📈 [DEBUG] 使用标准市场分析师（阿里百炼原生模式）")
+                logger.debug(f"[CHART-UP] [DEBUG] 使用标准市场分析师（阿里百炼原生模式）")
             elif "deepseek" in llm_provider:
-                logger.debug(f"📈 [DEBUG] 使用标准市场分析师（DeepSeek）")
+                logger.debug(f"[CHART-UP] [DEBUG] 使用标准市场分析师（DeepSeek）")
             else:
-                logger.debug(f"📈 [DEBUG] 使用标准市场分析师")
+                logger.debug(f"[CHART-UP] [DEBUG] 使用标准市场分析师")
 
             # 所有LLM都使用标准分析师
             analyst_nodes["market"] = create_market_analyst(
@@ -121,13 +121,13 @@ class GraphSetup:
             )
 
             if using_dashscope_openai:
-                logger.debug(f"📊 [DEBUG] 使用标准基本面分析师（阿里百炼OpenAI兼容模式）")
+                logger.debug(f"[CHART] [DEBUG] 使用标准基本面分析师（阿里百炼OpenAI兼容模式）")
             elif "dashscope" in llm_provider or "阿里百炼" in self.config.get("llm_provider", ""):
-                logger.debug(f"📊 [DEBUG] 使用标准基本面分析师（阿里百炼原生模式）")
+                logger.debug(f"[CHART] [DEBUG] 使用标准基本面分析师（阿里百炼原生模式）")
             elif "deepseek" in llm_provider:
-                logger.debug(f"📊 [DEBUG] 使用标准基本面分析师（DeepSeek）")
+                logger.debug(f"[CHART] [DEBUG] 使用标准基本面分析师（DeepSeek）")
             else:
-                logger.debug(f"📊 [DEBUG] 使用标准基本面分析师")
+                logger.debug(f"[CHART] [DEBUG] 使用标准基本面分析师")
 
             # 所有LLM都使用标准分析师（包含强制工具调用机制）
             analyst_nodes["fundamentals"] = create_fundamentals_analyst(

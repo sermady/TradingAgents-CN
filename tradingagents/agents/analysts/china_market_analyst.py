@@ -27,27 +27,27 @@ def _get_company_name_for_china_market(ticker: str, market_info: dict) -> str:
             from tradingagents.dataflows.interface import get_china_stock_info_unified
             stock_info = get_china_stock_info_unified(ticker)
 
-            logger.debug(f"📊 [中国市场分析师] 获取股票信息返回: {stock_info[:200] if stock_info else 'None'}...")
+            logger.debug(f"[CHART] [中国市场分析师] 获取股票信息返回: {stock_info[:200] if stock_info else 'None'}...")
 
             # 解析股票名称
             if stock_info and "股票名称:" in stock_info:
                 company_name = stock_info.split("股票名称:")[1].split("\n")[0].strip()
-                logger.info(f"✅ [中国市场分析师] 成功获取中国股票名称: {ticker} -> {company_name}")
+                logger.info(f"[OK] [中国市场分析师] 成功获取中国股票名称: {ticker} -> {company_name}")
                 return company_name
             else:
                 # 降级方案：尝试直接从数据源管理器获取
-                logger.warning(f"⚠️ [中国市场分析师] 无法从统一接口解析股票名称: {ticker}，尝试降级方案")
+                logger.warning(f"[WARN] [中国市场分析师] 无法从统一接口解析股票名称: {ticker}，尝试降级方案")
                 try:
                     from tradingagents.dataflows.data_source_manager import get_china_stock_info_unified as get_info_dict
                     info_dict = get_info_dict(ticker)
                     if info_dict and info_dict.get('name'):
                         company_name = info_dict['name']
-                        logger.info(f"✅ [中国市场分析师] 降级方案成功获取股票名称: {ticker} -> {company_name}")
+                        logger.info(f"[OK] [中国市场分析师] 降级方案成功获取股票名称: {ticker} -> {company_name}")
                         return company_name
                 except Exception as e:
-                    logger.error(f"❌ [中国市场分析师] 降级方案也失败: {e}")
+                    logger.error(f"[FAIL] [中国市场分析师] 降级方案也失败: {e}")
 
-                logger.error(f"❌ [中国市场分析师] 所有方案都无法获取股票名称: {ticker}")
+                logger.error(f"[FAIL] [中国市场分析师] 所有方案都无法获取股票名称: {ticker}")
                 return f"股票代码{ticker}"
 
         elif market_info['is_hk']:
@@ -55,10 +55,10 @@ def _get_company_name_for_china_market(ticker: str, market_info: dict) -> str:
             try:
                 from tradingagents.dataflows.providers.hk.improved_hk import get_hk_company_name_improved
                 company_name = get_hk_company_name_improved(ticker)
-                logger.debug(f"📊 [中国市场分析师] 使用改进港股工具获取名称: {ticker} -> {company_name}")
+                logger.debug(f"[CHART] [中国市场分析师] 使用改进港股工具获取名称: {ticker} -> {company_name}")
                 return company_name
             except Exception as e:
-                logger.debug(f"📊 [中国市场分析师] 改进港股工具获取名称失败: {e}")
+                logger.debug(f"[CHART] [中国市场分析师] 改进港股工具获取名称失败: {e}")
                 # 降级方案：生成友好的默认名称
                 clean_ticker = ticker.replace('.HK', '').replace('.hk', '')
                 return f"港股{clean_ticker}"
@@ -77,14 +77,14 @@ def _get_company_name_for_china_market(ticker: str, market_info: dict) -> str:
             }
 
             company_name = us_stock_names.get(ticker.upper(), f"美股{ticker}")
-            logger.debug(f"📊 [中国市场分析师] 美股名称映射: {ticker} -> {company_name}")
+            logger.debug(f"[CHART] [中国市场分析师] 美股名称映射: {ticker} -> {company_name}")
             return company_name
 
         else:
             return f"股票{ticker}"
 
     except Exception as e:
-        logger.error(f"❌ [中国市场分析师] 获取公司名称失败: {e}")
+        logger.error(f"[FAIL] [中国市场分析师] 获取公司名称失败: {e}")
         return f"股票{ticker}"
 
 
@@ -173,7 +173,7 @@ def create_china_market_analyst(llm, toolkit):
         
         # 使用统一的Google工具调用处理器
         if GoogleToolCallHandler.is_google_model(llm):
-            logger.info(f"📊 [中国市场分析师] 检测到Google模型，使用统一工具调用处理器")
+            logger.info(f"[CHART] [中国市场分析师] 检测到Google模型，使用统一工具调用处理器")
             
             # 创建分析提示词
             analysis_prompt_template = GoogleToolCallHandler.create_analysis_prompt(
@@ -194,7 +194,7 @@ def create_china_market_analyst(llm, toolkit):
             )
         else:
             # 非Google模型的处理逻辑
-            logger.debug(f"📊 [DEBUG] 非Google模型 ({llm.__class__.__name__})，使用标准处理逻辑")
+            logger.debug(f"[CHART] [DEBUG] 非Google模型 ({llm.__class__.__name__})，使用标准处理逻辑")
             
             report = ""
             if len(result.tool_calls) == 0:

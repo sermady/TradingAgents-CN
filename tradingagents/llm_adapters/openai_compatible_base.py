@@ -23,10 +23,10 @@ logger = setup_llm_logging()
 try:
     from tradingagents.config.config_manager import token_tracker
     TOKEN_TRACKING_ENABLED = True
-    logger.info("✅ Token跟踪功能已启用")
+    logger.info("[OK] Token跟踪功能已启用")
 except ImportError:
     TOKEN_TRACKING_ENABLED = False
-    logger.warning("⚠️ Token跟踪功能未启用")
+    logger.warning("[WARN] Token跟踪功能未启用")
 
 
 class OpenAICompatibleBase(ChatOpenAI):
@@ -60,11 +60,11 @@ class OpenAICompatibleBase(ChatOpenAI):
             **kwargs: 其他参数
         """
         
-        # 🔍 [DEBUG] 读取环境变量前的日志
-        logger.info(f"🔍 [{provider_name}初始化] 开始初始化 OpenAI 兼容适配器")
-        logger.info(f"🔍 [{provider_name}初始化] 模型: {model}")
-        logger.info(f"🔍 [{provider_name}初始化] API Key 环境变量名: {api_key_env_var}")
-        logger.info(f"🔍 [{provider_name}初始化] 是否传入 api_key 参数: {api_key is not None}")
+        # [SEARCH] [DEBUG] 读取环境变量前的日志
+        logger.info(f"[SEARCH] [{provider_name}初始化] 开始初始化 OpenAI 兼容适配器")
+        logger.info(f"[SEARCH] [{provider_name}初始化] 模型: {model}")
+        logger.info(f"[SEARCH] [{provider_name}初始化] API Key 环境变量名: {api_key_env_var}")
+        logger.info(f"[SEARCH] [{provider_name}初始化] 是否传入 api_key 参数: {api_key is not None}")
 
         # 在父类初始化前先缓存元信息到私有属性（避免Pydantic字段限制）
         object.__setattr__(self, "_provider_name", provider_name)
@@ -89,27 +89,27 @@ class OpenAICompatibleBase(ChatOpenAI):
 
             # 从环境变量读取 API Key
             env_api_key = os.getenv(api_key_env_var)
-            logger.info(f"🔍 [{provider_name}初始化] 从环境变量读取 {api_key_env_var}: {'有值' if env_api_key else '空'}")
+            logger.info(f"[SEARCH] [{provider_name}初始化] 从环境变量读取 {api_key_env_var}: {'有值' if env_api_key else '空'}")
 
             # 验证环境变量中的 API Key 是否有效（排除占位符）
             if env_api_key and is_valid_api_key(env_api_key):
-                logger.info(f"✅ [{provider_name}初始化] 环境变量中的 API Key 有效，长度: {len(env_api_key)}, 前10位: {env_api_key[:10]}...")
+                logger.info(f"[OK] [{provider_name}初始化] 环境变量中的 API Key 有效，长度: {len(env_api_key)}, 前10位: {env_api_key[:10]}...")
                 api_key = env_api_key
             elif env_api_key:
-                logger.warning(f"⚠️ [{provider_name}初始化] 环境变量中的 API Key 无效（可能是占位符），将被忽略")
+                logger.warning(f"[WARN] [{provider_name}初始化] 环境变量中的 API Key 无效（可能是占位符），将被忽略")
                 api_key = None
             else:
-                logger.warning(f"⚠️ [{provider_name}初始化] {api_key_env_var} 环境变量为空")
+                logger.warning(f"[WARN] [{provider_name}初始化] {api_key_env_var} 环境变量为空")
                 api_key = None
 
             if not api_key:
-                logger.error(f"❌ [{provider_name}初始化] API Key 检查失败，即将抛出异常")
+                logger.error(f"[FAIL] [{provider_name}初始化] API Key 检查失败，即将抛出异常")
                 raise ValueError(
                     f"{provider_name} API密钥未找到。"
                     f"请在 Web 界面配置 API Key (设置 -> 大模型厂家) 或设置 {api_key_env_var} 环境变量。"
                 )
         else:
-            logger.info(f"✅ [{provider_name}初始化] 使用传入的 API Key（来自数据库配置），长度: {len(api_key)}")
+            logger.info(f"[OK] [{provider_name}初始化] 使用传入的 API Key（来自数据库配置），长度: {len(api_key)}")
         
         # 设置OpenAI兼容参数
         # 注意：model参数会被Pydantic映射到model_name字段
@@ -141,7 +141,7 @@ class OpenAICompatibleBase(ChatOpenAI):
         object.__setattr__(self, "_provider_name", provider_name)
         object.__setattr__(self, "_model_name_alias", model)
 
-        logger.info(f"✅ {provider_name} OpenAI兼容适配器初始化成功")
+        logger.info(f"[OK] {provider_name} OpenAI兼容适配器初始化成功")
         logger.info(f"   模型: {model}")
         logger.info(f"   API Base: {base_url}")
 
@@ -187,11 +187,11 @@ class OpenAICompatibleBase(ChatOpenAI):
 
             elapsed = time.time() - start_time
             logger.info(
-                f"📊 Token使用 - Provider: {getattr(self, 'provider_name', 'unknown')}, Model: {getattr(self, 'model_name', 'unknown')}, "
+                f"[CHART] Token使用 - Provider: {getattr(self, 'provider_name', 'unknown')}, Model: {getattr(self, 'model_name', 'unknown')}, "
                 f"总tokens: {total_tokens}, 提示: {prompt_tokens}, 补全: {completion_tokens}, 用时: {elapsed:.2f}s"
             )
         except Exception as e:
-            logger.warning(f"⚠️ Token跟踪记录失败: {e}")
+            logger.warning(f"[WARN] Token跟踪记录失败: {e}")
 
 
 class ChatDeepSeekOpenAI(OpenAICompatibleBase):
@@ -336,7 +336,7 @@ class ChatQianfanOpenAI(OpenAICompatibleBase):
                 break
         
         if len(truncated_messages) < len(messages):
-            logger.warning(f"⚠️ 千帆模型输入过长，已截断 {len(messages) - len(truncated_messages)} 条消息")
+            logger.warning(f"[WARN] 千帆模型输入过长，已截断 {len(messages) - len(truncated_messages)} 条消息")
         
         return truncated_messages
     
@@ -544,9 +544,9 @@ def test_openai_compatible_adapters():
                 cls(model="ernie-3.5-8k", api_key="bce-v3/test-key/test-secret")
             else:
                 cls(model=list(info["models"].keys())[0], api_key="test")
-            logger.info(f"✅ 适配器实例化成功: {provider}")
+            logger.info(f"[OK] 适配器实例化成功: {provider}")
         except Exception as e:
-            logger.warning(f"⚠️ 适配器实例化失败（预期或可忽略）: {provider} - {e}")
+            logger.warning(f"[WARN] 适配器实例化失败（预期或可忽略）: {provider} - {e}")
 
 
 if __name__ == "__main__":

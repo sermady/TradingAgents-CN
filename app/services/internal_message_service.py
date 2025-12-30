@@ -87,9 +87,9 @@ class InternalMessageService:
         try:
             self.db = get_database()
             self.collection = self.db.internal_messages
-            self.logger.info("✅ 内部消息数据服务初始化成功")
+            self.logger.info("[OK] 内部消息数据服务初始化成功")
         except Exception as e:
-            self.logger.error(f"❌ 内部消息数据服务初始化失败: {e}")
+            self.logger.error(f"[FAIL] 内部消息数据服务初始化失败: {e}")
             raise
     
     async def _get_collection(self):
@@ -135,7 +135,7 @@ class InternalMessageService:
             result = await collection.bulk_write(operations, ordered=False)
             
             saved_count = result.upserted_count + result.modified_count
-            self.logger.info(f"✅ 内部消息批量保存完成: {saved_count}/{len(messages)}")
+            self.logger.info(f"[OK] 内部消息批量保存完成: {saved_count}/{len(messages)}")
             
             return {
                 "saved": saved_count,
@@ -145,14 +145,14 @@ class InternalMessageService:
             }
             
         except BulkWriteError as e:
-            self.logger.error(f"❌ 内部消息批量保存部分失败: {e.details}")
+            self.logger.error(f"[FAIL] 内部消息批量保存部分失败: {e.details}")
             return {
                 "saved": e.details.get("nUpserted", 0) + e.details.get("nModified", 0),
                 "failed": len(e.details.get("writeErrors", [])),
                 "errors": e.details.get("writeErrors", [])
             }
         except Exception as e:
-            self.logger.error(f"❌ 内部消息保存失败: {e}")
+            self.logger.error(f"[FAIL] 内部消息保存失败: {e}")
             return {"saved": 0, "failed": len(messages), "error": str(e)}
     
     async def query_internal_messages(
@@ -232,14 +232,14 @@ class InternalMessageService:
             # 获取结果
             messages = await cursor.to_list(length=params.limit)
 
-            # 🔧 转换 ObjectId 为字符串，避免 JSON 序列化错误
+            # [CONFIG] 转换 ObjectId 为字符串，避免 JSON 序列化错误
             messages = convert_objectid_to_str(messages)
 
-            self.logger.debug(f"📊 查询到 {len(messages)} 条内部消息")
+            self.logger.debug(f"[CHART] 查询到 {len(messages)} 条内部消息")
             return messages
             
         except Exception as e:
-            self.logger.error(f"❌ 内部消息查询失败: {e}")
+            self.logger.error(f"[FAIL] 内部消息查询失败: {e}")
             return []
     
     async def get_latest_messages(
@@ -290,11 +290,11 @@ class InternalMessageService:
             
             messages = await cursor.limit(limit).to_list(length=limit)
             
-            self.logger.debug(f"🔍 搜索到 {len(messages)} 条相关消息")
+            self.logger.debug(f"[SEARCH] 搜索到 {len(messages)} 条相关消息")
             return messages
             
         except Exception as e:
-            self.logger.error(f"❌ 内部消息搜索失败: {e}")
+            self.logger.error(f"[FAIL] 内部消息搜索失败: {e}")
             return []
     
     async def get_research_reports(
@@ -400,7 +400,7 @@ class InternalMessageService:
                 return InternalMessageStats()
                 
         except Exception as e:
-            self.logger.error(f"❌ 内部消息统计失败: {e}")
+            self.logger.error(f"[FAIL] 内部消息统计失败: {e}")
             return InternalMessageStats()
 
 

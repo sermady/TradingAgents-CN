@@ -39,7 +39,7 @@ class TushareConfig:
     
     def _debug_config(self):
         """输出调试配置信息"""
-        print(f"🔍 Tushare配置调试信息:")
+        print(f"[SEARCH] Tushare配置调试信息:")
         print(f"   TUSHARE_TOKEN: {'已设置' if self.token else '未设置'} ({len(self.token)}字符)")
         print(f"   TUSHARE_ENABLED: {self.enabled} (原始值: {os.getenv('TUSHARE_ENABLED', 'None')})")
         print(f"   DEFAULT_CHINA_DATA_SOURCE: {self.default_source}")
@@ -177,34 +177,34 @@ def check_tushare_compatibility() -> Dict[str, Any]:
 
 def diagnose_tushare_issues():
     """诊断Tushare配置问题"""
-    print("🔍 Tushare配置诊断")
+    print("[SEARCH] Tushare配置诊断")
     print("=" * 60)
     
     compatibility = check_tushare_compatibility()
     
     # 显示配置状态
-    print(f"\n📊 配置状态:")
+    print(f"\n[CHART] 配置状态:")
     validation = compatibility['validation_result']
-    print(f"   配置有效: {'✅' if validation['valid'] else '❌'}")
-    print(f"   Tushare启用: {'✅' if validation['enabled'] else '❌'}")
-    print(f"   Token设置: {'✅' if validation['token_set'] else '❌'}")
+    print(f"   配置有效: {'[OK]' if validation['valid'] else '[FAIL]'}")
+    print(f"   Tushare启用: {'[OK]' if validation['enabled'] else '[FAIL]'}")
+    print(f"   Token设置: {'[OK]' if validation['token_set'] else '[FAIL]'}")
     
     # 显示问题
     if validation['issues']:
-        print(f"\n⚠️ 发现问题:")
+        print(f"\n[WARN] 发现问题:")
         for issue in validation['issues']:
             print(f"   - {issue}")
     
     # 显示建议
     if validation['suggestions']:
-        print(f"\n💡 修复建议:")
+        print(f"\n[INFO] 修复建议:")
         for suggestion in validation['suggestions']:
             print(f"   - {suggestion}")
     
     # 显示环境变量详情
-    print(f"\n🔍 环境变量详情:")
+    print(f"\n[SEARCH] 环境变量详情:")
     for var, info in compatibility['env_debug_info'].items():
-        status = "✅" if info['exists'] and not info['empty'] else "❌"
+        status = "[OK]" if info['exists'] and not info['empty'] else "[FAIL]"
         print(f"   {var}: {status} {info['value']}")
     
     # 显示布尔值解析测试
@@ -213,15 +213,15 @@ def diagnose_tushare_issues():
     failed_tests = [k for k, v in bool_tests.items() if not v['correct']]
     
     if failed_tests:
-        print(f"   ❌ 失败的测试: {failed_tests}")
-        print(f"   ⚠️ 可能存在Python版本兼容性问题")
+        print(f"   [FAIL] 失败的测试: {failed_tests}")
+        print(f"   [WARN] 可能存在Python版本兼容性问题")
     else:
-        print(f"   ✅ 所有布尔值解析测试通过")
+        print(f"   [OK] 所有布尔值解析测试通过")
     
     # 显示修复建议
     fixes = compatibility['common_fixes']
     if fixes:
-        print(f"\n🔧 自动修复建议:")
+        print(f"\n[CONFIG] 自动修复建议:")
         for var, fix in fixes.items():
             print(f"   {var}: {fix}")
 

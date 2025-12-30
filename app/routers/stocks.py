@@ -114,14 +114,14 @@ async def get_quote(
     # 行情
     q = await db["market_quotes"].find_one({"code": code6}, {"_id": 0})
 
-    # 🔥 调试日志：查看查询结果
-    logger.info(f"🔍 查询 market_quotes: code={code6}")
+    # [HOT] 调试日志：查看查询结果
+    logger.info(f"[SEARCH] 查询 market_quotes: code={code6}")
     if q:
-        logger.info(f"  ✅ 找到数据: volume={q.get('volume')}, amount={q.get('amount')}, volume_ratio={q.get('volume_ratio')}")
+        logger.info(f"  [OK] 找到数据: volume={q.get('volume')}, amount={q.get('amount')}, volume_ratio={q.get('volume_ratio')}")
     else:
-        logger.info(f"  ❌ 未找到数据")
+        logger.info(f"  [FAIL] 未找到数据")
 
-    # 🔥 基础信息 - 按数据源优先级查询
+    # [HOT] 基础信息 - 按数据源优先级查询
     from app.core.unified_config import UnifiedConfigManager
     config = UnifiedConfigManager()
     data_source_configs = await config.get_data_source_configs_async()
@@ -160,7 +160,7 @@ async def get_quote(
         except Exception:
             prev_close = None
 
-    # 🔥 优先从 market_quotes 获取 turnover_rate（实时数据）
+    # [HOT] 优先从 market_quotes 获取 turnover_rate（实时数据）
     # 如果 market_quotes 中没有，再从 stock_basic_info 获取（日度数据）
     turnover_rate = (q or {}).get("turnover_rate")
     turnover_rate_date = None
@@ -170,22 +170,22 @@ async def get_quote(
     else:
         turnover_rate_date = (q or {}).get("trade_date")  # 来自实时数据
 
-    # 🔥 计算振幅（amplitude）替代量比（volume_ratio）
+    # [HOT] 计算振幅（amplitude）替代量比（volume_ratio）
     # 振幅 = (最高价 - 最低价) / 昨收价 × 100%
     amplitude = None
     amplitude_date = None
     try:
         high = (q or {}).get("high")
         low = (q or {}).get("low")
-        logger.info(f"🔍 计算振幅: high={high}, low={low}, prev_close={prev_close}")
+        logger.info(f"[SEARCH] 计算振幅: high={high}, low={low}, prev_close={prev_close}")
         if high is not None and low is not None and prev_close is not None and prev_close > 0:
             amplitude = round((float(high) - float(low)) / float(prev_close) * 100, 2)
             amplitude_date = (q or {}).get("trade_date")  # 来自实时数据
-            logger.info(f"  ✅ 振幅计算成功: {amplitude}%")
+            logger.info(f"  [OK] 振幅计算成功: {amplitude}%")
         else:
-            logger.warning(f"  ⚠️ 数据不完整，无法计算振幅")
+            logger.warning(f"  [WARN] 数据不完整，无法计算振幅")
     except Exception as e:
-        logger.warning(f"  ❌ 计算振幅失败: {e}")
+        logger.warning(f"  [FAIL] 计算振幅失败: {e}")
         amplitude = None
 
     data = {
@@ -200,11 +200,11 @@ async def get_quote(
         "high": (q or {}).get("high"),
         "low": (q or {}).get("low"),
         "prev_close": prev_close,
-        # 🔥 优先使用实时数据，降级到日度数据
+        # [HOT] 优先使用实时数据，降级到日度数据
         "turnover_rate": turnover_rate,
-        "amplitude": amplitude,  # 🔥 新增：振幅（替代量比）
-        "turnover_rate_date": turnover_rate_date,  # 🔥 新增：换手率数据日期
-        "amplitude_date": amplitude_date,  # 🔥 新增：振幅数据日期
+        "amplitude": amplitude,  # [HOT] 新增：振幅（替代量比）
+        "turnover_rate_date": turnover_rate_date,  # [HOT] 新增：换手率数据日期
+        "amplitude_date": amplitude_date,  # [HOT] 新增：振幅数据日期
         "trade_date": (q or {}).get("trade_date"),
         "updated_at": (q or {}).get("updated_at"),
     }
@@ -268,7 +268,7 @@ async def get_fundamentals(
                 detail=f"未找到该股票在数据源 {source} 中的基础信息"
             )
     else:
-        # 🔥 未指定数据源，按优先级查询
+        # [HOT] 未指定数据源，按优先级查询
         source_priority = ["tushare", "multi_source", "akshare", "baostock"]
         b = None
 
@@ -276,20 +276,20 @@ async def get_fundamentals(
             query_with_source = {"code": code6, "source": src}
             b = await db["stock_basic_info"].find_one(query_with_source, {"_id": 0})
             if b:
-                logger.info(f"✅ 使用数据源: {src} 查询股票 {code6}")
+                logger.info(f"[OK] 使用数据源: {src} 查询股票 {code6}")
                 break
 
         # 如果所有数据源都没有，尝试不带 source 条件查询（兼容旧数据）
         if not b:
             b = await db["stock_basic_info"].find_one({"code": code6}, {"_id": 0})
             if b:
-                logger.warning(f"⚠️ 使用旧数据（无 source 字段）: {code6}")
+                logger.warning(f"[WARN] 使用旧数据（无 source 字段）: {code6}")
 
         if not b:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="未找到该股票的基础信息")
 
     # 2. 尝试从 stock_financial_data 获取最新财务指标
-    # 🔥 按数据源优先级查询，而不是按时间戳，避免混用不同数据源的数据
+    # [HOT] 按数据源优先级查询，而不是按时间戳，避免混用不同数据源的数据
     financial_data = None
     try:
         # 获取数据源优先级配置
@@ -314,11 +314,11 @@ async def get_fundamentals(
                 sort=[("report_period", -1)]  # 按报告期降序，获取该数据源的最新数据
             )
             if financial_data:
-                logger.info(f"✅ 使用数据源 {data_source} 的财务数据 (报告期: {financial_data.get('report_period')})")
+                logger.info(f"[OK] 使用数据源 {data_source} 的财务数据 (报告期: {financial_data.get('report_period')})")
                 break
 
         if not financial_data:
-            logger.warning(f"⚠️ 未找到 {code6} 的财务数据")
+            logger.warning(f"[WARN] 未找到 {code6} 的财务数据")
     except Exception as e:
         logger.error(f"获取财务数据失败: {e}")
 
@@ -334,7 +334,7 @@ async def get_fundamentals(
     )
 
     # 4. 构建返回数据
-    # 🔥 优先使用实时市值，降级到 stock_basic_info 的静态市值
+    # [HOT] 优先使用实时市值，降级到 stock_basic_info 的静态市值
     realtime_market_cap = realtime_metrics.get("market_cap")  # 实时市值（亿元）
     total_mv = realtime_market_cap if realtime_market_cap else b.get("total_mv")
 
@@ -353,7 +353,7 @@ async def get_fundamentals(
         "pe_ttm": realtime_metrics.get("pe_ttm") or b.get("pe_ttm"),
         "pb_mrq": realtime_metrics.get("pb_mrq") or b.get("pb_mrq"),
 
-        # 🔥 市销率（PS）- 动态计算（使用实时市值）
+        # [HOT] 市销率（PS）- 动态计算（使用实时市值）
         "ps": None,
         "ps_ttm": None,
 
@@ -372,7 +372,7 @@ async def get_fundamentals(
         "total_mv": total_mv,
         "circ_mv": b.get("circ_mv"),
 
-        # 🔥 市值来源标识
+        # [HOT] 市值来源标识
         "mv_is_realtime": bool(realtime_market_cap),
 
         # 交易指标（可能为空）
@@ -396,14 +396,14 @@ async def get_fundamentals(
         if data["debt_ratio"] is None:
             data["debt_ratio"] = financial_data.get("debt_to_assets")
 
-        # 🔥 动态计算 PS（市销率）- 使用实时市值
+        # [HOT] 动态计算 PS（市销率）- 使用实时市值
         # 优先使用 TTM 营业收入，如果没有则使用单期营业收入
         revenue_ttm = financial_data.get("revenue_ttm")
         revenue = financial_data.get("revenue")
         revenue_for_ps = revenue_ttm if revenue_ttm and revenue_ttm > 0 else revenue
 
         if revenue_for_ps and revenue_for_ps > 0:
-            # 🔥 使用实时市值（如果有），否则使用静态市值
+            # [HOT] 使用实时市值（如果有），否则使用静态市值
             if total_mv and total_mv > 0:
                 # 营业收入单位：元，需要转换为亿元
                 revenue_yi = revenue_for_ps / 100000000
@@ -434,7 +434,7 @@ async def get_kline(
     adj: none/qfq/hfq
     force_refresh: 是否强制刷新（跳过缓存）
 
-    🔥 新增功能：当天实时K线数据
+    [HOT] 新增功能：当天实时K线数据
     - 交易时间内（09:30-15:00）：从 market_quotes 获取实时数据
     - 收盘后：检查历史数据是否有当天数据，没有则从 market_quotes 获取
     """
@@ -506,7 +506,7 @@ async def get_kline(
         end_date = now.strftime("%Y-%m-%d")
         start_date = (now - timedelta(days=limit * 2)).strftime("%Y-%m-%d")
 
-        logger.info(f"🔍 尝试从 MongoDB 获取 K 线数据: {code_padded}, period={period} (MongoDB: {mongodb_period}), limit={limit}")
+        logger.info(f"[SEARCH] 尝试从 MongoDB 获取 K 线数据: {code_padded}, period={period} (MongoDB: {mongodb_period}), limit={limit}")
         df = adapter.get_historical_data(code_padded, start_date, end_date, period=mongodb_period)
 
         if df is not None and not df.empty:
@@ -523,9 +523,9 @@ async def get_kline(
                     "amount": float(row.get("amount", 0)) if "amount" in row else None,
                 })
             source = "mongodb"
-            logger.info(f"✅ 从 MongoDB 获取到 {len(items)} 条 K 线数据")
+            logger.info(f"[OK] 从 MongoDB 获取到 {len(items)} 条 K 线数据")
     except Exception as e:
-        logger.warning(f"⚠️ MongoDB 获取 K 线失败: {e}")
+        logger.warning(f"[WARN] MongoDB 获取 K 线失败: {e}")
 
     # 2. 如果 MongoDB 没有数据，降级到外部 API（带超时保护）
     if not items:
@@ -541,13 +541,13 @@ async def get_kline(
                 timeout=10.0
             )
         except asyncio.TimeoutError:
-            logger.error(f"❌ 外部 API 获取 K 线超时（10秒）")
+            logger.error(f"[FAIL] 外部 API 获取 K 线超时（10秒）")
             raise HTTPException(status_code=504, detail="获取K线数据超时，请稍后重试")
         except Exception as e:
-            logger.error(f"❌ 外部 API 获取 K 线失败: {e}")
+            logger.error(f"[FAIL] 外部 API 获取 K 线失败: {e}")
             raise HTTPException(status_code=500, detail=f"获取K线数据失败: {str(e)}")
 
-    # 🔥 3. 检查是否需要添加当天实时数据（仅针对日线）
+    # [HOT] 3. 检查是否需要添加当天实时数据（仅针对日线）
     if period == "day" and items:
         try:
             # 检查历史数据中是否已有当天的数据（支持两种日期格式）
@@ -569,12 +569,12 @@ async def get_kline(
                 )
             )
 
-            # 🔥 只在交易时间或收盘后缓冲期内才添加实时数据
+            # [HOT] 只在交易时间或收盘后缓冲期内才添加实时数据
             # 非交易日（周末、节假日）不添加实时数据
             should_fetch_realtime = is_trading_time
 
             if should_fetch_realtime:
-                logger.info(f"🔥 尝试从 market_quotes 获取当天实时数据: {code_padded} (交易时间: {is_trading_time}, 已有当天数据: {has_today_data})")
+                logger.info(f"[HOT] 尝试从 market_quotes 获取当天实时数据: {code_padded} (交易时间: {is_trading_time}, 已有当天数据: {has_today_data})")
 
                 db = get_mongo_db()
                 market_quotes_coll = db["market_quotes"]
@@ -583,9 +583,9 @@ async def get_kline(
                 realtime_quote = await market_quotes_coll.find_one({"code": code_padded})
 
                 if realtime_quote:
-                    # 🔥 构造当天的K线数据（使用统一的日期格式 YYYY-MM-DD）
+                    # [HOT] 构造当天的K线数据（使用统一的日期格式 YYYY-MM-DD）
                     today_kline = {
-                        "time": today_str_formatted,  # 🔥 使用 YYYY-MM-DD 格式，与历史数据保持一致
+                        "time": today_str_formatted,  # [HOT] 使用 YYYY-MM-DD 格式，与历史数据保持一致
                         "open": float(realtime_quote.get("open", 0)),
                         "high": float(realtime_quote.get("high", 0)),
                         "low": float(realtime_quote.get("low", 0)),
@@ -598,17 +598,17 @@ async def get_kline(
                     if has_today_data:
                         # 替换最后一条数据（假设最后一条是当天的）
                         items[-1] = today_kline
-                        logger.info(f"✅ 替换当天K线数据: {code_padded}")
+                        logger.info(f"[OK] 替换当天K线数据: {code_padded}")
                     else:
                         # 追加到末尾
                         items.append(today_kline)
-                        logger.info(f"✅ 追加当天K线数据: {code_padded}")
+                        logger.info(f"[OK] 追加当天K线数据: {code_padded}")
 
                     source = f"{source}+market_quotes"
                 else:
-                    logger.warning(f"⚠️ market_quotes 中未找到当天数据: {code_padded}")
+                    logger.warning(f"[WARN] market_quotes 中未找到当天数据: {code_padded}")
         except Exception as e:
-            logger.warning(f"⚠️ 获取当天实时数据失败（忽略）: {e}")
+            logger.warning(f"[WARN] 获取当天实时数据失败（忽略）: {e}")
 
     data = {
         "code": code_padded,
@@ -662,7 +662,7 @@ async def get_news(code: str, days: int = 30, limit: int = 50, include_announcem
             # 计算时间范围
             hours_back = days * 24
 
-            # 🔥 不设置 start_time 限制，直接查询最新的 N 条新闻
+            # [HOT] 不设置 start_time 限制，直接查询最新的 N 条新闻
             # 因为数据库中的新闻可能不是最近几天的，而是历史数据
             params = NewsQueryParams(
                 symbol=normalized_code,
@@ -671,20 +671,20 @@ async def get_news(code: str, days: int = 30, limit: int = 50, include_announcem
                 sort_order=-1
             )
 
-            logger.info(f"🔍 查询参数: symbol={params.symbol}, limit={params.limit} (不限制时间范围)")
+            logger.info(f"[SEARCH] 查询参数: symbol={params.symbol}, limit={params.limit} (不限制时间范围)")
 
             # 1. 先从数据库查询
-            logger.info(f"📊 步骤1: 从数据库查询新闻...")
+            logger.info(f"[CHART] 步骤1: 从数据库查询新闻...")
             news_list = await service.query_news(params)
-            logger.info(f"📊 数据库查询结果: 返回 {len(news_list)} 条新闻")
+            logger.info(f"[CHART] 数据库查询结果: 返回 {len(news_list)} 条新闻")
 
             data_source = "database"
 
             # 2. 如果数据库没有数据，调用同步服务
             if not news_list:
-                logger.info(f"⚠️ 数据库无新闻数据，调用同步服务获取: {normalized_code}")
+                logger.info(f"[WARN] 数据库无新闻数据，调用同步服务获取: {normalized_code}")
                 try:
-                    # 🔥 调用同步服务，传入单个股票代码列表
+                    # [HOT] 调用同步服务，传入单个股票代码列表
                     logger.info(f"📡 步骤2: 调用同步服务...")
                     await sync_service.sync_news_data(
                         symbols=[normalized_code],
@@ -694,19 +694,19 @@ async def get_news(code: str, days: int = 30, limit: int = 50, include_announcem
                     )
 
                     # 重新查询
-                    logger.info(f"🔄 步骤3: 重新从数据库查询...")
+                    logger.info(f"[SYNC] 步骤3: 重新从数据库查询...")
                     news_list = await service.query_news(params)
-                    logger.info(f"📊 重新查询结果: 返回 {len(news_list)} 条新闻")
+                    logger.info(f"[CHART] 重新查询结果: 返回 {len(news_list)} 条新闻")
                     data_source = "realtime"
 
                 except Exception as e:
-                    logger.error(f"❌ 同步服务异常: {e}", exc_info=True)
+                    logger.error(f"[FAIL] 同步服务异常: {e}", exc_info=True)
 
             # 转换为旧格式（兼容前端）
-            logger.info(f"🔄 步骤4: 转换数据格式...")
+            logger.info(f"[SYNC] 步骤4: 转换数据格式...")
             items = []
             for news in news_list:
-                # 🔥 将 datetime 对象转换为 ISO 字符串
+                # [HOT] 将 datetime 对象转换为 ISO 字符串
                 publish_time = news.get("publish_time", "")
                 if isinstance(publish_time, datetime):
                     publish_time = publish_time.isoformat()
@@ -721,7 +721,7 @@ async def get_news(code: str, days: int = 30, limit: int = 50, include_announcem
                     "summary": news.get("summary", "")
                 })
 
-            logger.info(f"✅ 转换完成: {len(items)} 条新闻")
+            logger.info(f"[OK] 转换完成: {len(items)} 条新闻")
 
             data = {
                 "code": normalized_code,
@@ -732,12 +732,12 @@ async def get_news(code: str, days: int = 30, limit: int = 50, include_announcem
                 "items": items
             }
 
-            logger.info(f"📤 最终返回: source={data_source}, items_count={len(items)}")
+            logger.info(f"[EXPORT] 最终返回: source={data_source}, items_count={len(items)}")
             logger.info(f"=" * 80)
             return ok(data)
 
         except Exception as e:
-            logger.error(f"❌ 获取新闻失败: {e}", exc_info=True)
+            logger.error(f"[FAIL] 获取新闻失败: {e}", exc_info=True)
             data = {
                 "code": normalized_code,
                 "days": days,

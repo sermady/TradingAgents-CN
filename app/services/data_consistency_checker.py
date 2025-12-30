@@ -73,7 +73,7 @@ class DataConsistencyChecker:
             secondary_source: 次数据源名称
         """
         try:
-            logger.info(f"🔍 检查数据一致性: {primary_source} vs {secondary_source}")
+            logger.info(f"[SEARCH] 检查数据一致性: {primary_source} vs {secondary_source}")
             
             # 1. 基础检查
             if primary_data.empty or secondary_data.empty:
@@ -100,7 +100,7 @@ class DataConsistencyChecker:
                     details={'reason': 'No overlapping stocks'}
                 )
             
-            logger.info(f"📊 找到{len(common_stocks)}只共同股票进行比较")
+            logger.info(f"[CHART] 找到{len(common_stocks)}只共同股票进行比较")
             
             # 3. 逐指标比较
             metric_comparisons = []
@@ -119,7 +119,7 @@ class DataConsistencyChecker:
             return consistency_result
             
         except Exception as e:
-            logger.error(f"❌ 数据一致性检查失败: {e}")
+            logger.error(f"[FAIL] 数据一致性检查失败: {e}")
             return DataConsistencyResult(
                 is_consistent=False,
                 primary_source=primary_source,
@@ -195,7 +195,7 @@ class DataConsistencyChecker:
             )
             
         except Exception as e:
-            logger.warning(f"⚠️ 比较指标{metric}失败: {e}")
+            logger.warning(f"[WARN] 比较指标{metric}失败: {e}")
             return None
     
     def _get_stock_metric_value(self, df: pd.DataFrame, stock_code: str, metric: str) -> Optional[float]:
@@ -303,17 +303,17 @@ class DataConsistencyChecker:
         action = consistency_result.recommended_action
         
         if action == 'use_either':
-            logger.info("✅ 数据高度一致，使用主数据源")
+            logger.info("[OK] 数据高度一致，使用主数据源")
             return primary_data, "数据源高度一致，使用主数据源"
         
         elif action == 'use_primary_with_warning':
-            logger.warning("⚠️ 数据存在差异但在可接受范围内，使用主数据源")
+            logger.warning("[WARN] 数据存在差异但在可接受范围内，使用主数据源")
             return primary_data, f"数据存在轻微差异（置信度: {consistency_result.confidence_score:.2f}），使用主数据源"
         
         elif action == 'use_primary_only':
-            logger.warning("🚨 数据差异较大，仅使用主数据源")
+            logger.warning("[ALERT] 数据差异较大，仅使用主数据源")
             return primary_data, f"数据差异显著（置信度: {consistency_result.confidence_score:.2f}），仅使用主数据源"
         
         else:  # investigate_sources
-            logger.error("❌ 数据源存在严重问题，需要人工调查")
+            logger.error("[FAIL] 数据源存在严重问题，需要人工调查")
             return primary_data, f"数据源存在严重不一致（置信度: {consistency_result.confidence_score:.2f}），建议检查数据源"

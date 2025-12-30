@@ -30,7 +30,7 @@ class SignalProcessor:
 
         # 验证输入参数
         if not full_signal or not isinstance(full_signal, str) or len(full_signal.strip()) == 0:
-            logger.error(f"❌ [SignalProcessor] 输入信号为空或无效: {repr(full_signal)}")
+            logger.error(f"[FAIL] [SignalProcessor] 输入信号为空或无效: {repr(full_signal)}")
             return {
                 'action': '持有',
                 'target_price': None,
@@ -42,7 +42,7 @@ class SignalProcessor:
         # 清理和验证信号内容
         full_signal = full_signal.strip()
         if len(full_signal) == 0:
-            logger.error(f"❌ [SignalProcessor] 信号内容为空")
+            logger.error(f"[FAIL] [SignalProcessor] 信号内容为空")
             return {
                 'action': '持有',
                 'target_price': None,
@@ -60,7 +60,7 @@ class SignalProcessor:
         currency = market_info['currency_name']
         currency_symbol = market_info['currency_symbol']
 
-        logger.info(f"🔍 [SignalProcessor] 处理信号: 股票={stock_symbol}, 市场={market_info['market_name']}, 货币={currency}",
+        logger.info(f"[SEARCH] [SignalProcessor] 处理信号: 股票={stock_symbol}, 市场={market_info['market_name']}, 货币={currency}",
                    extra={'stock_symbol': stock_symbol, 'market': market_info['market_name'], 'currency': currency})
 
         messages = [
@@ -96,20 +96,20 @@ class SignalProcessor:
 
         # 验证messages内容
         if not messages or len(messages) == 0:
-            logger.error(f"❌ [SignalProcessor] messages为空")
+            logger.error(f"[FAIL] [SignalProcessor] messages为空")
             return self._get_default_decision()
         
         # 验证human消息内容
         human_content = messages[1][1] if len(messages) > 1 else ""
         if not human_content or len(human_content.strip()) == 0:
-            logger.error(f"❌ [SignalProcessor] human消息内容为空")
+            logger.error(f"[FAIL] [SignalProcessor] human消息内容为空")
             return self._get_default_decision()
 
-        logger.debug(f"🔍 [SignalProcessor] 准备调用LLM，消息数量: {len(messages)}, 信号长度: {len(full_signal)}")
+        logger.debug(f"[SEARCH] [SignalProcessor] 准备调用LLM，消息数量: {len(messages)}, 信号长度: {len(full_signal)}")
 
         try:
             response = self.quick_thinking_llm.invoke(messages).content
-            logger.debug(f"🔍 [SignalProcessor] LLM响应: {response[:200]}...")
+            logger.debug(f"[SEARCH] [SignalProcessor] LLM响应: {response[:200]}...")
 
             # 尝试解析JSON响应
             import json
@@ -119,7 +119,7 @@ class SignalProcessor:
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
             if json_match:
                 json_text = json_match.group()
-                logger.debug(f"🔍 [SignalProcessor] 提取的JSON: {json_text}")
+                logger.debug(f"[SEARCH] [SignalProcessor] 提取的JSON: {json_text}")
                 decision_data = json.loads(json_text)
 
                 # 验证和标准化数据
@@ -134,7 +134,7 @@ class SignalProcessor:
                     }
                     action = action_map.get(action, '持有')
                     if action != decision_data.get('action', '持有'):
-                        logger.debug(f"🔍 [SignalProcessor] 投资建议映射: {decision_data.get('action')} -> {action}")
+                        logger.debug(f"[SEARCH] [SignalProcessor] 投资建议映射: {decision_data.get('action')} -> {action}")
 
                 # 处理目标价格，确保正确提取
                 target_price = decision_data.get('target_price')
@@ -166,7 +166,7 @@ class SignalProcessor:
                         if price_match:
                             try:
                                 target_price = float(price_match.group(1))
-                                logger.debug(f"🔍 [SignalProcessor] 从文本中提取到目标价格: {target_price} (模式: {pattern})")
+                                logger.debug(f"[SEARCH] [SignalProcessor] 从文本中提取到目标价格: {target_price} (模式: {pattern})")
                                 break
                             except (ValueError, IndexError):
                                 continue
@@ -175,10 +175,10 @@ class SignalProcessor:
                     if target_price is None or target_price == "null" or target_price == "":
                         target_price = self._smart_price_estimation(full_text, action, is_china)
                         if target_price:
-                            logger.debug(f"🔍 [SignalProcessor] 智能推算目标价格: {target_price}")
+                            logger.debug(f"[SEARCH] [SignalProcessor] 智能推算目标价格: {target_price}")
                         else:
                             target_price = None
-                            logger.warning(f"🔍 [SignalProcessor] 未能提取到目标价格，设置为None")
+                            logger.warning(f"[SEARCH] [SignalProcessor] 未能提取到目标价格，设置为None")
                 else:
                     # 确保价格是数值类型
                     try:
@@ -188,10 +188,10 @@ class SignalProcessor:
                             target_price = float(clean_price) if clean_price and clean_price.lower() not in ['none', 'null', ''] else None
                         elif isinstance(target_price, (int, float)):
                             target_price = float(target_price)
-                        logger.debug(f"🔍 [SignalProcessor] 处理后的目标价格: {target_price}")
+                        logger.debug(f"[SEARCH] [SignalProcessor] 处理后的目标价格: {target_price}")
                     except (ValueError, TypeError):
                         target_price = None
-                        logger.warning(f"🔍 [SignalProcessor] 价格转换失败，设置为None")
+                        logger.warning(f"[SEARCH] [SignalProcessor] 价格转换失败，设置为None")
 
                 result = {
                     'action': action,
@@ -200,7 +200,7 @@ class SignalProcessor:
                     'risk_score': float(decision_data.get('risk_score', 0.5)),
                     'reasoning': decision_data.get('reasoning', '基于综合分析的投资建议')
                 }
-                logger.info(f"🔍 [SignalProcessor] 处理结果: {result}",
+                logger.info(f"[SEARCH] [SignalProcessor] 处理结果: {result}",
                            extra={'action': result['action'], 'target_price': result['target_price'],
                                  'confidence': result['confidence'], 'stock_symbol': stock_symbol})
                 return result

@@ -39,7 +39,7 @@ class DataSourceManager:
             from .data_consistency_checker import DataConsistencyChecker  # type: ignore
             self.consistency_checker = DataConsistencyChecker()
         except Exception:
-            logger.warning("⚠️ 数据一致性检查器不可用")
+            logger.warning("[WARN] 数据一致性检查器不可用")
             self.consistency_checker = None
 
     def _load_priority_from_database(self):
@@ -63,25 +63,25 @@ class DataSourceManager:
                     priority = grouping.get('priority')
                     if data_source_name and priority is not None:
                         priority_map[data_source_name] = priority
-                        logger.info(f"📊 从数据库读取 {data_source_name} 在 A股市场的优先级: {priority}")
+                        logger.info(f"[CHART] 从数据库读取 {data_source_name} 在 A股市场的优先级: {priority}")
 
                 # 更新各个 Adapter 的优先级
                 for adapter in self.adapters:
                     if adapter.name in priority_map:
                         # 动态设置优先级
                         adapter._priority = priority_map[adapter.name]
-                        logger.info(f"✅ 设置 {adapter.name} 优先级: {adapter._priority}")
+                        logger.info(f"[OK] 设置 {adapter.name} 优先级: {adapter._priority}")
                     else:
                         # 使用默认优先级
                         adapter._priority = adapter._get_default_priority()
-                        logger.info(f"⚠️ 数据库中未找到 {adapter.name} 配置，使用默认优先级: {adapter._priority}")
+                        logger.info(f"[WARN] 数据库中未找到 {adapter.name} 配置，使用默认优先级: {adapter._priority}")
             else:
-                logger.info("⚠️ 数据库中未找到 A股市场的数据源配置，使用默认优先级")
+                logger.info("[WARN] 数据库中未找到 A股市场的数据源配置，使用默认优先级")
                 # 使用默认优先级
                 for adapter in self.adapters:
                     adapter._priority = adapter._get_default_priority()
         except Exception as e:
-            logger.warning(f"⚠️ 从数据库加载优先级失败: {e}，使用默认优先级")
+            logger.warning(f"[WARN] 从数据库加载优先级失败: {e}，使用默认优先级")
             import traceback
             logger.warning(f"堆栈跟踪:\n{traceback.format_exc()}")
             # 使用默认优先级
@@ -235,16 +235,16 @@ class DataSourceManager:
         secondary_adapter = available_adapters[1]
         try:
             logger.info(
-                f"🔍 获取数据进行一致性检查: {primary_adapter.name} vs {secondary_adapter.name}"
+                f"[SEARCH] 获取数据进行一致性检查: {primary_adapter.name} vs {secondary_adapter.name}"
             )
             primary_data = primary_adapter.get_daily_basic(trade_date)
             secondary_data = secondary_adapter.get_daily_basic(trade_date)
             if primary_data is None or primary_data.empty:
-                logger.warning(f"⚠️ 主数据源{primary_adapter.name}失败，使用fallback")
+                logger.warning(f"[WARN] 主数据源{primary_adapter.name}失败，使用fallback")
                 df, source = self.get_daily_basic_with_fallback(trade_date)
                 return df, source, None
             if secondary_data is None or secondary_data.empty:
-                logger.warning(f"⚠️ 次数据源{secondary_adapter.name}失败，使用主数据源")
+                logger.warning(f"[WARN] 次数据源{secondary_adapter.name}失败，使用主数据源")
                 return primary_data, primary_adapter.name, None
             if self.consistency_checker:
                 consistency_result = self.consistency_checker.check_daily_basic_consistency(
@@ -266,14 +266,14 @@ class DataSourceManager:
                     'secondary_source': secondary_adapter.name,
                 }
                 logger.info(
-                    f"📊 数据一致性检查完成: 置信度={consistency_result.confidence_score:.2f}, 策略={consistency_result.recommended_action}"
+                    f"[CHART] 数据一致性检查完成: 置信度={consistency_result.confidence_score:.2f}, 策略={consistency_result.recommended_action}"
                 )
                 return final_data, primary_adapter.name, consistency_report
             else:
-                logger.warning("⚠️ 一致性检查器不可用，使用主数据源")
+                logger.warning("[WARN] 一致性检查器不可用，使用主数据源")
                 return primary_data, primary_adapter.name, None
         except Exception as e:
-            logger.error(f"❌ 一致性检查失败: {e}")
+            logger.error(f"[FAIL] 一致性检查失败: {e}")
             df, source = self.get_daily_basic_with_fallback(trade_date)
             return df, source, None
 

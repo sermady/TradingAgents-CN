@@ -25,8 +25,8 @@ def fetch_stock_basic_df():
 
     # 检查 Tushare 是否启用
     if not settings.TUSHARE_ENABLED:
-        logger.error("❌ Tushare 数据源已禁用 (TUSHARE_ENABLED=false)")
-        logger.error("💡 请在 .env 文件中设置 TUSHARE_ENABLED=true 或使用多数据源同步服务")
+        logger.error("[FAIL] Tushare 数据源已禁用 (TUSHARE_ENABLED=false)")
+        logger.error("[INFO] 请在 .env 文件中设置 TUSHARE_ENABLED=true 或使用多数据源同步服务")
         raise RuntimeError(
             "Tushare is disabled (TUSHARE_ENABLED=false). "
             "Set TUSHARE_ENABLED=true in .env or use MultiSourceBasicsSyncService."
@@ -46,8 +46,8 @@ def fetch_stock_basic_df():
 
     # 检查连接状态和API可用性
     if not getattr(provider, "connected", False) or provider.api is None:
-        logger.error(f"❌ Tushare 连接失败（等待 {max_wait_seconds}s 后超时）")
-        logger.error(f"💡 请检查：")
+        logger.error(f"[FAIL] Tushare 连接失败（等待 {max_wait_seconds}s 后超时）")
+        logger.error(f"[INFO] 请检查：")
         logger.error(f"   1. .env 文件中配置了有效的 TUSHARE_TOKEN")
         logger.error(f"   2. Tushare Token 未过期且有足够的积分")
         logger.error(f"   3. 网络连接正常")
@@ -56,7 +56,7 @@ def fetch_stock_basic_df():
             "Check TUSHARE_TOKEN in .env and ensure it's valid."
         )
 
-    logger.info(f"✅ Tushare 已连接，开始获取股票列表...")
+    logger.info(f"[OK] Tushare 已连接，开始获取股票列表...")
 
     # 直接调用 Tushare API 获取 DataFrame
     try:
@@ -65,28 +65,28 @@ def fetch_stock_basic_df():
             fields='ts_code,symbol,name,area,industry,market,exchange,list_date,is_hs'
         )
 
-        # 🔧 增强错误诊断
+        # [CONFIG] 增强错误诊断
         if df is None:
-            logger.error(f"❌ Tushare API 返回 None")
-            logger.error(f"💡 可能原因：")
+            logger.error(f"[FAIL] Tushare API 返回 None")
+            logger.error(f"[INFO] 可能原因：")
             logger.error(f"   1. Tushare Token 无效或过期")
             logger.error(f"   2. API 积分不足")
             logger.error(f"   3. 网络连接问题")
             raise RuntimeError("Tushare API returned None. Check token validity and API credits.")
 
         if hasattr(df, 'empty') and df.empty:
-            logger.error(f"❌ Tushare API 返回空 DataFrame")
-            logger.error(f"💡 可能原因：")
+            logger.error(f"[FAIL] Tushare API 返回空 DataFrame")
+            logger.error(f"[INFO] 可能原因：")
             logger.error(f"   1. list_status='L' 参数可能不正确")
             logger.error(f"   2. Tushare 数据源暂时不可用")
             logger.error(f"   3. API 调用限制（请检查积分和调用频率）")
             raise RuntimeError("Tushare API returned empty DataFrame. Check API parameters and data availability.")
 
-        logger.info(f"✅ 成功获取 {len(df)} 条股票数据")
+        logger.info(f"[OK] 成功获取 {len(df)} 条股票数据")
         return df
 
     except Exception as e:
-        logger.error(f"❌ 调用 Tushare API 失败: {e}")
+        logger.error(f"[FAIL] 调用 Tushare API 失败: {e}")
         raise RuntimeError(f"Failed to fetch stock basic DataFrame: {e}")
 
 
@@ -127,7 +127,7 @@ def fetch_daily_basic_mv_map(trade_date: str) -> Dict[str, Dict[str, float]]:
     if api is None:
         raise RuntimeError("Tushare API unavailable")
 
-    # 🔥 新增：添加 ps、ps_ttm、total_share、float_share 字段
+    # [HOT] 新增：添加 ps、ps_ttm、total_share、float_share 字段
     fields = "ts_code,total_mv,circ_mv,pe,pb,ps,turnover_rate,volume_ratio,pe_ttm,pb_mrq,ps_ttm,total_share,float_share"
     db = api.daily_basic(trade_date=trade_date, fields=fields)
 
@@ -138,7 +138,7 @@ def fetch_daily_basic_mv_map(trade_date: str) -> Dict[str, Dict[str, float]]:
             if ts_code is not None:
                 try:
                     metrics = {}
-                    # 🔥 新增：添加 ps、ps_ttm、total_share、float_share 到字段列表
+                    # [HOT] 新增：添加 ps、ps_ttm、total_share、float_share 到字段列表
                     for field in [
                         "total_mv",
                         "circ_mv",

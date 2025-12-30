@@ -76,7 +76,7 @@ async def debug_redis_pool(user: dict = Depends(get_current_user)):
             "blocked_clients": info.get("blocked_clients", "N/A"),
         }
 
-        # 🔥 新增：获取 PubSub 频道信息
+        # [HOT] 新增：获取 PubSub 频道信息
         try:
             pubsub_info = await r.execute_command("PUBSUB", "CHANNELS", "notifications:*")
             pubsub_channels = {

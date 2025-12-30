@@ -4,7 +4,7 @@
 为旧的 tradingagents 库提供配置兼容接口，
 使其能够使用新的配置系统而无需修改代码。
 
-⚠️ 此模块仅用于向后兼容，新代码应直接使用 ConfigService
+[WARN] 此模块仅用于向后兼容，新代码应直接使用 ConfigService
 """
 
 import os

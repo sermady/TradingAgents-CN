@@ -63,7 +63,7 @@ class BasicsSyncService:
 
         try:
             collection = db[DATA_COLLECTION]
-            logger.info("📊 检查并创建股票基础信息索引...")
+            logger.info("[CHART] 检查并创建股票基础信息索引...")
 
             # 1. 复合唯一索引：股票代码+数据源（用于 upsert）
             await collection.create_index([
@@ -105,10 +105,10 @@ class BasicsSyncService:
             await collection.create_index([("turnover_rate", -1)], name="turnover_rate_desc", background=True)
 
             self._indexes_ensured = True
-            logger.info("✅ 股票基础信息索引检查完成")
+            logger.info("[OK] 股票基础信息索引检查完成")
         except Exception as e:
             # 索引创建失败不应该阻止服务启动
-            logger.warning(f"⚠️ 创建索引时出现警告（可能已存在）: {e}")
+            logger.warning(f"[WARN] 创建索引时出现警告（可能已存在）: {e}")
 
     async def get_status(self, db: Optional[AsyncIOMotorDatabase] = None) -> Dict[str, Any]:
         """Return last persisted status; falls back to in-memory snapshot."""
@@ -153,21 +153,21 @@ class BasicsSyncService:
                 result = await db[DATA_COLLECTION].bulk_write(operations, ordered=False)
                 inserted = len(result.upserted_ids) if result.upserted_ids else 0
                 updated = result.modified_count or 0
-                logger.debug(f"✅ 批量写入成功: 新增 {inserted}, 更新 {updated}")
+                logger.debug(f"[OK] 批量写入成功: 新增 {inserted}, 更新 {updated}")
                 return inserted, updated
 
             except asyncio.TimeoutError as e:
                 retry_count += 1
                 if retry_count < max_retries:
                     wait_time = 2 ** retry_count  # 指数退避：2秒、4秒、8秒
-                    logger.warning(f"⚠️ 批量写入超时 (第{retry_count}次重试)，等待{wait_time}秒后重试...")
+                    logger.warning(f"[WARN] 批量写入超时 (第{retry_count}次重试)，等待{wait_time}秒后重试...")
                     await asyncio.sleep(wait_time)
                 else:
-                    logger.error(f"❌ 批量写入失败，已重试{max_retries}次: {e}")
+                    logger.error(f"[FAIL] 批量写入失败，已重试{max_retries}次: {e}")
                     return 0, 0
 
             except Exception as e:
-                logger.error(f"❌ 批量写入失败: {e}")
+                logger.error(f"[FAIL] 批量写入失败: {e}")
                 return 0, 0
 
         return inserted, updated
@@ -182,7 +182,7 @@ class BasicsSyncService:
 
         db = get_mongo_db()
 
-        # 🔥 确保索引存在（提升查询和 upsert 性能）
+        # [HOT] 确保索引存在（提升查询和 upsert 性能）
         await self._ensure_indexes(db)
 
         stats = SyncStats()
@@ -194,9 +194,9 @@ class BasicsSyncService:
             # Step 0: Check if Tushare is enabled
             if not settings.TUSHARE_ENABLED:
                 error_msg = (
-                    "❌ Tushare 数据源已禁用 (TUSHARE_ENABLED=false)\n"
-                    "💡 此服务仅支持 Tushare 数据源\n"
-                    "📋 解决方案：\n"
+                    "[FAIL] Tushare 数据源已禁用 (TUSHARE_ENABLED=false)\n"
+                    "[INFO] 此服务仅支持 Tushare 数据源\n"
+                    "[CLIPBOARD] 解决方案：\n"
                     "   1. 在 .env 文件中设置 TUSHARE_ENABLED=true 并配置 TUSHARE_TOKEN\n"
                     "   2. 系统已自动切换到多数据源同步服务（支持 AKShare/BaoStock）"
                 )
@@ -282,7 +282,7 @@ class BasicsSyncService:
                     "list_date": list_date,
                     "sse": sse,
                     "sec": category,
-                    "source": "tushare",  # 🔥 数据源标识
+                    "source": "tushare",  # [HOT] 数据源标识
                     "updated_at": now_iso,
                     "full_symbol": full_symbol,  # 添加完整标准化代码
                 }
@@ -293,7 +293,7 @@ class BasicsSyncService:
                 if circ_mv_yi is not None:
                     doc["circ_mv"] = circ_mv_yi
 
-                # Add financial ratios (🔥 新增 ps 和 ps_ttm)
+                # Add financial ratios ([HOT] 新增 ps 和 ps_ttm)
                 for field in ["pe", "pb", "ps", "pe_ttm", "pb_mrq", "ps_ttm"]:
                     if field in daily_metrics:
                         doc[field] = daily_metrics[field]
@@ -308,12 +308,12 @@ class BasicsSyncService:
                     if field in daily_metrics:
                         doc[field] = daily_metrics[field]
 
-                # 🔥 Add share capital fields (total_share, float_share)
+                # [HOT] Add share capital fields (total_share, float_share)
                 for field in ["total_share", "float_share"]:
                     if field in daily_metrics:
                         doc[field] = daily_metrics[field]
 
-                # 🔥 使用 (code, source) 联合查询条件
+                # [HOT] 使用 (code, source) 联合查询条件
                 ops.append(
                     UpdateOne({"code": code, "source": "tushare"}, {"$set": doc}, upsert=True)
                 )

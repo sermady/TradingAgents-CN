@@ -108,12 +108,12 @@ def calculate_realtime_pe_pb(
             return None
         code6 = str(symbol).zfill(6)
 
-        logger.info(f"🔍 [实时PE计算] 开始计算股票 {code6}")
+        logger.info(f"[SEARCH] [实时PE计算] 开始计算股票 {code6}")
 
         # 1. 获取实时行情（market_quotes）
         quote = db.market_quotes.find_one({"code": code6})
         if not quote:
-            logger.warning(f"⚠️ [实时PE计算-失败] 未找到股票 {code6} 的实时行情数据")
+            logger.warning(f"[WARN] [实时PE计算-失败] 未找到股票 {code6} 的实时行情数据")
             return None
 
         realtime_price = quote.get("close")
@@ -121,34 +121,34 @@ def calculate_realtime_pe_pb(
         quote_updated_at = quote.get("updated_at", "N/A")
 
         if not realtime_price or realtime_price <= 0:
-            logger.warning(f"⚠️ [实时PE计算-失败] 股票 {code6} 的实时价格无效: {realtime_price}")
+            logger.warning(f"[WARN] [实时PE计算-失败] 股票 {code6} 的实时价格无效: {realtime_price}")
             return None
 
         logger.info(f"   ✓ 实时股价: {realtime_price}元 (更新时间: {quote_updated_at})")
         logger.info(f"   ✓ 昨日收盘价: {pre_close}元")
 
         # 2. 获取基础信息（stock_basic_info）- 获取 Tushare 的 pe_ttm 和市值数据
-        # 🔥 优先查询 Tushare 数据源（因为只有 Tushare 有 pe_ttm、total_mv、total_share 等字段）
-        logger.info(f"🔍 [MongoDB查询] 查询条件: code={code6}, source=tushare")
+        # [HOT] 优先查询 Tushare 数据源（因为只有 Tushare 有 pe_ttm、total_mv、total_share 等字段）
+        logger.info(f"[SEARCH] [MongoDB查询] 查询条件: code={code6}, source=tushare")
         basic_info = db.stock_basic_info.find_one({"code": code6, "source": "tushare"})
 
         if not basic_info:
-            # 🔥 诊断：查看 MongoDB 中有哪些数据源
+            # [HOT] 诊断：查看 MongoDB 中有哪些数据源
             all_sources = list(db.stock_basic_info.find({"code": code6}, {"source": 1, "_id": 0}))
-            logger.warning(f"⚠️ [动态PE计算] 未找到 Tushare 数据")
+            logger.warning(f"[WARN] [动态PE计算] 未找到 Tushare 数据")
             logger.warning(f"   MongoDB 中该股票的数据源: {[s.get('source') for s in all_sources]}")
 
             # 如果没有 Tushare 数据，尝试查询其他数据源
             basic_info = db.stock_basic_info.find_one({"code": code6})
             if not basic_info:
-                logger.warning(f"⚠️ [动态PE计算-失败] 未找到股票 {code6} 的基础信息")
+                logger.warning(f"[WARN] [动态PE计算-失败] 未找到股票 {code6} 的基础信息")
                 logger.warning(f"   建议: 运行 Tushare 数据同步任务，确保 stock_basic_info 集合有 Tushare 数据")
                 return None
             else:
-                logger.warning(f"⚠️ [动态PE计算] 使用其他数据源: {basic_info.get('source', 'unknown')}")
+                logger.warning(f"[WARN] [动态PE计算] 使用其他数据源: {basic_info.get('source', 'unknown')}")
                 # 如果不是 Tushare 数据，可能缺少关键字段，直接返回 None
                 if basic_info.get('source') != 'tushare':
-                    logger.warning(f"⚠️ [动态PE计算-失败] 数据源 {basic_info.get('source')} 不包含 pe_ttm 等字段")
+                    logger.warning(f"[WARN] [动态PE计算-失败] 数据源 {basic_info.get('source')} 不包含 pe_ttm 等字段")
                     logger.warning(f"   可用字段: {list(basic_info.keys())}")
                     return None
 
@@ -166,7 +166,7 @@ def calculate_realtime_pe_pb(
         logger.info(f"   ✓ 总股本: {total_share}万股")
         logger.info(f"   ✓ stock_basic_info 更新时间: {basic_info_updated_at}")
 
-        # 🔥 3. 判断是否需要重新计算市值
+        # [HOT] 3. 判断是否需要重新计算市值
         # 如果 stock_basic_info 的更新时间在今天收盘后（15:00之后），说明数据已经是最新的
         from datetime import datetime, time as dtime
         from zoneinfo import ZoneInfo
@@ -186,7 +186,7 @@ def calculate_realtime_pe_pb(
                 # 如果更新日期是今天，且更新时间在15:00之后，说明数据已经是今天收盘后的最新数据
                 if update_date == today and update_time >= dtime(15, 0):
                     need_recalculate = False
-                    logger.info(f"   💡 stock_basic_info 已在今天收盘后更新，直接使用其数据")
+                    logger.info(f"   [INFO] stock_basic_info 已在今天收盘后更新，直接使用其数据")
 
         if not need_recalculate:
             # 直接使用 stock_basic_info 的数据，不需要重新计算
@@ -204,10 +204,10 @@ def calculate_realtime_pe_pb(
                 "note": "使用stock_basic_info收盘后最新数据",
             }
 
-            logger.info(f"✅ [动态PE计算-成功] 股票 {code6}: PE_TTM={result['pe_ttm']}倍, PB={result['pb']}倍 (来自stock_basic_info)")
+            logger.info(f"[OK] [动态PE计算-成功] 股票 {code6}: PE_TTM={result['pe_ttm']}倍, PB={result['pb']}倍 (来自stock_basic_info)")
             return result
 
-        # 4. 🔥 计算总股本（需要判断 stock_basic_info 的市值是昨天的还是今天的）
+        # 4. [HOT] 计算总股本（需要判断 stock_basic_info 的市值是昨天的还是今天的）
         total_shares_wan = None
         yesterday_mv_yi = None
 
@@ -223,15 +223,15 @@ def calculate_realtime_pe_pb(
             elif total_mv_yi and total_mv_yi > 0:
                 # 如果没有昨日收盘价，使用 stock_basic_info 的市值（假设是昨天的）
                 yesterday_mv_yi = total_mv_yi
-                logger.info(f"   ⚠️ market_quotes 中无 pre_close，使用 stock_basic_info 市值作为昨日市值: {yesterday_mv_yi:.2f}亿元")
+                logger.info(f"   [WARN] market_quotes 中无 pre_close，使用 stock_basic_info 市值作为昨日市值: {yesterday_mv_yi:.2f}亿元")
             else:
                 # 既没有 pre_close，也没有 total_mv_yi，无法计算
-                logger.warning(f"⚠️ [动态PE计算-失败] 无法获取昨日市值: pre_close={pre_close}, total_mv={total_mv_yi}")
+                logger.warning(f"[WARN] [动态PE计算-失败] 无法获取昨日市值: pre_close={pre_close}, total_mv={total_mv_yi}")
                 return None
 
         # 方案2：使用 market_quotes 的 pre_close（昨日收盘价）反推股本
         elif pre_close and pre_close > 0 and total_mv_yi and total_mv_yi > 0:
-            # 🔥 关键：判断 total_mv_yi 是昨天的还是今天的
+            # [HOT] 关键：判断 total_mv_yi 是昨天的还是今天的
             # 如果 stock_basic_info 更新时间在今天收盘前，说明 total_mv_yi 是昨天的市值
             # 如果更新时间在今天收盘后，说明 total_mv_yi 是今天的市值，需要用 realtime_price 反推
 
@@ -264,13 +264,13 @@ def calculate_realtime_pe_pb(
             # 使用 realtime_price 反推股本，假设 total_mv_yi 是昨天的市值
             total_shares_wan = (total_mv_yi * 10000) / realtime_price
             yesterday_mv_yi = total_mv_yi
-            logger.warning(f"   ⚠️ market_quotes 中无 pre_close，假设 stock_basic_info.total_mv 是昨日市值")
+            logger.warning(f"   [WARN] market_quotes 中无 pre_close，假设 stock_basic_info.total_mv 是昨日市值")
             logger.info(f"   ✓ 用 realtime_price 反推总股本: {total_mv_yi:.2f}亿元 / {realtime_price:.2f}元 = {total_shares_wan:.2f}万股")
             logger.info(f"   ✓ 昨日市值（假设）: {yesterday_mv_yi:.2f}亿元")
 
         # 方案4：如果都没有，无法计算
         else:
-            logger.warning(f"⚠️ [动态PE计算-失败] 无法获取总股本数据")
+            logger.warning(f"[WARN] [动态PE计算-失败] 无法获取总股本数据")
             logger.warning(f"   - total_share: {total_share}")
             logger.warning(f"   - pre_close: {pre_close}")
             logger.warning(f"   - total_mv: {total_mv_yi}")
@@ -279,8 +279,8 @@ def calculate_realtime_pe_pb(
         # 5. 从 Tushare pe_ttm 反推 TTM 净利润（使用昨日市值）
 
         if not pe_ttm_tushare or pe_ttm_tushare <= 0 or not yesterday_mv_yi or yesterday_mv_yi <= 0:
-            logger.warning(f"⚠️ [动态PE计算-失败] 无法反推TTM净利润: pe_ttm={pe_ttm_tushare}, yesterday_mv={yesterday_mv_yi}")
-            logger.warning(f"   💡 提示: 可能是亏损股票（PE为负或空）")
+            logger.warning(f"[WARN] [动态PE计算-失败] 无法反推TTM净利润: pe_ttm={pe_ttm_tushare}, yesterday_mv={yesterday_mv_yi}")
+            logger.warning(f"   [INFO] 提示: 可能是亏损股票（PE为负或空）")
             return None
 
         # 反推 TTM 净利润（亿元）= 昨日市值 / PE_TTM
@@ -307,9 +307,9 @@ def calculate_realtime_pe_pb(
                 pb = realtime_mv_yi / total_equity_yi
                 logger.info(f"   ✓ 动态PB计算: {realtime_mv_yi:.2f}亿元 / {total_equity_yi:.2f}亿元 = {pb:.2f}倍")
             else:
-                logger.warning(f"   ⚠️ PB计算失败: 净资产无效 ({total_equity})")
+                logger.warning(f"   [WARN] PB计算失败: 净资产无效 ({total_equity})")
         else:
-            logger.warning(f"   ⚠️ 未找到财务数据，无法计算PB")
+            logger.warning(f"   [WARN] 未找到财务数据，无法计算PB")
             # 使用 Tushare 的 PB 作为降级
             if pb_tushare:
                 pb = pb_tushare
@@ -333,7 +333,7 @@ def calculate_realtime_pe_pb(
             "tushare_pe": round(pe_tushare, 2) if pe_tushare else None,  # Tushare PE（参考）
         }
 
-        logger.info(f"✅ [动态PE计算-成功] 股票 {code6}: 动态PE_TTM={result['pe_ttm']}倍, PB={result['pb']}倍")
+        logger.info(f"[OK] [动态PE计算-成功] 股票 {code6}: 动态PE_TTM={result['pe_ttm']}倍, PB={result['pb']}倍")
         return result
         
     except Exception as e:
@@ -397,17 +397,17 @@ def get_pe_pb_with_fallback(
             "ttm_net_profit": 4.8    # TTM净利润（亿元，仅动态计算时有）
         }
     """
-    logger.info(f"🔄 [PE智能策略] 开始获取股票 {symbol} 的PE/PB")
+    logger.info(f"[SYNC] [PE智能策略] 开始获取股票 {symbol} 的PE/PB")
 
     # 准备数据库连接
     db = _get_sync_db(db_client)
     if db is None:
-        logger.error("❌ [PE智能策略-失败] MongoDB不可用")
+        logger.error("[FAIL] [PE智能策略-失败] MongoDB不可用")
         return {}
 
     # 1. 优先使用动态 PE 计算（基于实时股价 + Tushare TTM）
     logger.info("   → 尝试方案1: 动态PE计算 (实时股价 + Tushare TTM净利润)")
-    logger.info("   💡 说明: 使用实时股价和Tushare官方TTM净利润，准确反映当前估值")
+    logger.info("   [INFO] 说明: 使用实时股价和Tushare官方TTM净利润，准确反映当前估值")
 
     realtime_metrics = calculate_realtime_pe_pb(symbol, db)
     if realtime_metrics:
@@ -415,21 +415,21 @@ def get_pe_pb_with_fallback(
         pe = realtime_metrics.get('pe')
         pb = realtime_metrics.get('pb')
         if validate_pe_pb(pe, pb):
-            logger.info(f"✅ [PE智能策略-成功] 使用动态PE: PE={pe}, PB={pb}")
+            logger.info(f"[OK] [PE智能策略-成功] 使用动态PE: PE={pe}, PB={pb}")
             logger.info(f"   └─ 数据来源: {realtime_metrics.get('source')}")
             logger.info(f"   └─ TTM净利润: {realtime_metrics.get('ttm_net_profit')}亿元 (从Tushare反推)")
             return realtime_metrics
         else:
-            logger.warning(f"⚠️ [PE智能策略-方案1异常] 动态PE/PB超出合理范围 (PE={pe}, PB={pb})")
+            logger.warning(f"[WARN] [PE智能策略-方案1异常] 动态PE/PB超出合理范围 (PE={pe}, PB={pb})")
 
     # 2. 降级到 Tushare 静态 PE（基于昨日收盘价）
     logger.info("   → 尝试方案2: Tushare静态PE (基于昨日收盘价)")
-    logger.info("   💡 说明: 使用Tushare官方PE_TTM，基于昨日收盘价")
+    logger.info("   [INFO] 说明: 使用Tushare官方PE_TTM，基于昨日收盘价")
 
     try:
         code6 = str(symbol).zfill(6)
 
-        # 🔥 优先查询 Tushare 数据源
+        # [HOT] 优先查询 Tushare 数据源
         basic_info = db.stock_basic_info.find_one({"code": code6, "source": "tushare"})
         if not basic_info:
             # 如果没有 Tushare 数据，尝试查询其他数据源
@@ -443,7 +443,7 @@ def get_pe_pb_with_fallback(
             updated_at = basic_info.get("updated_at", "N/A")
 
             if pe_ttm or pe_static or pb_static:
-                logger.info(f"✅ [PE智能策略-成功] 使用Tushare静态PE: PE={pe_static}, PE_TTM={pe_ttm}, PB={pb_static}")
+                logger.info(f"[OK] [PE智能策略-成功] 使用Tushare静态PE: PE={pe_static}, PE_TTM={pe_ttm}, PB={pb_static}")
                 logger.info(f"   └─ 数据来源: stock_basic_info (更新时间: {updated_at})")
 
                 return {
@@ -457,11 +457,11 @@ def get_pe_pb_with_fallback(
                     "note": "使用Tushare最近一个交易日的数据（基于TTM）"
                 }
 
-        logger.warning("⚠️ [PE智能策略-方案2失败] Tushare静态数据不可用")
+        logger.warning("[WARN] [PE智能策略-方案2失败] Tushare静态数据不可用")
 
     except Exception as e:
-        logger.warning(f"⚠️ [PE智能策略-方案2异常] {e}")
+        logger.warning(f"[WARN] [PE智能策略-方案2异常] {e}")
 
-    logger.error(f"❌ [PE智能策略-全部失败] 无法获取股票 {symbol} 的PE/PB")
+    logger.error(f"[FAIL] [PE智能策略-全部失败] 无法获取股票 {symbol} 的PE/PB")
     return {}
 

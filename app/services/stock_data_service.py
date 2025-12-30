@@ -47,7 +47,7 @@ class StockDataService:
             db = get_mongo_db()
             symbol6 = str(symbol).zfill(6)
 
-            # 🔥 构建查询条件
+            # [HOT] 构建查询条件
             query = {"$or": [{"symbol": symbol6}, {"code": symbol6}]}
 
             if source:
@@ -55,7 +55,7 @@ class StockDataService:
                 query["source"] = source
                 doc = await db[self.basic_info_collection].find_one(query, {"_id": 0})
             else:
-                # 🔥 未指定数据源，按优先级查询
+                # [HOT] 未指定数据源，按优先级查询
                 source_priority = ["tushare", "multi_source", "akshare", "baostock"]
                 doc = None
 
@@ -64,7 +64,7 @@ class StockDataService:
                     query_with_source["source"] = src
                     doc = await db[self.basic_info_collection].find_one(query_with_source, {"_id": 0})
                     if doc:
-                        logger.debug(f"✅ 使用数据源: {src}")
+                        logger.debug(f"[OK] 使用数据源: {src}")
                         break
 
                 # 如果所有数据源都没有，尝试不带 source 条件查询（兼容旧数据）
@@ -74,7 +74,7 @@ class StockDataService:
                         {"_id": 0}
                     )
                     if doc:
-                        logger.warning(f"⚠️ 使用旧数据（无 source 字段）: {symbol6}")
+                        logger.warning(f"[WARN] 使用旧数据（无 source 字段）: {symbol6}")
 
             if not doc:
                 return None
@@ -140,7 +140,7 @@ class StockDataService:
         try:
             db = get_mongo_db()
 
-            # 🔥 获取数据源优先级配置
+            # [HOT] 获取数据源优先级配置
             if not source:
                 from app.core.unified_config import UnifiedConfigManager
                 config = UnifiedConfigManager()
@@ -158,7 +158,7 @@ class StockDataService:
                 source = enabled_sources[0] if enabled_sources else 'tushare'
 
             # 构建查询条件
-            query = {"source": source}  # 🔥 添加数据源筛选
+            query = {"source": source}  # [HOT] 添加数据源筛选
             if market:
                 query["market"] = market
             if industry:
@@ -211,15 +211,15 @@ class StockDataService:
             if "symbol" not in update_data:
                 update_data["symbol"] = symbol6
 
-            # 🔥 确保 code 字段存在
+            # [HOT] 确保 code 字段存在
             if "code" not in update_data:
                 update_data["code"] = symbol6
 
-            # 🔥 确保 source 字段存在
+            # [HOT] 确保 source 字段存在
             if "source" not in update_data:
                 update_data["source"] = source
 
-            # 🔥 执行更新 (使用 code + source 联合查询)
+            # [HOT] 执行更新 (使用 code + source 联合查询)
             result = await db[self.basic_info_collection].update_one(
                 {"code": symbol6, "source": source},
                 {"$set": update_data},
@@ -252,7 +252,7 @@ class StockDataService:
             # 添加更新时间
             quote_data["updated_at"] = datetime.utcnow()
 
-            # 🔥 确保 symbol 和 code 字段都存在（兼容旧索引）
+            # [HOT] 确保 symbol 和 code 字段都存在（兼容旧索引）
             if "symbol" not in quote_data:
                 quote_data["symbol"] = symbol6
             if "code" not in quote_data:

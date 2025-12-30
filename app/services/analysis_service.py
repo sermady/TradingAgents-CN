@@ -59,24 +59,24 @@ class AnalysisService:
     def _convert_user_id(self, user_id: str) -> PyObjectId:
         """将字符串用户ID转换为PyObjectId"""
         try:
-            logger.info(f"🔄 开始转换用户ID: {user_id} (类型: {type(user_id)})")
+            logger.info(f"[SYNC] 开始转换用户ID: {user_id} (类型: {type(user_id)})")
 
             # 如果是admin用户，使用固定的ObjectId
             if user_id == "admin":
                 # 使用固定的ObjectId作为admin用户ID
                 admin_object_id = ObjectId("507f1f77bcf86cd799439011")
-                logger.info(f"🔄 转换admin用户ID: {user_id} -> {admin_object_id}")
+                logger.info(f"[SYNC] 转换admin用户ID: {user_id} -> {admin_object_id}")
                 return PyObjectId(admin_object_id)
             else:
                 # 尝试将字符串转换为ObjectId
                 object_id = ObjectId(user_id)
-                logger.info(f"🔄 转换用户ID: {user_id} -> {object_id}")
+                logger.info(f"[SYNC] 转换用户ID: {user_id} -> {object_id}")
                 return PyObjectId(object_id)
         except Exception as e:
-            logger.error(f"❌ 用户ID转换失败: {user_id} -> {e}")
+            logger.error(f"[FAIL] 用户ID转换失败: {user_id} -> {e}")
             # 如果转换失败，生成一个新的ObjectId
             new_object_id = ObjectId()
-            logger.warning(f"⚠️ 生成新的用户ID: {new_object_id}")
+            logger.warning(f"[WARN] 生成新的用户ID: {new_object_id}")
             return PyObjectId(new_object_id)
     
     def _get_trading_graph(self, config: Dict[str, Any]) -> TradingAgentsGraph:
@@ -104,11 +104,11 @@ class AnalysisService:
             init_logging()
             thread_logger = get_logger('analysis_thread')
 
-            thread_logger.info(f"🔄 [线程池] 开始执行分析任务: {task.task_id} - {task.symbol}")
-            logger.info(f"🔄 [线程池] 开始执行分析任务: {task.task_id} - {task.symbol}")
+            thread_logger.info(f"[SYNC] [线程池] 开始执行分析任务: {task.task_id} - {task.symbol}")
+            logger.info(f"[SYNC] [线程池] 开始执行分析任务: {task.task_id} - {task.symbol}")
 
             # 环境检查
-            progress_tracker.update_progress("🔧 检查环境配置")
+            progress_tracker.update_progress("[CONFIG] 检查环境配置")
 
             # 使用标准配置函数创建完整配置
             from app.core.unified_config import unified_config
@@ -116,7 +116,7 @@ class AnalysisService:
             quick_model = getattr(task.parameters, 'quick_analysis_model', None) or unified_config.get_quick_analysis_model()
             deep_model = getattr(task.parameters, 'deep_analysis_model', None) or unified_config.get_deep_analysis_model()
 
-            # 🔧 从 MongoDB 数据库读取模型的完整配置参数（而不是从 JSON 文件）
+            # [CONFIG] 从 MongoDB 数据库读取模型的完整配置参数（而不是从 JSON 文件）
             quick_model_config = None
             deep_model_config = None
 
@@ -131,7 +131,7 @@ class AnalysisService:
 
                 if doc and "llm_configs" in doc:
                     llm_configs = doc["llm_configs"]
-                    logger.info(f"✅ 从 MongoDB 读取到 {len(llm_configs)} 个模型配置")
+                    logger.info(f"[OK] 从 MongoDB 读取到 {len(llm_configs)} 个模型配置")
 
                     for llm_config in llm_configs:
                         if llm_config.get("model_name") == quick_model:
@@ -142,7 +142,7 @@ class AnalysisService:
                                 "retry_times": llm_config.get("retry_times", 3),
                                 "api_base": llm_config.get("api_base")
                             }
-                            logger.info(f"✅ 读取快速模型配置: {quick_model}")
+                            logger.info(f"[OK] 读取快速模型配置: {quick_model}")
                             logger.info(f"   max_tokens={quick_model_config['max_tokens']}, temperature={quick_model_config['temperature']}")
                             logger.info(f"   timeout={quick_model_config['timeout']}, retry_times={quick_model_config['retry_times']}")
                             logger.info(f"   api_base={quick_model_config['api_base']}")
@@ -155,11 +155,11 @@ class AnalysisService:
                                 "retry_times": llm_config.get("retry_times", 3),
                                 "api_base": llm_config.get("api_base")
                             }
-                            logger.info(f"✅ 读取深度模型配置: {deep_model} - {deep_model_config}")
+                            logger.info(f"[OK] 读取深度模型配置: {deep_model} - {deep_model_config}")
                 else:
-                    logger.warning("⚠️ MongoDB 中没有找到系统配置，将使用默认参数")
+                    logger.warning("[WARN] MongoDB 中没有找到系统配置，将使用默认参数")
             except Exception as e:
-                logger.warning(f"⚠️ 从 MongoDB 读取模型配置失败: {e}，将使用默认参数")
+                logger.warning(f"[WARN] 从 MongoDB 读取模型配置失败: {e}，将使用默认参数")
 
             # 成本估算
             progress_tracker.update_progress("💰 预估分析成本")
@@ -184,7 +184,7 @@ class AnalysisService:
             )
 
             # 启动引擎
-            progress_tracker.update_progress("🚀 初始化AI分析引擎")
+            progress_tracker.update_progress("[START] 初始化AI分析引擎")
 
             # 获取TradingAgents实例
             trading_graph = self._get_trading_graph(config)
@@ -204,7 +204,7 @@ class AnalysisService:
             execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             # 生成报告
-            progress_tracker.update_progress("📊 生成分析报告")
+            progress_tracker.update_progress("[CHART] 生成分析报告")
 
             # 从决策中提取模型信息
             model_info = decision.get('model_info', 'Unknown') if isinstance(decision, dict) else 'Unknown'
@@ -220,20 +220,20 @@ class AnalysisService:
                 detailed_analysis=decision,
                 execution_time=execution_time,
                 tokens_used=decision.get("tokens_used", 0),
-                model_info=model_info  # 🔥 添加模型信息字段
+                model_info=model_info  # [HOT] 添加模型信息字段
             )
 
-            logger.info(f"✅ [线程池] 分析任务完成: {task.task_id} - 耗时{execution_time:.2f}秒")
+            logger.info(f"[OK] [线程池] 分析任务完成: {task.task_id} - 耗时{execution_time:.2f}秒")
             return result
 
         except Exception as e:
-            logger.error(f"❌ [线程池] 执行分析任务失败: {task.task_id} - {e}")
+            logger.error(f"[FAIL] [线程池] 执行分析任务失败: {task.task_id} - {e}")
             raise
 
     def _execute_analysis_sync(self, task: AnalysisTask) -> AnalysisResult:
         """同步执行分析任务（在线程池中运行）"""
         try:
-            logger.info(f"🔄 [线程池] 开始执行分析任务: {task.task_id} - {task.symbol}")
+            logger.info(f"[SYNC] [线程池] 开始执行分析任务: {task.task_id} - {task.symbol}")
 
             # 使用标准配置函数创建完整配置
             from app.core.unified_config import unified_config
@@ -241,7 +241,7 @@ class AnalysisService:
             quick_model = getattr(task.parameters, 'quick_analysis_model', None) or unified_config.get_quick_analysis_model()
             deep_model = getattr(task.parameters, 'deep_analysis_model', None) or unified_config.get_deep_analysis_model()
 
-            # 🔧 从 MongoDB 数据库读取模型的完整配置参数（而不是从 JSON 文件）
+            # [CONFIG] 从 MongoDB 数据库读取模型的完整配置参数（而不是从 JSON 文件）
             quick_model_config = None
             deep_model_config = None
 
@@ -256,7 +256,7 @@ class AnalysisService:
 
                 if doc and "llm_configs" in doc:
                     llm_configs = doc["llm_configs"]
-                    logger.info(f"✅ 从 MongoDB 读取到 {len(llm_configs)} 个模型配置")
+                    logger.info(f"[OK] 从 MongoDB 读取到 {len(llm_configs)} 个模型配置")
 
                     for llm_config in llm_configs:
                         if llm_config.get("model_name") == quick_model:
@@ -267,7 +267,7 @@ class AnalysisService:
                                 "retry_times": llm_config.get("retry_times", 3),
                                 "api_base": llm_config.get("api_base")
                             }
-                            logger.info(f"✅ 读取快速模型配置: {quick_model}")
+                            logger.info(f"[OK] 读取快速模型配置: {quick_model}")
                             logger.info(f"   max_tokens={quick_model_config['max_tokens']}, temperature={quick_model_config['temperature']}")
                             logger.info(f"   timeout={quick_model_config['timeout']}, retry_times={quick_model_config['retry_times']}")
                             logger.info(f"   api_base={quick_model_config['api_base']}")
@@ -280,11 +280,11 @@ class AnalysisService:
                                 "retry_times": llm_config.get("retry_times", 3),
                                 "api_base": llm_config.get("api_base")
                             }
-                            logger.info(f"✅ 读取深度模型配置: {deep_model} - {deep_model_config}")
+                            logger.info(f"[OK] 读取深度模型配置: {deep_model} - {deep_model_config}")
                 else:
-                    logger.warning("⚠️ MongoDB 中没有找到系统配置，将使用默认参数")
+                    logger.warning("[WARN] MongoDB 中没有找到系统配置，将使用默认参数")
             except Exception as e:
-                logger.warning(f"⚠️ 从 MongoDB 读取模型配置失败: {e}，将使用默认参数")
+                logger.warning(f"[WARN] 从 MongoDB 读取模型配置失败: {e}，将使用默认参数")
 
             # 根据模型名称动态查找供应商（同步版本）
             llm_provider = "dashscope"  # 默认使用dashscope
@@ -329,21 +329,21 @@ class AnalysisService:
                 detailed_analysis=decision,
                 execution_time=execution_time,
                 tokens_used=decision.get("tokens_used", 0),
-                model_info=model_info  # 🔥 添加模型信息字段
+                model_info=model_info  # [HOT] 添加模型信息字段
             )
 
-            logger.info(f"✅ [线程池] 分析任务完成: {task.task_id} - 耗时{execution_time:.2f}秒")
+            logger.info(f"[OK] [线程池] 分析任务完成: {task.task_id} - 耗时{execution_time:.2f}秒")
             return result
 
         except Exception as e:
-            logger.error(f"❌ [线程池] 执行分析任务失败: {task.task_id} - {e}")
+            logger.error(f"[FAIL] [线程池] 执行分析任务失败: {task.task_id} - {e}")
             raise
 
     async def _execute_single_analysis_async(self, task: AnalysisTask):
         """异步执行单股分析任务（在后台运行，不阻塞主线程）"""
         progress_tracker = None
         try:
-            logger.info(f"🔄 开始执行分析任务: {task.task_id} - {task.symbol}")
+            logger.info(f"[SYNC] 开始执行分析任务: {task.task_id} - {task.symbol}")
 
             # 创建进度跟踪器
             progress_tracker = RedisProgressTracker(
@@ -357,7 +357,7 @@ class AnalysisService:
             self._progress_trackers[task.task_id] = progress_tracker
 
             # 初始化进度
-            progress_tracker.update_progress("🚀 开始股票分析")
+            progress_tracker.update_progress("[START] 开始股票分析")
             await self._update_task_status_with_tracker(task.task_id, AnalysisStatus.PROCESSING, progress_tracker)
 
             # 在线程池中执行分析，避免阻塞事件循环
@@ -376,7 +376,7 @@ class AnalysisService:
                 )
 
             # 标记完成
-            progress_tracker.mark_completed("✅ 分析完成")
+            progress_tracker.mark_completed("[OK] 分析完成")
             await self._update_task_status_with_tracker(task.task_id, AnalysisStatus.COMPLETED, progress_tracker, result)
 
             # 记录 token 使用
@@ -395,12 +395,12 @@ class AnalysisService:
                 # 记录使用情况
                 await self._record_token_usage(task, result, provider, model_name)
             except Exception as e:
-                logger.error(f"⚠️  记录 token 使用失败: {e}")
+                logger.error(f"[WARN]  记录 token 使用失败: {e}")
 
-            logger.info(f"✅ 分析任务完成: {task.task_id}")
+            logger.info(f"[OK] 分析任务完成: {task.task_id}")
 
         except Exception as e:
-            logger.error(f"❌ 分析任务失败: {task.task_id} - {e}")
+            logger.error(f"[FAIL] 分析任务失败: {task.task_id} - {e}")
 
             # 标记失败
             if progress_tracker:
@@ -420,12 +420,12 @@ class AnalysisService:
     ) -> Dict[str, Any]:
         """提交单股分析任务"""
         try:
-            logger.info(f"📝 开始提交单股分析任务")
-            logger.info(f"👤 用户ID: {user_id} (类型: {type(user_id)})")
+            logger.info(f"[LOG] 开始提交单股分析任务")
+            logger.info(f"[USER] 用户ID: {user_id} (类型: {type(user_id)})")
 
             # 获取股票代码 (兼容旧字段)
             stock_symbol = request.get_symbol()
-            logger.info(f"📊 股票代码: {stock_symbol}")
+            logger.info(f"[CHART] 股票代码: {stock_symbol}")
             logger.info(f"⚙️ 分析参数: {request.parameters}")
 
             # 生成任务ID
@@ -434,10 +434,10 @@ class AnalysisService:
 
             # 转换用户ID
             converted_user_id = self._convert_user_id(user_id)
-            logger.info(f"🔄 转换后的用户ID: {converted_user_id} (类型: {type(converted_user_id)})")
+            logger.info(f"[SYNC] 转换后的用户ID: {converted_user_id} (类型: {type(converted_user_id)})")
 
             # 创建分析任务
-            logger.info(f"🏗️ 开始创建AnalysisTask对象...")
+            logger.info(f"[BUILD] 开始创建AnalysisTask对象...")
 
             # 读取合并后的系统设置（ENV 优先 → DB），用于填充模型与并发/超时配置
             try:
@@ -469,18 +469,18 @@ class AnalysisService:
                 parameters=params,
                 status=AnalysisStatus.PENDING
             )
-            logger.info(f"✅ AnalysisTask对象创建成功")
+            logger.info(f"[OK] AnalysisTask对象创建成功")
 
             # 保存任务到数据库
-            logger.info(f"💾 开始保存任务到数据库...")
+            logger.info(f"[SAVE] 开始保存任务到数据库...")
             db = get_mongo_db()
             task_dict = task.model_dump(by_alias=True)
-            logger.info(f"📄 任务字典: {task_dict}")
+            logger.info(f"[FILE] 任务字典: {task_dict}")
             await db.analysis_tasks.insert_one(task_dict)
-            logger.info(f"✅ 任务已保存到数据库")
+            logger.info(f"[OK] 任务已保存到数据库")
 
             # 单股分析：直接在后台执行（不阻塞API响应）
-            logger.info(f"🚀 开始在后台执行分析任务...")
+            logger.info(f"[START] 开始在后台执行分析任务...")
 
             # 创建后台任务，不等待完成
             import asyncio
@@ -489,9 +489,9 @@ class AnalysisService:
             )
 
             # 不等待任务完成，让它在后台运行
-            logger.info(f"✅ 后台任务已启动，任务ID: {task_id}")
+            logger.info(f"[OK] 后台任务已启动，任务ID: {task_id}")
 
-            logger.info(f"🎉 单股分析任务提交完成: {task_id} - {stock_symbol}")
+            logger.info(f"[SUCCESS] 单股分析任务提交完成: {task_id} - {stock_symbol}")
 
             return {
                 "task_id": task_id,
@@ -628,7 +628,7 @@ class AnalysisService:
             quick_model = getattr(task.parameters, 'quick_analysis_model', None) or unified_config.get_quick_analysis_model()
             deep_model = getattr(task.parameters, 'deep_analysis_model', None) or unified_config.get_deep_analysis_model()
 
-            # 🔧 从数据库读取模型的完整配置参数
+            # [CONFIG] 从数据库读取模型的完整配置参数
             quick_model_config = None
             deep_model_config = None
             llm_configs = unified_config.get_llm_configs()
@@ -702,7 +702,7 @@ class AnalysisService:
                 detailed_analysis=decision,
                 execution_time=execution_time,
                 tokens_used=decision.get("tokens_used", 0),
-                model_info=model_info  # 🔥 添加模型信息字段
+                model_info=model_info  # [HOT] 添加模型信息字段
             )
 
             if progress_callback:
@@ -716,7 +716,7 @@ class AnalysisService:
                 # 记录使用情况
                 await self._record_token_usage(task, result, llm_provider, deep_model or quick_model)
             except Exception as e:
-                logger.error(f"⚠️  记录 token 使用失败: {e}")
+                logger.error(f"[WARN]  记录 token 使用失败: {e}")
 
             logger.info(f"分析任务完成: {task.task_id} - 耗时{execution_time:.2f}秒")
 
@@ -930,10 +930,10 @@ class AnalysisService:
             if success:
                 logger.info(f"💰 记录使用成本: {provider}/{model_name} - ¥{cost:.4f}")
             else:
-                logger.warning(f"⚠️  记录使用成本失败")
+                logger.warning(f"[WARN]  记录使用成本失败")
 
         except Exception as e:
-            logger.error(f"❌ 记录 token 使用失败: {e}")
+            logger.error(f"[FAIL] 记录 token 使用失败: {e}")
 
 
 # 全局分析服务实例（延迟初始化）

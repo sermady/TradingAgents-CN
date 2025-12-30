@@ -53,7 +53,7 @@ class USSyncService:
 
     async def initialize(self):
         """初始化同步服务"""
-        logger.info("✅ 美股同步服务初始化完成")
+        logger.info("[OK] 美股同步服务初始化完成")
 
     def _get_finnhub_client(self):
         """获取 Finnhub 客户端（延迟初始化）"""
@@ -64,13 +64,13 @@ class USSyncService:
 
                 api_key = os.getenv('FINNHUB_API_KEY')
                 if not api_key:
-                    logger.warning("⚠️ 未配置 FINNHUB_API_KEY，无法使用 Finnhub 数据源")
+                    logger.warning("[WARN] 未配置 FINNHUB_API_KEY，无法使用 Finnhub 数据源")
                     return None
 
                 self._finnhub_client = finnhub.Client(api_key=api_key)
-                logger.info("✅ Finnhub 客户端初始化成功")
+                logger.info("[OK] Finnhub 客户端初始化成功")
             except Exception as e:
-                logger.error(f"❌ Finnhub 客户端初始化失败: {e}")
+                logger.error(f"[FAIL] Finnhub 客户端初始化失败: {e}")
                 return None
 
         return self._finnhub_client
@@ -88,22 +88,22 @@ class USSyncService:
             # 检查缓存是否有效
             if (self.us_stock_list and self._stock_list_cache_time and
                 datetime.now() - self._stock_list_cache_time < timedelta(seconds=self._stock_list_cache_ttl)):
-                logger.debug(f"📦 使用缓存的美股列表: {len(self.us_stock_list)} 只")
+                logger.debug(f"[PKG] 使用缓存的美股列表: {len(self.us_stock_list)} 只")
                 return self.us_stock_list
 
-            logger.info("🔄 从 Finnhub 获取美股列表...")
+            logger.info("[SYNC] 从 Finnhub 获取美股列表...")
 
             # 获取 Finnhub 客户端
             client = self._get_finnhub_client()
             if not client:
-                logger.warning("⚠️ Finnhub 客户端不可用，使用备用列表")
+                logger.warning("[WARN] Finnhub 客户端不可用，使用备用列表")
                 return self._get_fallback_stock_list()
 
             # 获取美股列表（US 交易所）
             symbols = client.stock_symbols('US')
 
             if not symbols:
-                logger.warning("⚠️ Finnhub 返回空数据，使用备用列表")
+                logger.warning("[WARN] Finnhub 返回空数据，使用备用列表")
                 return self._get_fallback_stock_list()
 
             # 提取股票代码列表（只保留普通股票，过滤掉 ETF、基金等）
@@ -116,7 +116,7 @@ class USSyncService:
                 if symbol and symbol_type == 'Common Stock':
                     stock_codes.append(symbol)
 
-            logger.info(f"✅ 成功获取 {len(stock_codes)} 只美股（普通股）")
+            logger.info(f"[OK] 成功获取 {len(stock_codes)} 只美股（普通股）")
 
             # 更新缓存
             self.us_stock_list = stock_codes
@@ -125,8 +125,8 @@ class USSyncService:
             return stock_codes
 
         except Exception as e:
-            logger.error(f"❌ 从 Finnhub 获取美股列表失败: {e}")
-            logger.info("📋 使用备用美股列表")
+            logger.error(f"[FAIL] 从 Finnhub 获取美股列表失败: {e}")
+            logger.info("[CLIPBOARD] 使用备用美股列表")
             return self._get_fallback_stock_list()
 
     def _get_fallback_stock_list(self) -> List[str]:
@@ -186,23 +186,23 @@ class USSyncService:
             Dict: 同步统计信息 {updated: int, inserted: int, failed: int}
         """
         if source != "yfinance":
-            logger.error(f"❌ 不支持的数据源: {source}")
+            logger.error(f"[FAIL] 不支持的数据源: {source}")
             return {"updated": 0, "inserted": 0, "failed": 0}
 
         # 如果强制更新，清除缓存
         if force_update:
             self._stock_list_cache_time = None
-            logger.info("🔄 强制刷新美股列表")
+            logger.info("[SYNC] 强制刷新美股列表")
 
         # 获取美股列表（从 Finnhub 或缓存）
         stock_list = self._get_us_stock_list_from_finnhub()
 
         if not stock_list:
-            logger.error("❌ 无法获取美股列表")
+            logger.error("[FAIL] 无法获取美股列表")
             return {"updated": 0, "inserted": 0, "failed": 0}
 
         logger.info(f"🇺🇸 开始同步美股基础信息 (数据源: {source})")
-        logger.info(f"📊 待同步股票数量: {len(stock_list)}")
+        logger.info(f"[CHART] 待同步股票数量: {len(stock_list)}")
 
         operations = []
         failed_count = 0
@@ -213,7 +213,7 @@ class USSyncService:
                 stock_info = self.yfinance_provider.get_stock_info(stock_code)
                 
                 if not stock_info or not stock_info.get('shortName'):
-                    logger.warning(f"⚠️ 跳过无效数据: {stock_code}")
+                    logger.warning(f"[WARN] 跳过无效数据: {stock_code}")
                     failed_count += 1
                     continue
                 
@@ -226,16 +226,16 @@ class USSyncService:
                 # 批量更新操作
                 operations.append(
                     UpdateOne(
-                        {"code": normalized_info["code"], "source": source},  # 🔥 联合查询条件
+                        {"code": normalized_info["code"], "source": source},  # [HOT] 联合查询条件
                         {"$set": normalized_info},
                         upsert=True
                     )
                 )
                 
-                logger.debug(f"✅ 准备同步: {stock_code} ({stock_info.get('shortName')}) from {source}")
+                logger.debug(f"[OK] 准备同步: {stock_code} ({stock_info.get('shortName')}) from {source}")
                 
             except Exception as e:
-                logger.error(f"❌ 同步失败: {stock_code} from {source}: {e}")
+                logger.error(f"[FAIL] 同步失败: {stock_code} from {source}: {e}")
                 failed_count += 1
         
         # 执行批量操作
@@ -248,13 +248,13 @@ class USSyncService:
                 result["inserted"] = bulk_result.upserted_count
                 
                 logger.info(
-                    f"✅ 美股基础信息同步完成 ({source}): "
+                    f"[OK] 美股基础信息同步完成 ({source}): "
                     f"更新 {result['updated']} 条, "
                     f"插入 {result['inserted']} 条, "
                     f"失败 {result['failed']} 条"
                 )
             except Exception as e:
-                logger.error(f"❌ 批量写入失败: {e}")
+                logger.error(f"[FAIL] 批量写入失败: {e}")
                 result["failed"] += len(operations)
         
         return result
@@ -307,7 +307,7 @@ class USSyncService:
             Dict: 同步统计信息
         """
         if source != "yfinance":
-            logger.error(f"❌ 不支持的数据源: {source}")
+            logger.error(f"[FAIL] 不支持的数据源: {source}")
             return {"updated": 0, "inserted": 0, "failed": 0}
         
         logger.info(f"🇺🇸 开始同步美股实时行情 (数据源: {source})")
@@ -323,7 +323,7 @@ class USSyncService:
                 data = ticker.history(period="1d")
                 
                 if data.empty:
-                    logger.warning(f"⚠️ 跳过无效行情: {stock_code}")
+                    logger.warning(f"[WARN] 跳过无效行情: {stock_code}")
                     failed_count += 1
                     continue
                 
@@ -354,10 +354,10 @@ class USSyncService:
                     )
                 )
                 
-                logger.debug(f"✅ 准备同步行情: {stock_code} (价格: {normalized_quote['close']} USD)")
+                logger.debug(f"[OK] 准备同步行情: {stock_code} (价格: {normalized_quote['close']} USD)")
                 
             except Exception as e:
-                logger.error(f"❌ 同步行情失败: {stock_code}: {e}")
+                logger.error(f"[FAIL] 同步行情失败: {stock_code}: {e}")
                 failed_count += 1
         
         # 执行批量操作
@@ -370,13 +370,13 @@ class USSyncService:
                 result["inserted"] = bulk_result.upserted_count
                 
                 logger.info(
-                    f"✅ 美股行情同步完成: "
+                    f"[OK] 美股行情同步完成: "
                     f"更新 {result['updated']} 条, "
                     f"插入 {result['inserted']} 条, "
                     f"失败 {result['failed']} 条"
                 )
             except Exception as e:
-                logger.error(f"❌ 批量写入失败: {e}")
+                logger.error(f"[FAIL] 批量写入失败: {e}")
                 result["failed"] += len(operations)
         
         return result
@@ -402,10 +402,10 @@ async def run_us_yfinance_basic_info_sync(force_update: bool = False):
     try:
         service = await get_us_sync_service()
         result = await service.sync_basic_info_from_source("yfinance", force_update)
-        logger.info(f"✅ 美股基础信息同步完成 (yfinance): {result}")
+        logger.info(f"[OK] 美股基础信息同步完成 (yfinance): {result}")
         return result
     except Exception as e:
-        logger.error(f"❌ 美股基础信息同步失败 (yfinance): {e}")
+        logger.error(f"[FAIL] 美股基础信息同步失败 (yfinance): {e}")
         raise
 
 
@@ -414,10 +414,10 @@ async def run_us_yfinance_quotes_sync():
     try:
         service = await get_us_sync_service()
         result = await service.sync_quotes_from_source("yfinance")
-        logger.info(f"✅ 美股实时行情同步完成: {result}")
+        logger.info(f"[OK] 美股实时行情同步完成: {result}")
         return result
     except Exception as e:
-        logger.error(f"❌ 美股实时行情同步失败: {e}")
+        logger.error(f"[FAIL] 美股实时行情同步失败: {e}")
         raise
 
 
@@ -435,9 +435,9 @@ async def run_us_status_check():
             "data_source": "yfinance + finnhub",
             "timestamp": datetime.now().isoformat()
         }
-        logger.info(f"✅ 美股状态检查完成: {result}")
+        logger.info(f"[OK] 美股状态检查完成: {result}")
         return result
     except Exception as e:
-        logger.error(f"❌ 美股状态检查失败: {e}")
+        logger.error(f"[FAIL] 美股状态检查失败: {e}")
         return {"status": "error", "error": str(e)}
 

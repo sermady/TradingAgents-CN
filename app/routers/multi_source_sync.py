@@ -212,7 +212,7 @@ async def _test_single_adapter(adapter) -> dict:
         try:
             # 对于 Tushare，强制重新连接以使用最新的数据库配置
             if adapter.name == "tushare" and hasattr(adapter, '_provider'):
-                logger.info(f"🔄 强制 {adapter.name} 重新连接以使用最新配置...")
+                logger.info(f"[SYNC] 强制 {adapter.name} 重新连接以使用最新配置...")
                 provider = adapter._provider
                 if provider:
                     # 重置连接状态
@@ -239,32 +239,32 @@ async def _test_single_adapter(adapter) -> dict:
                     token_source = adapter.get_token_source()
 
                 if token_source == 'database':
-                    result["message"] = "✅ 连接成功 (Token来源: 数据库)"
+                    result["message"] = "[OK] 连接成功 (Token来源: 数据库)"
                     result["token_source"] = "database"
                 elif token_source == 'env':
-                    result["message"] = "✅ 连接成功 (Token来源: .env)"
+                    result["message"] = "[OK] 连接成功 (Token来源: .env)"
                     result["token_source"] = "env"
                 else:
-                    result["message"] = "✅ 连接成功"
+                    result["message"] = "[OK] 连接成功"
 
-                logger.info(f"✅ {adapter.name} 连通性测试成功，Token来源: {token_source}")
+                logger.info(f"[OK] {adapter.name} 连通性测试成功，Token来源: {token_source}")
             else:
                 result["available"] = False
-                result["message"] = "❌ 数据源不可用"
-                logger.warning(f"⚠️ {adapter.name} 不可用")
+                result["message"] = "[FAIL] 数据源不可用"
+                logger.warning(f"[WARN] {adapter.name} 不可用")
         except asyncio.TimeoutError:
             result["available"] = False
-            result["message"] = f"❌ 连接超时 ({test_timeout}秒)"
-            logger.warning(f"⚠️ {adapter.name} 连接超时")
+            result["message"] = f"[FAIL] 连接超时 ({test_timeout}秒)"
+            logger.warning(f"[WARN] {adapter.name} 连接超时")
         except Exception as e:
             result["available"] = False
-            result["message"] = f"❌ 连接失败: {str(e)}"
-            logger.error(f"❌ {adapter.name} 连接失败: {e}")
+            result["message"] = f"[FAIL] 连接失败: {str(e)}"
+            logger.error(f"[FAIL] {adapter.name} 连接失败: {e}")
 
     except Exception as e:
         result["available"] = False
-        result["message"] = f"❌ 测试异常: {str(e)}"
-        logger.error(f"❌ 测试 {adapter.name} 时出错: {e}")
+        result["message"] = f"[FAIL] 测试异常: {str(e)}"
+        logger.error(f"[FAIL] 测试 {adapter.name} 时出错: {e}")
 
     return result
 
@@ -293,7 +293,7 @@ async def test_data_sources(request: TestSourceRequest = TestSourceRequest()):
 
         # 从请求体中获取数据源名称
         source_name = request.source_name
-        logger.info(f"📥 接收到测试请求，source_name={source_name}")
+        logger.info(f"[IMPORT] 接收到测试请求，source_name={source_name}")
 
         # 如果指定了数据源名称，只测试该数据源
         if source_name:
@@ -316,12 +316,12 @@ async def test_data_sources(request: TestSourceRequest = TestSourceRequest()):
         final_results = []
         for i, result in enumerate(test_results):
             if isinstance(result, Exception):
-                logger.error(f"❌ 测试适配器 {adapters_to_test[i].name} 时出错: {result}")
+                logger.error(f"[FAIL] 测试适配器 {adapters_to_test[i].name} 时出错: {result}")
                 final_results.append({
                     "name": adapters_to_test[i].name,
                     "priority": adapters_to_test[i].priority,
                     "available": False,
-                    "message": f"❌ 测试异常: {str(result)}"
+                    "message": f"[FAIL] 测试异常: {str(result)}"
                 })
             else:
                 final_results.append(result)
@@ -329,9 +329,9 @@ async def test_data_sources(request: TestSourceRequest = TestSourceRequest()):
         # 统计结果
         available_count = sum(1 for r in final_results if r.get("available"))
         if source_name:
-            logger.info(f"✅ 数据源 {source_name} 测试完成: {'可用' if available_count > 0 else '不可用'}")
+            logger.info(f"[OK] 数据源 {source_name} 测试完成: {'可用' if available_count > 0 else '不可用'}")
         else:
-            logger.info(f"✅ 数据源连通性测试完成: {available_count}/{len(final_results)} 可用")
+            logger.info(f"[OK] 数据源连通性测试完成: {available_count}/{len(final_results)} 可用")
 
         return SyncResponse(
             success=True,
@@ -342,7 +342,7 @@ async def test_data_sources(request: TestSourceRequest = TestSourceRequest()):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ 测试数据源时出错: {e}", exc_info=True)
+        logger.error(f"[FAIL] 测试数据源时出错: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to test data sources: {str(e)}")
 
 

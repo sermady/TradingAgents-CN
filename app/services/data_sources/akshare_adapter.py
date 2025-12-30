@@ -152,7 +152,7 @@ class AKShareAdapter(DataSourceAdapter):
                             value = row.get('value', '')
                             info_dict[item] = value
                         latest_price = self._safe_float(info_dict.get('最新', 0))
-                        # 🔥 AKShare 的"总市值"单位是万元，需要转换为亿元（与 Tushare 一致）
+                        # [HOT] AKShare 的"总市值"单位是万元，需要转换为亿元（与 Tushare 一致）
                         total_mv_wan = self._safe_float(info_dict.get('总市值', 0))  # 万元
                         total_mv_yi = total_mv_wan / 10000 if total_mv_wan else None  # 转换为亿元
                         basic_data.append({
@@ -270,9 +270,9 @@ class AKShareAdapter(DataSourceAdapter):
                 pre = self._safe_float(row.get(pre_close_col)) if pre_close_col else None
                 vol = self._safe_float(row.get(volume_col)) if volume_col else None
 
-                # 🔥 日志：记录AKShare返回的成交量
+                # [HOT] 日志：记录AKShare返回的成交量
                 if code in ["300750", "000001", "600000"]:  # 只记录几个示例股票
-                    logger.info(f"📊 [AKShare实时] {code} - volume_col={volume_col}, vol={vol}, amount={amt}")
+                    logger.info(f"[CHART] [AKShare实时] {code} - volume_col={volume_col}, vol={vol}, amount={amt}")
 
                 result[code] = {
                     "close": close,
@@ -285,7 +285,7 @@ class AKShareAdapter(DataSourceAdapter):
                     "pre_close": pre
                 }
 
-            logger.info(f"✅ AKShare {source} 获取到 {len(result)} 只股票的实时行情")
+            logger.info(f"[OK] AKShare {source} 获取到 {len(result)} 只股票的实时行情")
             return result
 
         except Exception as e:

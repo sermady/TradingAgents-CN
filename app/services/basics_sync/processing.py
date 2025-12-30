@@ -19,7 +19,7 @@ def add_financial_metrics(doc: Dict, daily_metrics: Dict) -> None:
     if "circ_mv" in daily_metrics and daily_metrics["circ_mv"] is not None:
         doc["circ_mv"] = daily_metrics["circ_mv"] / 10000
 
-    # 估值指标（🔥 新增 ps 和 ps_ttm）
+    # 估值指标（[HOT] 新增 ps 和 ps_ttm）
     for field in ["pe", "pb", "pe_ttm", "pb_mrq", "ps", "ps_ttm"]:
         if field in daily_metrics and daily_metrics[field] is not None:
             try:
@@ -39,7 +39,7 @@ def add_financial_metrics(doc: Dict, daily_metrics: Dict) -> None:
             except (ValueError, TypeError):
                 pass
 
-    # 🔥 股本数据（万股）
+    # [HOT] 股本数据（万股）
     for field in ["total_share", "float_share"]:
         if field in daily_metrics and daily_metrics[field] is not None:
             try:

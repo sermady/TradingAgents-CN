@@ -57,7 +57,7 @@ class DataCompletenessChecker:
         }
         
         # 1. 检查数据是否为空或错误
-        if not data or "❌" in data or "错误" in data or "获取失败" in data:
+        if not data or "[FAIL]" in data or "错误" in data or "获取失败" in data:
             return False, "数据为空或包含错误", details
         
         # 2. 尝试解析数据
@@ -82,7 +82,7 @@ class DataCompletenessChecker:
                         break
                 
                 if not date_col:
-                    self.logger.warning(f"⚠️ 无法找到日期列: {symbol}")
+                    self.logger.warning(f"[WARN] 无法找到日期列: {symbol}")
                     return False, "无法找到日期列", details
             
             # 转换日期列为 datetime
@@ -140,14 +140,14 @@ class DataCompletenessChecker:
                 messages.append(f"数据缺口较多（{len(missing_days)}个缺口）")
             
             if is_complete:
-                message = f"✅ 数据完整（{len(df)}条记录，完整性{completeness_ratio:.1%}）"
+                message = f"[OK] 数据完整（{len(df)}条记录，完整性{completeness_ratio:.1%}）"
             else:
-                message = "⚠️ 数据不完整: " + "; ".join(messages)
+                message = "[WARN] 数据不完整: " + "; ".join(messages)
             
             return is_complete, message, details
             
         except Exception as e:
-            self.logger.error(f"❌ 检查数据完整性失败: {e}")
+            self.logger.error(f"[FAIL] 检查数据完整性失败: {e}")
             return False, f"检查失败: {str(e)}", details
     
     def _parse_data_to_dataframe(self, data: str) -> Optional[pd.DataFrame]:
@@ -183,7 +183,7 @@ class DataCompletenessChecker:
             return None
             
         except Exception as e:
-            self.logger.error(f"❌ 解析数据失败: {e}")
+            self.logger.error(f"[FAIL] 解析数据失败: {e}")
             return None
     
     def _get_latest_trade_date(self, market: str = "CN") -> Optional[str]:
@@ -210,7 +210,7 @@ class DataCompletenessChecker:
             return None
             
         except Exception as e:
-            self.logger.error(f"❌ 获取最新交易日失败: {e}")
+            self.logger.error(f"[FAIL] 获取最新交易日失败: {e}")
             return None
     
     def _check_data_gaps(self, df: pd.DataFrame, date_col: str) -> List[str]:
@@ -234,7 +234,7 @@ class DataCompletenessChecker:
             return missing_dates
             
         except Exception as e:
-            self.logger.error(f"❌ 检查数据缺口失败: {e}")
+            self.logger.error(f"[FAIL] 检查数据缺口失败: {e}")
             return []
 
 

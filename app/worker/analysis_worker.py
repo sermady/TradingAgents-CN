@@ -56,7 +56,7 @@ class AnalysisWorker:
     async def start(self):
         """启动Worker"""
         try:
-            logger.info(f"🚀 启动分析Worker: {self.worker_id}")
+            logger.info(f"[START] 启动分析Worker: {self.worker_id}")
 
             # 初始化数据库连接
             await init_database()
@@ -111,7 +111,7 @@ class AnalysisWorker:
 
     async def _work_loop(self):
         """主工作循环"""
-        logger.info(f"✅ Worker {self.worker_id} 开始工作")
+        logger.info(f"[OK] Worker {self.worker_id} 开始工作")
 
         while self.running:
             try:
@@ -128,7 +128,7 @@ class AnalysisWorker:
                 logger.error(f"工作循环异常: {e}")
                 await asyncio.sleep(5)  # 异常后等待5秒再继续
 
-        logger.info(f"🔄 Worker {self.worker_id} 工作循环结束")
+        logger.info(f"[SYNC] Worker {self.worker_id} 工作循环结束")
 
     async def _process_task(self, task_data: Dict[str, Any]):
         """处理单个任务"""
@@ -136,7 +136,7 @@ class AnalysisWorker:
         stock_code = task_data.get("symbol")
         user_id = task_data.get("user")
 
-        logger.info(f"📊 开始处理任务: {task_id} - {stock_code}")
+        logger.info(f"[CHART] 开始处理任务: {task_id} - {stock_code}")
 
         self.current_task = task_id
         success = False
@@ -165,10 +165,10 @@ class AnalysisWorker:
             )
 
             success = True
-            logger.info(f"✅ 任务完成: {task_id} - 耗时: {result.execution_time:.2f}秒")
+            logger.info(f"[OK] 任务完成: {task_id} - 耗时: {result.execution_time:.2f}秒")
 
         except Exception as e:
-            logger.error(f"❌ 任务执行失败: {task_id} - {e}")
+            logger.error(f"[FAIL] 任务执行失败: {task_id} - {e}")
             logger.error(traceback.format_exc())
 
         finally:

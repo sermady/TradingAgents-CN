@@ -39,16 +39,16 @@ class ChatGoogleOpenAI(ChatGoogleGenerativeAI):
             **kwargs: 其他参数
         """
 
-        # 🔍 [DEBUG] 读取环境变量前的日志
-        logger.info("🔍 [Google初始化] 开始初始化 ChatGoogleOpenAI")
-        logger.info(f"🔍 [Google初始化] kwargs 中是否包含 google_api_key: {'google_api_key' in kwargs}")
-        logger.info(f"🔍 [Google初始化] 传入的 base_url: {base_url}")
+        # [SEARCH] [DEBUG] 读取环境变量前的日志
+        logger.info("[SEARCH] [Google初始化] 开始初始化 ChatGoogleOpenAI")
+        logger.info(f"[SEARCH] [Google初始化] kwargs 中是否包含 google_api_key: {'google_api_key' in kwargs}")
+        logger.info(f"[SEARCH] [Google初始化] 传入的 base_url: {base_url}")
 
         # 设置 Google AI 的默认配置
         kwargs.setdefault("temperature", 0.1)
         kwargs.setdefault("max_tokens", 2000)
 
-        # 🔥 优先使用 kwargs 中传入的 API Key（来自数据库配置）
+        # [HOT] 优先使用 kwargs 中传入的 API Key（来自数据库配置）
         google_api_key = kwargs.get("google_api_key")
 
         # 如果 kwargs 中没有 API Key，尝试从环境变量读取
@@ -70,25 +70,25 @@ class ChatGoogleOpenAI(ChatGoogleGenerativeAI):
 
             # 检查环境变量中的 API Key
             env_api_key = os.getenv("GOOGLE_API_KEY")
-            logger.info(f"🔍 [Google初始化] 从环境变量读取 GOOGLE_API_KEY: {'有值' if env_api_key else '空'}")
+            logger.info(f"[SEARCH] [Google初始化] 从环境变量读取 GOOGLE_API_KEY: {'有值' if env_api_key else '空'}")
 
             # 验证环境变量中的 API Key 是否有效（排除占位符）
             if env_api_key and is_valid_api_key(env_api_key):
-                logger.info(f"✅ [Google初始化] 环境变量中的 API Key 有效，长度: {len(env_api_key)}, 前10位: {env_api_key[:10]}...")
+                logger.info(f"[OK] [Google初始化] 环境变量中的 API Key 有效，长度: {len(env_api_key)}, 前10位: {env_api_key[:10]}...")
                 google_api_key = env_api_key
             elif env_api_key:
-                logger.warning("⚠️ [Google初始化] 环境变量中的 API Key 无效（可能是占位符），将被忽略")
+                logger.warning("[WARN] [Google初始化] 环境变量中的 API Key 无效（可能是占位符），将被忽略")
                 google_api_key = None
             else:
-                logger.warning("⚠️ [Google初始化] GOOGLE_API_KEY 环境变量为空")
+                logger.warning("[WARN] [Google初始化] GOOGLE_API_KEY 环境变量为空")
                 google_api_key = None
         else:
-            logger.info("✅ [Google初始化] 使用 kwargs 中传入的 API Key（来自数据库配置）")
+            logger.info("[OK] [Google初始化] 使用 kwargs 中传入的 API Key（来自数据库配置）")
 
-        logger.info(f"🔍 [Google初始化] 最终使用的 API Key: {'有值' if google_api_key else '空'}")
+        logger.info(f"[SEARCH] [Google初始化] 最终使用的 API Key: {'有值' if google_api_key else '空'}")
 
         if not google_api_key:
-            logger.error("❌ [Google初始化] API Key 检查失败，即将抛出异常")
+            logger.error("[FAIL] [Google初始化] API Key 检查失败，即将抛出异常")
             raise ValueError(
                 "Google API key not found. Please configure API key in web interface "
                 "(Settings -> LLM Providers) or set GOOGLE_API_KEY environment variable."
@@ -96,49 +96,49 @@ class ChatGoogleOpenAI(ChatGoogleGenerativeAI):
 
         kwargs["google_api_key"] = google_api_key
 
-        # 🔧 处理自定义 base_url
+        # [CONFIG] 处理自定义 base_url
         if base_url:
             # 移除末尾的斜杠
             base_url = base_url.rstrip('/')
-            logger.info(f"🔍 [Google初始化] 处理 base_url: {base_url}")
+            logger.info(f"[SEARCH] [Google初始化] 处理 base_url: {base_url}")
 
-            # 🔍 检测是否是 Google 官方域名
+            # [SEARCH] 检测是否是 Google 官方域名
             is_google_official = 'generativelanguage.googleapis.com' in base_url
 
             if is_google_official:
-                # ✅ Google 官方域名：提取域名部分，SDK 会自动添加 /v1beta
+                # [OK] Google 官方域名：提取域名部分，SDK 会自动添加 /v1beta
                 # 例如：https://generativelanguage.googleapis.com/v1beta -> https://generativelanguage.googleapis.com
                 #      https://generativelanguage.googleapis.com/v1 -> https://generativelanguage.googleapis.com
                 if base_url.endswith('/v1beta'):
                     api_endpoint = base_url[:-7]  # 移除 /v1beta (7个字符)
-                    logger.info(f"🔍 [Google官方] 从 base_url 提取域名: {api_endpoint}")
+                    logger.info(f"[SEARCH] [Google官方] 从 base_url 提取域名: {api_endpoint}")
                 elif base_url.endswith('/v1'):
                     api_endpoint = base_url[:-3]  # 移除 /v1 (3个字符)
-                    logger.info(f"🔍 [Google官方] 从 base_url 提取域名: {api_endpoint}")
+                    logger.info(f"[SEARCH] [Google官方] 从 base_url 提取域名: {api_endpoint}")
                 else:
                     # 如果没有版本后缀，直接使用
                     api_endpoint = base_url
-                    logger.info(f"🔍 [Google官方] 使用完整 base_url 作为域名: {api_endpoint}")
+                    logger.info(f"[SEARCH] [Google官方] 使用完整 base_url 作为域名: {api_endpoint}")
 
-                logger.info(f"✅ [Google官方] SDK 会自动添加 /v1beta 路径")
+                logger.info(f"[OK] [Google官方] SDK 会自动添加 /v1beta 路径")
             else:
-                # 🔄 中转地址：直接使用完整 URL，不让 SDK 添加 /v1beta
+                # [SYNC] 中转地址：直接使用完整 URL，不让 SDK 添加 /v1beta
                 # 中转服务通常已经包含了完整的路径映射
                 api_endpoint = base_url
-                logger.info(f"🔄 [中转地址] 检测到非官方域名，使用完整 URL: {api_endpoint}")
+                logger.info(f"[SYNC] [中转地址] 检测到非官方域名，使用完整 URL: {api_endpoint}")
                 logger.info(f"   中转服务通常已包含完整路径，不需要 SDK 添加 /v1beta")
 
             # 通过 client_options 传递自定义端点
             # 参考: https://github.com/langchain-ai/langchain-google/issues/783
             kwargs["client_options"] = {"api_endpoint": api_endpoint}
-            logger.info(f"✅ [Google初始化] 设置 client_options.api_endpoint: {api_endpoint}")
+            logger.info(f"[OK] [Google初始化] 设置 client_options.api_endpoint: {api_endpoint}")
         else:
-            logger.info(f"🔍 [Google初始化] 未提供 base_url，使用默认端点")
+            logger.info(f"[SEARCH] [Google初始化] 未提供 base_url，使用默认端点")
 
         # 调用父类初始化
         super().__init__(**kwargs)
 
-        logger.info(f"✅ Google AI OpenAI 兼容适配器初始化成功")
+        logger.info(f"[OK] Google AI OpenAI 兼容适配器初始化成功")
         logger.info(f"   模型: {kwargs.get('model', 'gemini-pro')}")
         logger.info(f"   温度: {kwargs.get('temperature', 0.1)}")
         logger.info(f"   最大Token: {kwargs.get('max_tokens', 2000)}")
@@ -183,7 +183,7 @@ class ChatGoogleOpenAI(ChatGoogleGenerativeAI):
             return result
 
         except Exception as e:
-            logger.error(f"❌ Google AI 生成失败: {e}")
+            logger.error(f"[FAIL] Google AI 生成失败: {e}")
             logger.exception(e)  # 打印完整的堆栈跟踪
 
             # 检查是否为 API Key 无效错误
@@ -215,7 +215,7 @@ class ChatGoogleOpenAI(ChatGoogleGenerativeAI):
             optimized_content = self._enhance_news_content(content)
             message.content = optimized_content
             
-            logger.debug(f"🔧 [Google适配器] 优化新闻内容格式")
+            logger.debug(f"[CONFIG] [Google适配器] 优化新闻内容格式")
             logger.debug(f"   原始长度: {len(content)} 字符")
             logger.debug(f"   优化后长度: {len(optimized_content)} 字符")
     
@@ -284,11 +284,11 @@ class ChatGoogleOpenAI(ChatGoogleGenerativeAI):
                         analysis_type=analysis_type
                     )
                     
-                    logger.debug(f"📊 [Google适配器] Token使用量: 输入={input_tokens}, 输出={output_tokens}")
+                    logger.debug(f"[CHART] [Google适配器] Token使用量: 输入={input_tokens}, 输出={output_tokens}")
                     
         except Exception as track_error:
             # token 追踪失败不应该影响主要功能
-            logger.error(f"⚠️ Google适配器 Token 追踪失败: {track_error}")
+            logger.error(f"[WARN] Google适配器 Token 追踪失败: {track_error}")
 
 
 # 支持的模型列表
@@ -407,15 +407,15 @@ def test_google_openai_connection(
         response = llm.invoke("你好，请简单介绍一下你自己。")
         
         if response and hasattr(response, 'content') and response.content:
-            logger.info(f"✅ Google AI OpenAI 兼容接口连接成功")
+            logger.info(f"[OK] Google AI OpenAI 兼容接口连接成功")
             logger.info(f"   响应: {response.content[:100]}...")
             return True
         else:
-            logger.error(f"❌ Google AI OpenAI 兼容接口响应为空")
+            logger.error(f"[FAIL] Google AI OpenAI 兼容接口响应为空")
             return False
             
     except Exception as e:
-        logger.error(f"❌ Google AI OpenAI 兼容接口连接失败: {e}")
+        logger.error(f"[FAIL] Google AI OpenAI 兼容接口连接失败: {e}")
         return False
 
 
@@ -455,7 +455,7 @@ def test_google_openai_function_calling(
         # 测试工具调用
         response = llm_with_tools.invoke("请使用test_news_tool查询'苹果公司'的新闻")
         
-        logger.info(f"✅ Google AI Function Calling 测试完成")
+        logger.info(f"[OK] Google AI Function Calling 测试完成")
         logger.info(f"   响应类型: {type(response)}")
         
         if hasattr(response, 'tool_calls') and response.tool_calls:
@@ -466,7 +466,7 @@ def test_google_openai_function_calling(
             return True  # 即使没有工具调用也算成功，因为模型可能选择不调用工具
             
     except Exception as e:
-        logger.error(f"❌ Google AI Function Calling 测试失败: {e}")
+        logger.error(f"[FAIL] Google AI Function Calling 测试失败: {e}")
         return False
 
 
@@ -483,8 +483,8 @@ if __name__ == "__main__":
         function_calling_ok = test_google_openai_function_calling()
         
         if function_calling_ok:
-            logger.info(f"\n🎉 所有测试通过！Google AI OpenAI 兼容适配器工作正常")
+            logger.info(f"\n[SUCCESS] 所有测试通过！Google AI OpenAI 兼容适配器工作正常")
         else:
-            logger.error(f"\n⚠️ Function Calling 测试失败")
+            logger.error(f"\n[WARN] Function Calling 测试失败")
     else:
-        logger.error(f"\n❌ 连接测试失败")
+        logger.error(f"\n[FAIL] 连接测试失败")

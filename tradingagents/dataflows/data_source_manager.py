@@ -108,11 +108,11 @@ class DataSourceManager:
         Returns:
             按优先级排序的数据源列表（不包含MongoDB，因为MongoDB是最高优先级）
         """
-        # 🔥 识别市场类型
+        # [HOT] 识别市场类型
         market_category = self._identify_market_category(symbol)
 
         try:
-            # 🔥 从数据库读取数据源配置（使用同步客户端）
+            # [HOT] 从数据库读取数据源配置（使用同步客户端）
             from app.core.database import get_mongo_db_sync
             db = get_mongo_db_sync()
             config_collection = db.system_configs
@@ -126,7 +126,7 @@ class DataSourceManager:
             if config_data and config_data.get('data_source_configs'):
                 data_source_configs = config_data.get('data_source_configs', [])
 
-                # 🔥 过滤出启用的数据源，并按市场分类过滤
+                # [HOT] 过滤出启用的数据源，并按市场分类过滤
                 enabled_sources = []
                 for ds in data_source_configs:
                     if not ds.get('enabled', True):
@@ -170,7 +170,7 @@ class DataSourceManager:
         except Exception as e:
             logger.warning(f"[WARNING] [数据源优先级] 从数据库读取失败: {e}，使用默认顺序")
 
-        # 🔥 回退到默认顺序（兼容性）
+        # [HOT] 回退到默认顺序（兼容性）
         # 默认顺序：AKShare > Tushare > BaoStock
         default_order = [
             ChinaDataSource.AKSHARE,
@@ -422,7 +422,7 @@ class DataSourceManager:
         """
         available = []
 
-        # 🔥 从数据库读取数据源配置，获取启用状态
+        # [HOT] 从数据库读取数据源配置，获取启用状态
         enabled_sources_in_db = set()
         try:
             from app.core.database import get_mongo_db_sync
@@ -467,7 +467,7 @@ class DataSourceManager:
             except Exception as e:
                 logger.warning(f"[WARNING] MongoDB数据源不可用: {e}")
         elif self.use_mongodb_cache and 'mongodb' not in enabled_sources_in_db:
-            logger.info("ℹ️ MongoDB数据源已在数据库中禁用")
+            logger.info("[INFO] MongoDB数据源已在数据库中禁用")
 
         # 从数据库读取数据源配置
         datasource_configs = self._get_datasource_configs_from_db()
@@ -487,7 +487,7 @@ class DataSourceManager:
             except ImportError:
                 logger.warning("[WARNING] Tushare数据源不可用: 库未安装")
         else:
-            logger.info("ℹ️ Tushare数据源已在数据库中禁用")
+            logger.info("[INFO] Tushare数据源已在数据库中禁用")
 
         # 检查AKShare
         if 'akshare' in enabled_sources_in_db:
@@ -498,7 +498,7 @@ class DataSourceManager:
             except ImportError:
                 logger.warning("[WARNING] AKShare数据源不可用: 库未安装")
         else:
-            logger.info("ℹ️ AKShare数据源已在数据库中禁用")
+            logger.info("[INFO] AKShare数据源已在数据库中禁用")
 
         # 检查BaoStock
         if 'baostock' in enabled_sources_in_db:
@@ -509,7 +509,7 @@ class DataSourceManager:
             except ImportError:
                 logger.warning(f"[WARNING] BaoStock数据源不可用: 库未安装")
         else:
-            logger.info("ℹ️ BaoStock数据源已在数据库中禁用")
+            logger.info("[INFO] BaoStock数据源已在数据库中禁用")
 
         # TDX (通达信) 已移除
         # 不再检查和支持 TDX 数据源
@@ -642,7 +642,7 @@ class DataSourceManager:
             if cache_key:
                 cached_data = self.cache_manager.load_stock_data(cache_key)
                 if cached_data is not None and hasattr(cached_data, 'empty') and not cached_data.empty:
-                    logger.debug(f"📦 从缓存获取{symbol}数据: {len(cached_data)}条")
+                    logger.debug(f"[PKG] 从缓存获取{symbol}数据: {len(cached_data)}条")
                     return cached_data
         except Exception as e:
             logger.warning(f"[WARNING] 从缓存读取数据失败: {e}")
@@ -665,7 +665,7 @@ class DataSourceManager:
         try:
             if data is not None and hasattr(data, 'empty') and not data.empty:
                 self.cache_manager.save_stock_data(symbol, data, start_date, end_date)
-                logger.debug(f"💾 保存{symbol}数据到缓存: {len(data)}条")
+                logger.debug(f"[SAVE] 保存{symbol}数据到缓存: {len(data)}条")
         except Exception as e:
             logger.warning(f"[WARNING] 保存数据到缓存失败: {e}")
 
@@ -795,7 +795,7 @@ class DataSourceManager:
             result += f"数据条数: {original_data_count}条 (展示最近{display_rows}个交易日)\n\n"
 
             result += f"💰 最新价格: ¥{latest_price:.2f}\n"
-            result += f"📈 涨跌额: {change:+.2f} ({change_pct:+.2f}%)\n\n"
+            result += f"[CHART-UP] 涨跌额: {change:+.2f} ({change_pct:+.2f}%)\n\n"
 
             # 添加技术指标
             result += f"[INFO] 移动平均线 (MA):\n"
@@ -824,7 +824,7 @@ class DataSourceManager:
                 result += " (价格在MA60下方 ↓)\n\n"
 
             # MACD指标
-            result += f"📈 MACD指标:\n"
+            result += f"[CHART-UP] MACD指标:\n"
             result += f"   DIF:  {latest_data['macd_dif']:.3f}\n"
             result += f"   DEA:  {latest_data['macd_dea']:.3f}\n"
             result += f"   MACD: {latest_data['macd']:.3f}"
@@ -853,7 +853,7 @@ class DataSourceManager:
             rsi6 = latest_data['rsi6']
             rsi12 = latest_data['rsi12']
             rsi24 = latest_data['rsi24']
-            result += f"📉 RSI指标 (同花顺风格):\n"
+            result += f"[CHART-DOWN] RSI指标 (同花顺风格):\n"
             result += f"   RSI6:  {rsi6:.2f}"
             if rsi6 >= 80:
                 result += " (超买 [WARNING])\n"
@@ -1359,7 +1359,7 @@ class DataSourceManager:
         """
         logger.info(f"[INFO] [{self.current_source.value}] 失败，尝试备用数据源获取{period}数据: {symbol}")
 
-        # 🔥 从数据库获取数据源优先级顺序（根据股票代码识别市场）
+        # [HOT] 从数据库获取数据源优先级顺序（根据股票代码识别市场）
         # 注意：不包含MongoDB，因为MongoDB是最高优先级，如果失败了就不再尝试
         fallback_order = self._get_data_source_priority_order(symbol)
 
@@ -1583,7 +1583,7 @@ class DataSourceManager:
 
                 # 根据数据源类型获取股票信息
                 if source == ChinaDataSource.TUSHARE:
-                    # 🔥 直接调用 Tushare 适配器，避免循环调用
+                    # [HOT] 直接调用 Tushare 适配器，避免循环调用
                     result = self._get_tushare_stock_info(symbol)
                 elif source == ChinaDataSource.AKSHARE:
                     result = self._get_akshare_stock_info(symbol)
@@ -1620,14 +1620,14 @@ class DataSourceManager:
     def _get_akshare_stock_info(self, symbol: str) -> Dict:
         """使用AKShare获取股票基本信息
 
-        🔥 重要：AKShare 需要区分股票和指数
+        [HOT] 重要：AKShare 需要区分股票和指数
         - 对于 000001，如果不加后缀，会被识别为"深圳成指"（指数）
         - 对于股票，需要使用完整代码（如 sz000001 或 sh600000）
         """
         try:
             import akshare as ak
 
-            # 🔥 转换为 AKShare 格式的股票代码
+            # [HOT] 转换为 AKShare 格式的股票代码
             # AKShare 的 stock_individual_info_em 需要使用 "sz000001" 或 "sh600000" 格式
             if symbol.startswith('6'):
                 # 上海股票：600000 -> sh600000
@@ -1864,7 +1864,7 @@ class DataSourceManager:
 
             # 基本信息
             report += f"[INFO] 报告期: {latest.get('report_period', latest.get('end_date', '未知'))}\n"
-            report += f"📈 数据来源: MongoDB财务数据库\n\n"
+            report += f"[CHART-UP] 数据来源: MongoDB财务数据库\n\n"
 
             # 财务指标
             report += "💰 财务指标:\n"
@@ -1957,7 +1957,7 @@ class DataSourceManager:
                 if c_cash_equ_end_period is not None:
                     report += f"   期末现金及等价物: {c_cash_equ_end_period:,.2f}\n"
 
-            report += f"\n📝 共有 {len(financial_data)} 期财务数据\n"
+            report += f"\n[LOG] 共有 {len(financial_data)} 期财务数据\n"
 
             return report
 
@@ -1972,9 +1972,9 @@ class DataSourceManager:
             stock_info = self.get_stock_info(symbol)
 
             report = f"[INFO] {symbol} 基本面分析（生成）\n\n"
-            report += f"📈 股票名称: {stock_info.get('name', '未知')}\n"
+            report += f"[CHART-UP] 股票名称: {stock_info.get('name', '未知')}\n"
             report += f"🏢 所属行业: {stock_info.get('industry', '未知')}\n"
-            report += f"📍 所属地区: {stock_info.get('area', '未知')}\n"
+            report += f"[LOC] 所属地区: {stock_info.get('area', '未知')}\n"
             report += f"[INFO] 上市日期: {stock_info.get('list_date', '未知')}\n"
             report += f"🏛️ 交易所: {stock_info.get('exchange', '未知')}\n\n"
 
@@ -1991,7 +1991,7 @@ class DataSourceManager:
         """基本面数据降级处理"""
         logger.error(f"[INFO] {self.current_source.value}失败，尝试备用数据源获取基本面...")
 
-        # 🔥 从数据库获取数据源优先级顺序（根据股票代码识别市场）
+        # [HOT] 从数据库获取数据源优先级顺序（根据股票代码识别市场）
         fallback_order = self._get_data_source_priority_order(symbol)
 
         for source in fallback_order:
@@ -2067,7 +2067,7 @@ class DataSourceManager:
         """新闻数据降级处理"""
         logger.error(f"[INFO] {self.current_source.value}失败，尝试备用数据源获取新闻...")
 
-        # 🔥 从数据库获取数据源优先级顺序（根据股票代码识别市场）
+        # [HOT] 从数据库获取数据源优先级顺序（根据股票代码识别市场）
         fallback_order = self._get_data_source_priority_order(symbol)
 
         for source in fallback_order:
@@ -2240,7 +2240,7 @@ class USDataSourceManager:
 
             if groupings:
                 # 转换为 USDataSource 枚举
-                # 🔥 数据源名称映射（数据库名称 → USDataSource 枚举）
+                # [HOT] 数据源名称映射（数据库名称 → USDataSource 枚举）
                 source_mapping = {
                     'yfinance': USDataSource.YFINANCE,
                     'yahoo_finance': USDataSource.YFINANCE,  # 别名
@@ -2319,7 +2319,7 @@ class USDataSourceManager:
             except ImportError:
                 logger.warning("[WARNING] yfinance数据源不可用: 未安装 yfinance 库")
         else:
-            logger.info("ℹ️ yfinance数据源已在数据库中禁用")
+            logger.info("[INFO] yfinance数据源已在数据库中禁用")
 
         # 检查 Alpha Vantage
         if 'alpha_vantage' in enabled_sources_in_db:
@@ -2335,7 +2335,7 @@ class USDataSourceManager:
             except Exception as e:
                 logger.warning(f"[WARNING] Alpha Vantage数据源检查失败: {e}")
         else:
-            logger.info("ℹ️ Alpha Vantage数据源已在数据库中禁用")
+            logger.info("[INFO] Alpha Vantage数据源已在数据库中禁用")
 
         # 检查 Finnhub
         if 'finnhub' in enabled_sources_in_db:
@@ -2351,7 +2351,7 @@ class USDataSourceManager:
             except Exception as e:
                 logger.warning(f"[WARNING] Finnhub数据源检查失败: {e}")
         else:
-            logger.info("ℹ️ Finnhub数据源已在数据库中禁用")
+            logger.info("[INFO] Finnhub数据源已在数据库中禁用")
 
         return available
 
@@ -2367,7 +2367,7 @@ class USDataSourceManager:
                 "enabled": True
             }))
 
-            # 🔥 数据源名称映射（数据库名称 → 代码中使用的名称）
+            # [HOT] 数据源名称映射（数据库名称 → 代码中使用的名称）
             name_mapping = {
                 'alpha vantage': 'alpha_vantage',
                 'yahoo finance': 'yfinance',

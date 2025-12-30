@@ -223,7 +223,7 @@ async def search_stocks(
         db = get_mongo_db()
         collection = db.stock_basic_info
 
-        # 🔥 获取数据源优先级配置
+        # [HOT] 获取数据源优先级配置
         config = UnifiedConfigManager()
         data_source_configs = await config.get_data_source_configs_async()
 
@@ -251,7 +251,7 @@ async def search_stocks(
             if any(c.isdigit() for c in keyword):
                 search_conditions.append({"symbol": {"$regex": keyword}})
 
-        # 🔥 添加数据源筛选：只查询优先级最高的数据源
+        # [HOT] 添加数据源筛选：只查询优先级最高的数据源
         query = {
             "$and": [
                 {"$or": search_conditions},
@@ -276,7 +276,7 @@ async def search_stocks(
             "data": standardized_results,
             "total": len(standardized_results),
             "keyword": keyword,
-            "source": preferred_source,  # 🔥 返回数据来源
+            "source": preferred_source,  # [HOT] 返回数据来源
             "message": "搜索完成"
         }
         

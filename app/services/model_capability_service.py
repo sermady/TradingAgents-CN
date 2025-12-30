@@ -78,7 +78,7 @@ class ModelCapabilityService:
         if original_model and original_model != model_name:
             # 尝试用原模型名查找
             if original_model in DEFAULT_MODEL_CAPABILITIES:
-                logger.info(f"🔄 聚合渠道模型映射: {model_name} -> {original_model}")
+                logger.info(f"[SYNC] 聚合渠道模型映射: {model_name} -> {original_model}")
                 return DEFAULT_MODEL_CAPABILITIES[original_model]["capability_level"], original_model
 
         # 3. 返回默认值
@@ -106,7 +106,7 @@ class ModelCapabilityService:
         # 2. 从默认映射表读取（支持聚合渠道映射）
         capability, mapped_model = self._get_model_capability_with_mapping(model_name)
         if mapped_model:
-            logger.info(f"✅ 使用映射模型 {mapped_model} 的能力等级: {capability}")
+            logger.info(f"[OK] 使用映射模型 {mapped_model} 的能力等级: {capability}")
 
         return capability
     
@@ -134,18 +134,18 @@ class ModelCapabilityService:
             # 查询系统配置（与 config_service 保持一致）
             doc = collection.find_one({"is_active": True}, sort=[("version", -1)])
 
-            logger.info(f"🔍 [MongoDB] 查询结果: doc={'存在' if doc else '不存在'}")
+            logger.info(f"[SEARCH] [MongoDB] 查询结果: doc={'存在' if doc else '不存在'}")
             if doc:
-                logger.info(f"🔍 [MongoDB] 文档版本: {doc.get('version')}, is_active: {doc.get('is_active')}")
+                logger.info(f"[SEARCH] [MongoDB] 文档版本: {doc.get('version')}, is_active: {doc.get('is_active')}")
 
             if doc and "llm_configs" in doc:
                 llm_configs = doc["llm_configs"]
-                logger.info(f"🔍 [MongoDB] llm_configs 数量: {len(llm_configs)}")
+                logger.info(f"[SEARCH] [MongoDB] llm_configs 数量: {len(llm_configs)}")
 
                 for config_dict in llm_configs:
                     if config_dict.get("model_name") == model_name:
-                        logger.info(f"🔍 [MongoDB] 找到模型配置: {model_name}")
-                        # 🔧 将字符串列表转换为枚举列表
+                        logger.info(f"[SEARCH] [MongoDB] 找到模型配置: {model_name}")
+                        # [CONFIG] 将字符串列表转换为枚举列表
                         features_str = config_dict.get('features', [])
                         features_enum = []
                         for feature_str in features_str:
@@ -153,9 +153,9 @@ class ModelCapabilityService:
                                 # 将字符串转换为 ModelFeature 枚举
                                 features_enum.append(ModelFeature(feature_str))
                             except ValueError:
-                                logger.warning(f"⚠️ 未知的特性值: {feature_str}")
+                                logger.warning(f"[WARN] 未知的特性值: {feature_str}")
 
-                        # 🔧 将字符串列表转换为枚举列表
+                        # [CONFIG] 将字符串列表转换为枚举列表
                         roles_str = config_dict.get('suitable_roles', ["both"])
                         roles_enum = []
                         for role_str in roles_str:
@@ -163,13 +163,13 @@ class ModelCapabilityService:
                                 # 将字符串转换为 ModelRole 枚举
                                 roles_enum.append(ModelRole(role_str))
                             except ValueError:
-                                logger.warning(f"⚠️ 未知的角色值: {role_str}")
+                                logger.warning(f"[WARN] 未知的角色值: {role_str}")
 
                         # 如果没有角色，默认为 both
                         if not roles_enum:
                             roles_enum = [ModelRole.BOTH]
 
-                        logger.info(f"📊 [MongoDB配置] {model_name}: features={features_enum}, roles={roles_enum}")
+                        logger.info(f"[CHART] [MongoDB配置] {model_name}: features={features_enum}, roles={roles_enum}")
 
                         # 关闭连接
                         client.close()
@@ -197,7 +197,7 @@ class ModelCapabilityService:
         provider, original_model = self._parse_aggregator_model_name(model_name)
         if original_model and original_model != model_name:
             if original_model in DEFAULT_MODEL_CAPABILITIES:
-                logger.info(f"🔄 聚合渠道模型映射: {model_name} -> {original_model}")
+                logger.info(f"[SYNC] 聚合渠道模型映射: {model_name} -> {original_model}")
                 config = DEFAULT_MODEL_CAPABILITIES[original_model].copy()
                 config["model_name"] = model_name  # 保持原始模型名
                 config["_mapped_from"] = original_model  # 记录映射来源
@@ -231,16 +231,16 @@ class ModelCapabilityService:
         Returns:
             验证结果字典，包含 valid, warnings, recommendations
         """
-        logger.info(f"🔍 开始验证模型对: quick={quick_model}, deep={deep_model}, depth={research_depth}")
+        logger.info(f"[SEARCH] 开始验证模型对: quick={quick_model}, deep={deep_model}, depth={research_depth}")
 
         requirements = ANALYSIS_DEPTH_REQUIREMENTS.get(research_depth, ANALYSIS_DEPTH_REQUIREMENTS["标准"])
-        logger.info(f"🔍 分析深度要求: {requirements}")
+        logger.info(f"[SEARCH] 分析深度要求: {requirements}")
 
         quick_config = self.get_model_config(quick_model)
         deep_config = self.get_model_config(deep_model)
 
-        logger.info(f"🔍 快速模型配置: {quick_config}")
-        logger.info(f"🔍 深度模型配置: {deep_config}")
+        logger.info(f"[SEARCH] 快速模型配置: {quick_config}")
+        logger.info(f"[SEARCH] 深度模型配置: {deep_config}")
 
         result = {
             "valid": True,
@@ -250,35 +250,35 @@ class ModelCapabilityService:
         
         # 检查快速模型
         quick_level = quick_config["capability_level"]
-        logger.info(f"🔍 检查快速模型能力等级: {quick_level} >= {requirements['quick_model_min']}?")
+        logger.info(f"[SEARCH] 检查快速模型能力等级: {quick_level} >= {requirements['quick_model_min']}?")
         if quick_level < requirements["quick_model_min"]:
-            warning = f"⚠️ 快速模型 {quick_model} (能力等级{quick_level}) 低于 {research_depth} 分析的建议等级({requirements['quick_model_min']})"
+            warning = f"[WARN] 快速模型 {quick_model} (能力等级{quick_level}) 低于 {research_depth} 分析的建议等级({requirements['quick_model_min']})"
             result["warnings"].append(warning)
             logger.warning(warning)
 
         # 检查快速模型角色适配
         quick_roles = quick_config.get("suitable_roles", [])
-        logger.info(f"🔍 检查快速模型角色: {quick_roles}")
+        logger.info(f"[SEARCH] 检查快速模型角色: {quick_roles}")
         if ModelRole.QUICK_ANALYSIS not in quick_roles and ModelRole.BOTH not in quick_roles:
-            warning = f"💡 模型 {quick_model} 不是为快速分析优化的，可能影响数据收集效率"
+            warning = f"[INFO] 模型 {quick_model} 不是为快速分析优化的，可能影响数据收集效率"
             result["warnings"].append(warning)
             logger.warning(warning)
 
         # 检查快速模型是否支持工具调用
         quick_features = quick_config.get("features", [])
-        logger.info(f"🔍 检查快速模型特性: {quick_features}")
+        logger.info(f"[SEARCH] 检查快速模型特性: {quick_features}")
         if ModelFeature.TOOL_CALLING not in quick_features:
             result["valid"] = False
-            warning = f"❌ 快速模型 {quick_model} 不支持工具调用，无法完成数据收集任务"
+            warning = f"[FAIL] 快速模型 {quick_model} 不支持工具调用，无法完成数据收集任务"
             result["warnings"].append(warning)
             logger.error(warning)
 
         # 检查深度模型
         deep_level = deep_config["capability_level"]
-        logger.info(f"🔍 检查深度模型能力等级: {deep_level} >= {requirements['deep_model_min']}?")
+        logger.info(f"[SEARCH] 检查深度模型能力等级: {deep_level} >= {requirements['deep_model_min']}?")
         if deep_level < requirements["deep_model_min"]:
             result["valid"] = False
-            warning = f"❌ 深度模型 {deep_model} (能力等级{deep_level}) 不满足 {research_depth} 分析的最低要求(等级{requirements['deep_model_min']})"
+            warning = f"[FAIL] 深度模型 {deep_model} (能力等级{deep_level}) 不满足 {research_depth} 分析的最低要求(等级{requirements['deep_model_min']})"
             result["warnings"].append(warning)
             logger.error(warning)
             result["recommendations"].append(
@@ -287,25 +287,25 @@ class ModelCapabilityService:
 
         # 检查深度模型角色适配
         deep_roles = deep_config.get("suitable_roles", [])
-        logger.info(f"🔍 检查深度模型角色: {deep_roles}")
+        logger.info(f"[SEARCH] 检查深度模型角色: {deep_roles}")
         if ModelRole.DEEP_ANALYSIS not in deep_roles and ModelRole.BOTH not in deep_roles:
-            warning = f"💡 模型 {deep_model} 不是为深度推理优化的，可能影响分析质量"
+            warning = f"[INFO] 模型 {deep_model} 不是为深度推理优化的，可能影响分析质量"
             result["warnings"].append(warning)
             logger.warning(warning)
 
         # 检查必需特性
-        logger.info(f"🔍 检查必需特性: {requirements['required_features']}")
+        logger.info(f"[SEARCH] 检查必需特性: {requirements['required_features']}")
         for feature in requirements["required_features"]:
             if feature == ModelFeature.REASONING:
                 deep_features = deep_config.get("features", [])
-                logger.info(f"🔍 检查深度模型推理能力: {deep_features}")
+                logger.info(f"[SEARCH] 检查深度模型推理能力: {deep_features}")
                 if feature not in deep_features:
-                    warning = f"💡 {research_depth} 分析建议使用具有强推理能力的深度模型"
+                    warning = f"[INFO] {research_depth} 分析建议使用具有强推理能力的深度模型"
                     result["warnings"].append(warning)
                     logger.warning(warning)
 
-        logger.info(f"🔍 验证结果: valid={result['valid']}, warnings={len(result['warnings'])}条")
-        logger.info(f"🔍 警告详情: {result['warnings']}")
+        logger.info(f"[SEARCH] 验证结果: valid={result['valid']}, warnings={len(result['warnings'])}条")
+        logger.info(f"[SEARCH] 警告详情: {result['warnings']}")
 
         return result
     

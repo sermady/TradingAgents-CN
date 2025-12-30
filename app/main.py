@@ -86,7 +86,7 @@ async def _print_config_summary(logger):
     """显示配置摘要"""
     try:
         logger.info("=" * 70)
-        logger.info("📋 TradingAgents-CN Configuration Summary")
+        logger.info("[CLIPBOARD] TradingAgents-CN Configuration Summary")
         logger.info("=" * 70)
 
         # .env 文件路径信息
@@ -94,7 +94,7 @@ async def _print_config_summary(logger):
         from pathlib import Path
         
         current_dir = Path.cwd()
-        logger.info(f"📁 Current working directory: {current_dir}")
+        logger.info(f"[FOLDER] Current working directory: {current_dir}")
         
         # 检查可能的 .env 文件位置
         env_files_to_check = [
@@ -103,11 +103,11 @@ async def _print_config_summary(logger):
             Path(__file__).parent.parent / ".env",  # 项目根目录
         ]
         
-        logger.info("🔍 Checking .env file locations:")
+        logger.info("[SEARCH] Checking .env file locations:")
         env_file_found = False
         for env_file in env_files_to_check:
             if env_file.exists():
-                logger.info(f"  ✅ Found: {env_file} (size: {env_file.stat().st_size} bytes)")
+                logger.info(f"  [OK] Found: {env_file} (size: {env_file.stat().st_size} bytes)")
                 env_file_found = True
                 # 显示文件的前几行（隐藏敏感信息）
                 try:
@@ -123,10 +123,10 @@ async def _print_config_summary(logger):
                 except Exception as e:
                     logger.warning(f"     Could not preview file: {e}")
             else:
-                logger.info(f"  ❌ Not found: {env_file}")
+                logger.info(f"  [FAIL] Not found: {env_file}")
         
         if not env_file_found:
-            logger.warning("⚠️  No .env file found in checked locations")
+            logger.warning("[WARN]  No .env file found in checked locations")
         
         # Pydantic Settings 配置加载状态
         logger.info("⚙️  Pydantic Settings Configuration:")
@@ -169,7 +169,7 @@ async def _print_config_summary(logger):
                     logger.info(f"  NO_PROXY: {settings.NO_PROXY}")
                 else:
                     logger.info(f"  NO_PROXY: {','.join(no_proxy_list[:3])}... ({len(no_proxy_list)} domains)")
-            logger.info(f"  ✅ Proxy environment variables set successfully")
+            logger.info(f"  [OK] Proxy environment variables set successfully")
         else:
             logger.info("Proxy: Not configured (direct connection)")
 
@@ -186,11 +186,11 @@ async def _print_config_summary(logger):
                     if len(enabled_llms) > 3:
                         logger.info(f"  • ... and {len(enabled_llms) - 3} more")
                 else:
-                    logger.warning("⚠️  No LLM enabled. Please configure at least one LLM in Web UI.")
+                    logger.warning("[WARN]  No LLM enabled. Please configure at least one LLM in Web UI.")
             else:
-                logger.warning("⚠️  No LLM configured. Please configure at least one LLM in Web UI.")
+                logger.warning("[WARN]  No LLM configured. Please configure at least one LLM in Web UI.")
         except Exception as e:
-            logger.warning(f"⚠️  Failed to check LLM configs: {e}")
+            logger.warning(f"[WARN]  Failed to check LLM configs: {e}")
 
         # 检查数据源配置
         try:
@@ -205,7 +205,7 @@ async def _print_config_summary(logger):
             else:
                 logger.info("Data Sources: Using default (AKShare)")
         except Exception as e:
-            logger.warning(f"⚠️  Failed to check data source configs: {e}")
+            logger.warning(f"[WARN]  Failed to check data source configs: {e}")
 
         logger.info("=" * 70)
     except Exception as e:
@@ -234,8 +234,8 @@ async def lifespan(app: FastAPI):
         from app.core.config_bridge import bridge_config_to_env
         bridge_config_to_env()
     except Exception as e:
-        logger.warning(f"⚠️  配置桥接失败: {e}")
-        logger.warning("⚠️  TradingAgents 将使用 .env 文件中的配置")
+        logger.warning(f"[WARN]  配置桥接失败: {e}")
+        logger.warning("[WARN]  TradingAgents 将使用 .env 文件中的配置")
 
     # Apply dynamic settings (log_level, enable_monitoring) from ConfigProvider
     try:
@@ -286,11 +286,11 @@ async def lifespan(app: FastAPI):
         if settings.TUSHARE_ENABLED:
             # Tushare 启用时，优先使用 Tushare
             preferred_sources = ["tushare", "akshare", "baostock"]
-            logger.info(f"📊 股票基础信息同步优先数据源: Tushare > AKShare > BaoStock")
+            logger.info(f"[CHART] 股票基础信息同步优先数据源: Tushare > AKShare > BaoStock")
         else:
             # Tushare 禁用时，使用 AKShare 和 BaoStock
             preferred_sources = ["akshare", "baostock"]
-            logger.info(f"📊 股票基础信息同步优先数据源: AKShare > BaoStock (Tushare已禁用)")
+            logger.info(f"[CHART] 股票基础信息同步优先数据源: AKShare > BaoStock (Tushare已禁用)")
 
         # 立即在启动后尝试一次（不阻塞）
         async def run_sync_with_sources():
@@ -308,7 +308,7 @@ async def lifespan(app: FastAPI):
                     id="basics_sync_service",
                     name="股票基础信息同步（多数据源）"
                 )
-                logger.info(f"📅 Stock basics sync scheduled by CRON: {settings.SYNC_STOCK_BASICS_CRON} ({settings.TIMEZONE})")
+                logger.info(f"[DATE] Stock basics sync scheduled by CRON: {settings.SYNC_STOCK_BASICS_CRON} ({settings.TIMEZONE})")
             else:
                 hh, mm = (settings.SYNC_STOCK_BASICS_TIME or "06:30").split(":")
                 scheduler.add_job(
@@ -317,7 +317,7 @@ async def lifespan(app: FastAPI):
                     id="basics_sync_service",
                     name="股票基础信息同步（多数据源）"
                 )
-                logger.info(f"📅 Stock basics sync scheduled daily at {settings.SYNC_STOCK_BASICS_TIME} ({settings.TIMEZONE})")
+                logger.info(f"[DATE] Stock basics sync scheduled daily at {settings.SYNC_STOCK_BASICS_TIME} ({settings.TIMEZONE})")
 
         # 实时行情入库任务（每N秒），内部自判交易时段
         if settings.QUOTES_INGEST_ENABLED:
@@ -332,7 +332,7 @@ async def lifespan(app: FastAPI):
             logger.info(f"⏱ 实时行情入库任务已启动: 每 {settings.QUOTES_INGEST_INTERVAL_SECONDS}s")
 
         # Tushare统一数据同步任务配置
-        logger.info("🔄 配置Tushare统一数据同步任务...")
+        logger.info("[SYNC] 配置Tushare统一数据同步任务...")
 
         # 基础信息同步任务
         scheduler.add_job(
@@ -346,7 +346,7 @@ async def lifespan(app: FastAPI):
             scheduler.pause_job("tushare_basic_info_sync")
             logger.info(f"⏸️ Tushare基础信息同步已添加但暂停: {settings.TUSHARE_BASIC_INFO_SYNC_CRON}")
         else:
-            logger.info(f"📅 Tushare基础信息同步已配置: {settings.TUSHARE_BASIC_INFO_SYNC_CRON}")
+            logger.info(f"[DATE] Tushare基础信息同步已配置: {settings.TUSHARE_BASIC_INFO_SYNC_CRON}")
 
         # 实时行情同步任务
         scheduler.add_job(
@@ -359,7 +359,7 @@ async def lifespan(app: FastAPI):
             scheduler.pause_job("tushare_quotes_sync")
             logger.info(f"⏸️ Tushare行情同步已添加但暂停: {settings.TUSHARE_QUOTES_SYNC_CRON}")
         else:
-            logger.info(f"📈 Tushare行情同步已配置: {settings.TUSHARE_QUOTES_SYNC_CRON}")
+            logger.info(f"[CHART-UP] Tushare行情同步已配置: {settings.TUSHARE_QUOTES_SYNC_CRON}")
 
         # 历史数据同步任务
         scheduler.add_job(
@@ -373,7 +373,7 @@ async def lifespan(app: FastAPI):
             scheduler.pause_job("tushare_historical_sync")
             logger.info(f"⏸️ Tushare历史数据同步已添加但暂停: {settings.TUSHARE_HISTORICAL_SYNC_CRON}")
         else:
-            logger.info(f"📊 Tushare历史数据同步已配置: {settings.TUSHARE_HISTORICAL_SYNC_CRON}")
+            logger.info(f"[CHART] Tushare历史数据同步已配置: {settings.TUSHARE_HISTORICAL_SYNC_CRON}")
 
         # 财务数据同步任务
         scheduler.add_job(
@@ -399,10 +399,10 @@ async def lifespan(app: FastAPI):
             scheduler.pause_job("tushare_status_check")
             logger.info(f"⏸️ Tushare状态检查已添加但暂停: {settings.TUSHARE_STATUS_CHECK_CRON}")
         else:
-            logger.info(f"🔍 Tushare状态检查已配置: {settings.TUSHARE_STATUS_CHECK_CRON}")
+            logger.info(f"[SEARCH] Tushare状态检查已配置: {settings.TUSHARE_STATUS_CHECK_CRON}")
 
         # AKShare统一数据同步任务配置
-        logger.info("🔄 配置AKShare统一数据同步任务...")
+        logger.info("[SYNC] 配置AKShare统一数据同步任务...")
 
         # 基础信息同步任务
         scheduler.add_job(
@@ -416,7 +416,7 @@ async def lifespan(app: FastAPI):
             scheduler.pause_job("akshare_basic_info_sync")
             logger.info(f"⏸️ AKShare基础信息同步已添加但暂停: {settings.AKSHARE_BASIC_INFO_SYNC_CRON}")
         else:
-            logger.info(f"📅 AKShare基础信息同步已配置: {settings.AKSHARE_BASIC_INFO_SYNC_CRON}")
+            logger.info(f"[DATE] AKShare基础信息同步已配置: {settings.AKSHARE_BASIC_INFO_SYNC_CRON}")
 
         # 实时行情同步任务
         scheduler.add_job(
@@ -429,7 +429,7 @@ async def lifespan(app: FastAPI):
             scheduler.pause_job("akshare_quotes_sync")
             logger.info(f"⏸️ AKShare行情同步已添加但暂停: {settings.AKSHARE_QUOTES_SYNC_CRON}")
         else:
-            logger.info(f"📈 AKShare行情同步已配置: {settings.AKSHARE_QUOTES_SYNC_CRON}")
+            logger.info(f"[CHART-UP] AKShare行情同步已配置: {settings.AKSHARE_QUOTES_SYNC_CRON}")
 
         # 历史数据同步任务
         scheduler.add_job(
@@ -443,7 +443,7 @@ async def lifespan(app: FastAPI):
             scheduler.pause_job("akshare_historical_sync")
             logger.info(f"⏸️ AKShare历史数据同步已添加但暂停: {settings.AKSHARE_HISTORICAL_SYNC_CRON}")
         else:
-            logger.info(f"📊 AKShare历史数据同步已配置: {settings.AKSHARE_HISTORICAL_SYNC_CRON}")
+            logger.info(f"[CHART] AKShare历史数据同步已配置: {settings.AKSHARE_HISTORICAL_SYNC_CRON}")
 
         # 财务数据同步任务
         scheduler.add_job(
@@ -469,10 +469,10 @@ async def lifespan(app: FastAPI):
             scheduler.pause_job("akshare_status_check")
             logger.info(f"⏸️ AKShare状态检查已添加但暂停: {settings.AKSHARE_STATUS_CHECK_CRON}")
         else:
-            logger.info(f"🔍 AKShare状态检查已配置: {settings.AKSHARE_STATUS_CHECK_CRON}")
+            logger.info(f"[SEARCH] AKShare状态检查已配置: {settings.AKSHARE_STATUS_CHECK_CRON}")
 
         # BaoStock统一数据同步任务配置
-        logger.info("🔄 配置BaoStock统一数据同步任务...")
+        logger.info("[SYNC] 配置BaoStock统一数据同步任务...")
 
         # 基础信息同步任务
         scheduler.add_job(
@@ -485,7 +485,7 @@ async def lifespan(app: FastAPI):
             scheduler.pause_job("baostock_basic_info_sync")
             logger.info(f"⏸️ BaoStock基础信息同步已添加但暂停: {settings.BAOSTOCK_BASIC_INFO_SYNC_CRON}")
         else:
-            logger.info(f"📋 BaoStock基础信息同步已配置: {settings.BAOSTOCK_BASIC_INFO_SYNC_CRON}")
+            logger.info(f"[CLIPBOARD] BaoStock基础信息同步已配置: {settings.BAOSTOCK_BASIC_INFO_SYNC_CRON}")
 
         # 日K线同步任务（注意：BaoStock不支持实时行情）
         scheduler.add_job(
@@ -498,7 +498,7 @@ async def lifespan(app: FastAPI):
             scheduler.pause_job("baostock_daily_quotes_sync")
             logger.info(f"⏸️ BaoStock日K线同步已添加但暂停: {settings.BAOSTOCK_DAILY_QUOTES_SYNC_CRON}")
         else:
-            logger.info(f"📈 BaoStock日K线同步已配置: {settings.BAOSTOCK_DAILY_QUOTES_SYNC_CRON} (注意：BaoStock不支持实时行情)")
+            logger.info(f"[CHART-UP] BaoStock日K线同步已配置: {settings.BAOSTOCK_DAILY_QUOTES_SYNC_CRON} (注意：BaoStock不支持实时行情)")
 
         # 历史数据同步任务
         scheduler.add_job(
@@ -511,7 +511,7 @@ async def lifespan(app: FastAPI):
             scheduler.pause_job("baostock_historical_sync")
             logger.info(f"⏸️ BaoStock历史数据同步已添加但暂停: {settings.BAOSTOCK_HISTORICAL_SYNC_CRON}")
         else:
-            logger.info(f"📊 BaoStock历史数据同步已配置: {settings.BAOSTOCK_HISTORICAL_SYNC_CRON}")
+            logger.info(f"[CHART] BaoStock历史数据同步已配置: {settings.BAOSTOCK_HISTORICAL_SYNC_CRON}")
 
         # 状态检查任务
         scheduler.add_job(
@@ -524,10 +524,10 @@ async def lifespan(app: FastAPI):
             scheduler.pause_job("baostock_status_check")
             logger.info(f"⏸️ BaoStock状态检查已添加但暂停: {settings.BAOSTOCK_STATUS_CHECK_CRON}")
         else:
-            logger.info(f"🔍 BaoStock状态检查已配置: {settings.BAOSTOCK_STATUS_CHECK_CRON}")
+            logger.info(f"[SEARCH] BaoStock状态检查已配置: {settings.BAOSTOCK_STATUS_CHECK_CRON}")
 
         # 新闻数据同步任务配置（使用AKShare同步所有股票新闻）
-        logger.info("🔄 配置新闻数据同步任务...")
+        logger.info("[SYNC] 配置新闻数据同步任务...")
 
         from app.worker.akshare_sync_service import get_akshare_sync_service
 
@@ -542,7 +542,7 @@ async def lifespan(app: FastAPI):
                     favorites_only=True  # 只同步自选股
                 )
                 logger.info(
-                    f"✅ 新闻同步完成: "
+                    f"[OK] 新闻同步完成: "
                     f"处理{result['total_processed']}只自选股, "
                     f"成功{result['success_count']}只, "
                     f"失败{result['error_count']}只, "
@@ -550,7 +550,7 @@ async def lifespan(app: FastAPI):
                     f"耗时{(datetime.utcnow() - result['start_time']).total_seconds():.2f}秒"
                 )
             except Exception as e:
-                logger.error(f"❌ 新闻同步失败: {e}", exc_info=True)
+                logger.error(f"[FAIL] 新闻同步失败: {e}", exc_info=True)
 
         # ==================== 港股/美股数据配置 ====================
         # 港股和美股采用按需获取+缓存模式，不再配置定时同步任务
@@ -573,9 +573,9 @@ async def lifespan(app: FastAPI):
 
         # 设置调度器实例到服务中，以便API可以管理任务
         set_scheduler_instance(scheduler)
-        logger.info("✅ 调度器服务已初始化")
+        logger.info("[OK] 调度器服务已初始化")
     except Exception as e:
-        logger.error(f"❌ 调度器启动失败: {e}", exc_info=True)
+        logger.error(f"[FAIL] 调度器启动失败: {e}", exc_info=True)
         raise  # 抛出异常，阻止应用启动
 
     try:
@@ -585,7 +585,7 @@ async def lifespan(app: FastAPI):
         if scheduler:
             try:
                 scheduler.shutdown(wait=False)
-                logger.info("🛑 Scheduler stopped")
+                logger.info("[STOP] Scheduler stopped")
             except Exception as e:
                 logger.warning(f"Scheduler shutdown error: {e}")
 
@@ -643,13 +643,13 @@ async def log_requests(request: Request, call_next):
 
     # 使用webapi logger记录请求
     logger = logging.getLogger("webapi")
-    logger.info(f"🔄 {request.method} {request.url.path} - 开始处理")
+    logger.info(f"[SYNC] {request.method} {request.url.path} - 开始处理")
 
     response = await call_next(request)
     process_time = time.time() - start_time
 
     # 记录请求完成
-    status_emoji = "✅" if response.status_code < 400 else "❌"
+    status_emoji = "[OK]" if response.status_code < 400 else "[FAIL]"
     logger.info(f"{status_emoji} {request.method} {request.url.path} - 状态: {response.status_code} - 耗时: {process_time:.3f}s")
 
     return response
@@ -709,7 +709,7 @@ app.include_router(system_config_router.router, prefix="/api/system", tags=["sys
 # 通知模块（REST + SSE）
 app.include_router(notifications_router.router, prefix="/api", tags=["notifications"])
 
-# 🔥 WebSocket 通知模块（替代 SSE + Redis PubSub）
+# [HOT] WebSocket 通知模块（替代 SSE + Redis PubSub）
 app.include_router(websocket_notifications_router.router, prefix="/api", tags=["websocket"])
 
 # 定时任务管理

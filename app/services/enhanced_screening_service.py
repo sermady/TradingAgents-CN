@@ -136,7 +136,7 @@ class EnhancedScreeningService:
             }
 
         except Exception as e:
-            logger.error(f"❌ 股票筛选失败: {e}")
+            logger.error(f"[FAIL] 股票筛选失败: {e}")
             took_ms = int((time.time() - start_time) * 1000)
 
             return {
@@ -151,7 +151,7 @@ class EnhancedScreeningService:
     def _analyze_conditions(self, conditions: List[ScreeningCondition]) -> Dict[str, Any]:
         """Delegate condition analysis to utils."""
         analysis = _analyze_conditions_util(conditions)
-        logger.info(f"📊 筛选条件分析: {analysis}")
+        logger.info(f"[CHART] 筛选条件分析: {analysis}")
         return analysis
 
     async def _screen_with_database(
@@ -162,7 +162,7 @@ class EnhancedScreeningService:
         order_by: Optional[List[Dict[str, str]]]
     ) -> Tuple[List[Dict[str, Any]], int]:
         """使用数据库优化筛选"""
-        logger.info("🚀 使用数据库优化筛选")
+        logger.info("[START] 使用数据库优化筛选")
 
         return await self.db_service.screen_stocks(
             conditions=conditions,
@@ -182,7 +182,7 @@ class EnhancedScreeningService:
         order_by: Optional[List[Dict[str, str]]]
     ) -> Dict[str, Any]:
         """使用传统筛选方法"""
-        logger.info("🔄 使用传统筛选方法")
+        logger.info("[SYNC] 使用传统筛选方法")
 
         # 转换条件格式为传统服务支持的格式
         traditional_conditions = self._convert_conditions_to_traditional_format(conditions)
@@ -219,11 +219,11 @@ class EnhancedScreeningService:
         Returns:
             List[Dict]: 富集后的结果列表
         """
-        # 🔥 股票筛选场景：直接使用 stock_basic_info 中的静态 PE/PB
+        # [HOT] 股票筛选场景：直接使用 stock_basic_info 中的静态 PE/PB
         # 原因：批量计算动态 PE 会导致严重的性能问题（每个股票都要查询多个集合）
         # 静态 PE 基于最近一个交易日的收盘价，对于筛选场景已经足够准确
 
-        logger.info(f"📊 [筛选结果富集] 使用静态PE/PB（避免性能问题），共 {len(items)} 只股票")
+        logger.info(f"[CHART] [筛选结果富集] 使用静态PE/PB（避免性能问题），共 {len(items)} 只股票")
 
         # 注意：items 中的 PE/PB 已经来自 stock_basic_info，这里不需要额外处理
         # 如果未来需要实时 PE，可以在单个股票详情页面单独计算

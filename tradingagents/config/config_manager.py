@@ -3,7 +3,7 @@
 配置管理器
 管理API密钥、模型配置、费率设置等
 
-⚠️ DEPRECATED: 此模块已废弃，将在 2026-03-31 后移除
+[WARN] DEPRECATED: 此模块已废弃，将在 2026-03-31 后移除
    请使用新的配置系统: app.services.config_service.ConfigService
    迁移指南: docs/DEPRECATION_NOTICE.md
    迁移脚本: scripts/migrate_config_to_db.py
@@ -45,13 +45,13 @@ try:
     from .mongodb_storage import MongoDBStorage
     MONGODB_AVAILABLE = True
 except ImportError as e:
-    logger.error(f"❌ [ConfigManager] 导入 MongoDBStorage 失败 (ImportError): {e}")
+    logger.error(f"[FAIL] [ConfigManager] 导入 MongoDBStorage 失败 (ImportError): {e}")
     import traceback
     logger.error(f"   堆栈: {traceback.format_exc()}")
     MONGODB_AVAILABLE = False
     MongoDBStorage = None
 except Exception as e:
-    logger.error(f"❌ [ConfigManager] 导入 MongoDBStorage 失败 (Exception): {e}")
+    logger.error(f"[FAIL] [ConfigManager] 导入 MongoDBStorage 失败 (Exception): {e}")
     import traceback
     logger.error(f"   堆栈: {traceback.format_exc()}")
     MONGODB_AVAILABLE = False
@@ -86,14 +86,14 @@ class ConfigManager:
         env_file = project_root / ".env"
 
         if env_file.exists():
-            # 🔧 [修复] override=False 确保环境变量优先级高于 .env 文件
+            # [CONFIG] [修复] override=False 确保环境变量优先级高于 .env 文件
             # 这样 Docker 容器中的环境变量不会被 .env 文件中的占位符覆盖
-            logger.info(f"🔍 [ConfigManager] 加载 .env 文件: {env_file}")
-            logger.info(f"🔍 [ConfigManager] 加载前 DASHSCOPE_API_KEY: {'有值' if os.getenv('DASHSCOPE_API_KEY') else '空'}")
+            logger.info(f"[SEARCH] [ConfigManager] 加载 .env 文件: {env_file}")
+            logger.info(f"[SEARCH] [ConfigManager] 加载前 DASHSCOPE_API_KEY: {'有值' if os.getenv('DASHSCOPE_API_KEY') else '空'}")
 
             load_dotenv(env_file, override=False)
 
-            logger.info(f"🔍 [ConfigManager] 加载后 DASHSCOPE_API_KEY: {'有值' if os.getenv('DASHSCOPE_API_KEY') else '空'}")
+            logger.info(f"[SEARCH] [ConfigManager] 加载后 DASHSCOPE_API_KEY: {'有值' if os.getenv('DASHSCOPE_API_KEY') else '空'}")
 
     def _get_env_api_key(self, provider: str) -> str:
         """从环境变量获取API密钥"""
@@ -111,7 +111,7 @@ class ConfigManager:
             # 对OpenAI密钥进行格式验证（始终启用）
             if provider.lower() == "openai" and api_key:
                 if not self.validate_openai_api_key_format(api_key):
-                    logger.warning(f"⚠️ OpenAI API密钥格式不正确，将被忽略: {api_key[:10]}...")
+                    logger.warning(f"[WARN] OpenAI API密钥格式不正确，将被忽略: {api_key[:10]}...")
                     return ""
             return api_key
         return ""
@@ -151,47 +151,47 @@ class ConfigManager:
     
     def _init_mongodb_storage(self):
         """初始化MongoDB存储"""
-        logger.info("🔧 [ConfigManager] 开始初始化 MongoDB 存储...")
+        logger.info("[CONFIG] [ConfigManager] 开始初始化 MongoDB 存储...")
 
         if not MONGODB_AVAILABLE:
-            logger.warning("⚠️ [ConfigManager] pymongo 未安装，无法使用 MongoDB 存储")
+            logger.warning("[WARN] [ConfigManager] pymongo 未安装，无法使用 MongoDB 存储")
             return
 
         # 检查是否启用MongoDB存储
         use_mongodb_env = os.getenv("USE_MONGODB_STORAGE", "false")
         use_mongodb = use_mongodb_env.lower() == "true"
 
-        logger.info(f"🔍 [ConfigManager] USE_MONGODB_STORAGE={use_mongodb_env} (解析为: {use_mongodb})")
+        logger.info(f"[SEARCH] [ConfigManager] USE_MONGODB_STORAGE={use_mongodb_env} (解析为: {use_mongodb})")
 
         if not use_mongodb:
-            logger.info("ℹ️ [ConfigManager] MongoDB 存储未启用，将使用 JSON 文件存储")
+            logger.info("[INFO] [ConfigManager] MongoDB 存储未启用，将使用 JSON 文件存储")
             return
 
         try:
             connection_string = os.getenv("MONGODB_CONNECTION_STRING")
             database_name = os.getenv("MONGODB_DATABASE_NAME", "tradingagents")
 
-            logger.info(f"🔍 [ConfigManager] MONGODB_CONNECTION_STRING={'已设置' if connection_string else '未设置'}")
-            logger.info(f"🔍 [ConfigManager] MONGODB_DATABASE_NAME={database_name}")
+            logger.info(f"[SEARCH] [ConfigManager] MONGODB_CONNECTION_STRING={'已设置' if connection_string else '未设置'}")
+            logger.info(f"[SEARCH] [ConfigManager] MONGODB_DATABASE_NAME={database_name}")
 
             if not connection_string:
-                logger.error("❌ [ConfigManager] MONGODB_CONNECTION_STRING 未设置，无法初始化 MongoDB 存储")
+                logger.error("[FAIL] [ConfigManager] MONGODB_CONNECTION_STRING 未设置，无法初始化 MongoDB 存储")
                 return
 
-            logger.info(f"🔄 [ConfigManager] 正在创建 MongoDBStorage 实例...")
+            logger.info(f"[SYNC] [ConfigManager] 正在创建 MongoDBStorage 实例...")
             self.mongodb_storage = MongoDBStorage(
                 connection_string=connection_string,
                 database_name=database_name
             )
 
             if self.mongodb_storage.is_connected():
-                logger.info(f"✅ [ConfigManager] MongoDB存储已启用: {database_name}.token_usage")
+                logger.info(f"[OK] [ConfigManager] MongoDB存储已启用: {database_name}.token_usage")
             else:
                 self.mongodb_storage = None
-                logger.warning("⚠️ [ConfigManager] MongoDB连接失败，将使用JSON文件存储")
+                logger.warning("[WARN] [ConfigManager] MongoDB连接失败，将使用JSON文件存储")
 
         except Exception as e:
-            logger.error(f"❌ [ConfigManager] MongoDB初始化失败: {e}", exc_info=True)
+            logger.error(f"[FAIL] [ConfigManager] MongoDB初始化失败: {e}", exc_info=True)
             self.mongodb_storage = None
 
     def _init_default_configs(self):
@@ -324,11 +324,11 @@ class ConfigManager:
                         # 检查OpenAI是否在配置中启用
                         if not openai_enabled:
                             model.enabled = False
-                            logger.info(f"🔒 OpenAI模型已禁用: {model.model_name}")
+                            logger.info(f"[LOCK] OpenAI模型已禁用: {model.model_name}")
                         # 如果有API密钥但格式不正确，禁用模型（验证始终启用）
                         elif model.api_key and not self.validate_openai_api_key_format(model.api_key):
                             model.enabled = False
-                            logger.warning(f"⚠️ OpenAI模型因密钥格式不正确而禁用: {model.model_name}")
+                            logger.warning(f"[WARN] OpenAI模型因密钥格式不正确而禁用: {model.model_name}")
 
                 return models
         except Exception as e:
@@ -402,27 +402,27 @@ class ConfigManager:
             analysis_type=analysis_type
         )
 
-        # 🔍 详细日志：记录保存位置
-        logger.info(f"💾 [Token记录] 准备保存: {provider}/{model_name}, 输入={input_tokens}, 输出={output_tokens}, 成本=¥{cost:.4f}, session={session_id}")
+        # [SEARCH] 详细日志：记录保存位置
+        logger.info(f"[SAVE] [Token记录] 准备保存: {provider}/{model_name}, 输入={input_tokens}, 输出={output_tokens}, 成本=¥{cost:.4f}, session={session_id}")
 
         # 优先使用MongoDB存储
         if self.mongodb_storage and self.mongodb_storage.is_connected():
-            logger.info(f"📊 [Token记录] 使用 MongoDB 存储 (数据库: {self.mongodb_storage.database_name}, 集合: {self.mongodb_storage.collection_name})")
+            logger.info(f"[CHART] [Token记录] 使用 MongoDB 存储 (数据库: {self.mongodb_storage.database_name}, 集合: {self.mongodb_storage.collection_name})")
             success = self.mongodb_storage.save_usage_record(record)
             if success:
-                logger.info(f"✅ [Token记录] MongoDB 保存成功: {provider}/{model_name}")
+                logger.info(f"[OK] [Token记录] MongoDB 保存成功: {provider}/{model_name}")
                 return record
             else:
-                logger.error(f"⚠️ [Token记录] MongoDB保存失败，回退到JSON文件存储")
+                logger.error(f"[WARN] [Token记录] MongoDB保存失败，回退到JSON文件存储")
         else:
-            # 🔍 详细日志：为什么没有使用MongoDB
+            # [SEARCH] 详细日志：为什么没有使用MongoDB
             if self.mongodb_storage is None:
-                logger.warning(f"⚠️ [Token记录] MongoDB存储未初始化 (mongodb_storage=None)")
-                logger.warning(f"   💡 请检查环境变量: USE_MONGODB_STORAGE={os.getenv('USE_MONGODB_STORAGE', '未设置')}")
+                logger.warning(f"[WARN] [Token记录] MongoDB存储未初始化 (mongodb_storage=None)")
+                logger.warning(f"   [INFO] 请检查环境变量: USE_MONGODB_STORAGE={os.getenv('USE_MONGODB_STORAGE', '未设置')}")
             elif not self.mongodb_storage.is_connected():
-                logger.warning(f"⚠️ [Token记录] MongoDB未连接 (is_connected=False)")
+                logger.warning(f"[WARN] [Token记录] MongoDB未连接 (is_connected=False)")
 
-            logger.info(f"📄 [Token记录] 使用 JSON 文件存储: {self.usage_file}")
+            logger.info(f"[FILE] [Token记录] 使用 JSON 文件存储: {self.usage_file}")
 
         # 回退到JSON文件存储
         records = self.load_usage_records()
@@ -435,7 +435,7 @@ class ConfigManager:
             records = records[-max_records:]
 
         self.save_usage_records(records)
-        logger.info(f"✅ [Token记录] JSON 文件保存成功: {self.usage_file}")
+        logger.info(f"[OK] [Token记录] JSON 文件保存成功: {self.usage_file}")
         return record
     
     def calculate_cost(self, provider: str, model_name: str, input_tokens: int, output_tokens: int) -> tuple[float, str]:
@@ -455,10 +455,10 @@ class ConfigManager:
                 return round(total_cost, 6), pricing.currency
 
         # 只在找不到配置时输出调试信息
-        logger.warning(f"⚠️ [calculate_cost] 未找到匹配的定价配置: {provider}/{model_name}")
-        logger.debug(f"⚠️ [calculate_cost] 可用的配置:")
+        logger.warning(f"[WARN] [calculate_cost] 未找到匹配的定价配置: {provider}/{model_name}")
+        logger.debug(f"[WARN] [calculate_cost] 可用的配置:")
         for pricing in pricing_configs:
-            logger.debug(f"⚠️ [calculate_cost]   - {pricing.provider}/{pricing.model_name}")
+            logger.debug(f"[WARN] [calculate_cost]   - {pricing.provider}/{pricing.model_name}")
 
         return 0.0, "CNY"
     
@@ -571,7 +571,7 @@ class ConfigManager:
                     stats["records_count"] = stats.get("total_requests", 0)
                     return stats
             except Exception as e:
-                logger.error(f"⚠️ MongoDB统计获取失败，回退到JSON文件: {e}")
+                logger.error(f"[WARN] MongoDB统计获取失败，回退到JSON文件: {e}")
         
         # 回退到JSON文件统计
         records = self.load_usage_records()
@@ -659,16 +659,16 @@ class ConfigManager:
             if directory and not os.path.exists(directory):
                 try:
                     os.makedirs(directory, exist_ok=True)
-                    logger.info(f"✅ 创建目录: {directory}")
+                    logger.info(f"[OK] 创建目录: {directory}")
                 except Exception as e:
-                    logger.error(f"❌ 创建目录失败 {directory}: {e}")
+                    logger.error(f"[FAIL] 创建目录失败 {directory}: {e}")
     
     def set_openai_enabled(self, enabled: bool):
         """设置OpenAI模型启用状态"""
         settings = self.load_settings()
         settings["openai_enabled"] = enabled
         self.save_settings(settings)
-        logger.info(f"🔧 OpenAI模型启用状态已设置为: {enabled}")
+        logger.info(f"[CONFIG] OpenAI模型启用状态已设置为: {enabled}")
     
     def is_openai_enabled(self) -> bool:
         """检查OpenAI模型是否启用"""
@@ -734,7 +734,7 @@ class TokenTracker:
         total_today = today_stats["total_cost"]
 
         if total_today >= threshold:
-            logger.warning(f"⚠️ 成本警告: 今日成本已达到 ¥{total_today:.4f}，超过阈值 ¥{threshold}",
+            logger.warning(f"[WARN] 成本警告: 今日成本已达到 ¥{total_today:.4f}，超过阈值 ¥{threshold}",
                           extra={'cost': total_today, 'threshold': threshold, 'event_type': 'cost_alert'})
 
     def get_session_cost(self, session_id: str) -> float:

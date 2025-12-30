@@ -132,7 +132,7 @@ class DevConfig:
 
             # 测试webapi logger是否工作
             webapi_logger = logging.getLogger("webapi")
-            webapi_logger.info("🔧 DEV_CONFIG: webapi logger 测试消息")
+            webapi_logger.info("[CONFIG] DEV_CONFIG: webapi logger 测试消息")
         else:
             # 生产环境：更严格的日志控制
             logging.getLogger("watchfiles").setLevel(logging.ERROR)

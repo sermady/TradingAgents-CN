@@ -22,10 +22,10 @@ logger = setup_llm_logging()
 try:
     from tradingagents.config.config_manager import token_tracker
     TOKEN_TRACKING_ENABLED = True
-    logger.info("✅ Token跟踪功能已启用")
+    logger.info("[OK] Token跟踪功能已启用")
 except ImportError:
     TOKEN_TRACKING_ENABLED = False
-    logger.warning("⚠️ Token跟踪功能未启用")
+    logger.warning("[WARN] Token跟踪功能未启用")
 
 
 class ChatDeepSeek(ChatOpenAI):
@@ -79,9 +79,9 @@ class ChatDeepSeek(ChatOpenAI):
             # 验证环境变量中的 API Key 是否有效（排除占位符）
             if env_api_key and is_valid_api_key(env_api_key):
                 api_key = env_api_key
-                logger.info("✅ [DeepSeek初始化] 使用环境变量中的有效 API Key")
+                logger.info("[OK] [DeepSeek初始化] 使用环境变量中的有效 API Key")
             elif env_api_key:
-                logger.warning("⚠️ [DeepSeek初始化] 环境变量中的 API Key 无效（可能是占位符），将被忽略")
+                logger.warning("[WARN] [DeepSeek初始化] 环境变量中的 API Key 无效（可能是占位符），将被忽略")
                 api_key = None
             else:
                 api_key = None
@@ -141,9 +141,9 @@ class ChatDeepSeek(ChatOpenAI):
             if input_tokens == 0 and output_tokens == 0:
                 input_tokens = self._estimate_input_tokens(messages)
                 output_tokens = self._estimate_output_tokens(result)
-                logger.debug(f"🔍 [DeepSeek] 使用估算token: 输入={input_tokens}, 输出={output_tokens}")
+                logger.debug(f"[SEARCH] [DeepSeek] 使用估算token: 输入={input_tokens}, 输出={output_tokens}")
             else:
-                logger.info(f"📊 [DeepSeek] 实际token使用: 输入={input_tokens}, 输出={output_tokens}")
+                logger.info(f"[CHART] [DeepSeek] 实际token使用: 输入={input_tokens}, 输出={output_tokens}")
             
             # 记录token使用量
             if TOKEN_TRACKING_ENABLED and (input_tokens > 0 or output_tokens > 0):
@@ -166,7 +166,7 @@ class ChatDeepSeek(ChatOpenAI):
 
                     if usage_record:
                         if usage_record.cost == 0.0:
-                            logger.warning(f"⚠️ [DeepSeek] 成本计算为0，可能配置有问题")
+                            logger.warning(f"[WARN] [DeepSeek] 成本计算为0，可能配置有问题")
                         else:
                             logger.info(f"💰 [DeepSeek] 本次调用成本: ¥{usage_record.cost:.6f}")
 
@@ -178,15 +178,15 @@ class ChatDeepSeek(ChatOpenAI):
                             session_id
                         )
                     else:
-                        logger.warning(f"⚠️ [DeepSeek] 未创建使用记录")
+                        logger.warning(f"[WARN] [DeepSeek] 未创建使用记录")
 
                 except Exception as track_error:
-                    logger.error(f"⚠️ [DeepSeek] Token统计失败: {track_error}", exc_info=True)
+                    logger.error(f"[WARN] [DeepSeek] Token统计失败: {track_error}", exc_info=True)
             
             return result
             
         except Exception as e:
-            logger.error(f"❌ [DeepSeek] 调用失败: {e}", exc_info=True)
+            logger.error(f"[FAIL] [DeepSeek] 调用失败: {e}", exc_info=True)
             raise
     
     def _estimate_input_tokens(self, messages: List[BaseMessage]) -> int:

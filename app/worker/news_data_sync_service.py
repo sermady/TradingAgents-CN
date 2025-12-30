@@ -125,9 +125,9 @@ class NewsDataSyncService:
                     if tushare_news:
                         all_news.extend(tushare_news)
                         stats.sources_used.append("tushare")
-                        self.logger.info(f"✅ Tushare新闻获取成功: {len(tushare_news)}条")
+                        self.logger.info(f"[OK] Tushare新闻获取成功: {len(tushare_news)}条")
                 except Exception as e:
-                    self.logger.error(f"❌ Tushare新闻获取失败: {e}")
+                    self.logger.error(f"[FAIL] Tushare新闻获取失败: {e}")
             
             # 2. AKShare新闻
             if "akshare" in data_sources:
@@ -138,9 +138,9 @@ class NewsDataSyncService:
                     if akshare_news:
                         all_news.extend(akshare_news)
                         stats.sources_used.append("akshare")
-                        self.logger.info(f"✅ AKShare新闻获取成功: {len(akshare_news)}条")
+                        self.logger.info(f"[OK] AKShare新闻获取成功: {len(akshare_news)}条")
                 except Exception as e:
-                    self.logger.error(f"❌ AKShare新闻获取失败: {e}")
+                    self.logger.error(f"[FAIL] AKShare新闻获取失败: {e}")
             
             # 3. 实时新闻聚合
             if "realtime" in data_sources:
@@ -151,9 +151,9 @@ class NewsDataSyncService:
                     if realtime_news:
                         all_news.extend(realtime_news)
                         stats.sources_used.append("realtime")
-                        self.logger.info(f"✅ 实时新闻获取成功: {len(realtime_news)}条")
+                        self.logger.info(f"[OK] 实时新闻获取成功: {len(realtime_news)}条")
                 except Exception as e:
-                    self.logger.error(f"❌ 实时新闻获取失败: {e}")
+                    self.logger.error(f"[FAIL] 实时新闻获取失败: {e}")
             
             # 保存新闻数据
             if all_news:
@@ -170,13 +170,13 @@ class NewsDataSyncService:
                 stats.successful_saves = saved_count
                 stats.failed_saves = len(unique_news) - saved_count
                 
-                self.logger.info(f"💾 {symbol} 新闻同步完成: {saved_count}条保存成功")
+                self.logger.info(f"[SAVE] {symbol} 新闻同步完成: {saved_count}条保存成功")
             
             stats.end_time = datetime.utcnow()
             return stats
             
         except Exception as e:
-            self.logger.error(f"❌ 同步股票新闻失败 {symbol}: {e}")
+            self.logger.error(f"[FAIL] 同步股票新闻失败 {symbol}: {e}")
             stats.end_time = datetime.utcnow()
             return stats
     
@@ -191,7 +191,7 @@ class NewsDataSyncService:
             provider = await self._get_tushare_provider()
 
             if not provider.is_available():
-                self.logger.warning("⚠️ Tushare提供者不可用")
+                self.logger.warning("[WARN] Tushare提供者不可用")
                 return []
 
             # 获取新闻数据，传递hours_back参数
@@ -209,20 +209,20 @@ class NewsDataSyncService:
                     if standardized:
                         standardized_news.append(standardized)
 
-                self.logger.info(f"✅ Tushare新闻获取成功: {len(standardized_news)}条")
+                self.logger.info(f"[OK] Tushare新闻获取成功: {len(standardized_news)}条")
                 return standardized_news
             else:
-                self.logger.debug("⚠️ Tushare未返回新闻数据")
+                self.logger.debug("[WARN] Tushare未返回新闻数据")
                 return []
 
         except Exception as e:
             # 详细的错误处理
             if any(keyword in str(e).lower() for keyword in ['权限', 'permission', 'unauthorized']):
-                self.logger.warning(f"⚠️ Tushare新闻接口需要单独开通权限: {e}")
+                self.logger.warning(f"[WARN] Tushare新闻接口需要单独开通权限: {e}")
             elif "积分" in str(e) or "point" in str(e).lower():
-                self.logger.warning(f"⚠️ Tushare积分不足: {e}")
+                self.logger.warning(f"[WARN] Tushare积分不足: {e}")
             else:
-                self.logger.error(f"❌ Tushare新闻同步失败: {e}")
+                self.logger.error(f"[FAIL] Tushare新闻同步失败: {e}")
             return []
     
     async def _sync_akshare_news(
@@ -254,7 +254,7 @@ class NewsDataSyncService:
             return []
             
         except Exception as e:
-            self.logger.error(f"❌ AKShare新闻同步失败: {e}")
+            self.logger.error(f"[FAIL] AKShare新闻同步失败: {e}")
             return []
     
     async def _sync_realtime_news(
@@ -285,7 +285,7 @@ class NewsDataSyncService:
             return []
             
         except Exception as e:
-            self.logger.error(f"❌ 实时新闻同步失败: {e}")
+            self.logger.error(f"[FAIL] 实时新闻同步失败: {e}")
             return []
     
     def _standardize_tushare_news(self, news: Dict[str, Any], symbol: str) -> Optional[Dict[str, Any]]:
@@ -307,7 +307,7 @@ class NewsDataSyncService:
                 "data_source": "tushare"
             }
         except Exception as e:
-            self.logger.error(f"❌ 标准化Tushare新闻失败: {e}")
+            self.logger.error(f"[FAIL] 标准化Tushare新闻失败: {e}")
             return None
     
     def _standardize_akshare_news(self, news: Dict[str, Any], symbol: str) -> Optional[Dict[str, Any]]:
@@ -329,7 +329,7 @@ class NewsDataSyncService:
                 "data_source": "akshare"
             }
         except Exception as e:
-            self.logger.error(f"❌ 标准化AKShare新闻失败: {e}")
+            self.logger.error(f"[FAIL] 标准化AKShare新闻失败: {e}")
             return None
     
     def _standardize_realtime_news(self, news_item, symbol: str) -> Optional[Dict[str, Any]]:
@@ -351,7 +351,7 @@ class NewsDataSyncService:
                 "data_source": "realtime"
             }
         except Exception as e:
-            self.logger.error(f"❌ 标准化实时新闻失败: {e}")
+            self.logger.error(f"[FAIL] 标准化实时新闻失败: {e}")
             return None
     
     def _classify_news_category(self, title: str) -> str:
@@ -475,10 +475,10 @@ class NewsDataSyncService:
                                 all_news.append(standardized)
                         
                         stats.sources_used.append("realtime")
-                        self.logger.info(f"✅ 市场新闻获取成功: {len(all_news)}条")
+                        self.logger.info(f"[OK] 市场新闻获取成功: {len(all_news)}条")
                         
                 except Exception as e:
-                    self.logger.error(f"❌ 市场新闻获取失败: {e}")
+                    self.logger.error(f"[FAIL] 市场新闻获取失败: {e}")
             
             # 保存新闻数据
             if all_news:
@@ -495,13 +495,13 @@ class NewsDataSyncService:
                 stats.successful_saves = saved_count
                 stats.failed_saves = len(unique_news) - saved_count
                 
-                self.logger.info(f"💾 市场新闻同步完成: {saved_count}条保存成功")
+                self.logger.info(f"[SAVE] 市场新闻同步完成: {saved_count}条保存成功")
             
             stats.end_time = datetime.utcnow()
             return stats
             
         except Exception as e:
-            self.logger.error(f"❌ 同步市场新闻失败: {e}")
+            self.logger.error(f"[FAIL] 同步市场新闻失败: {e}")
             stats.end_time = datetime.utcnow()
             return stats
 
@@ -514,5 +514,5 @@ async def get_news_data_sync_service() -> NewsDataSyncService:
     global _sync_service_instance
     if _sync_service_instance is None:
         _sync_service_instance = NewsDataSyncService()
-        logger.info("✅ 新闻数据同步服务初始化成功")
+        logger.info("[OK] 新闻数据同步服务初始化成功")
     return _sync_service_instance

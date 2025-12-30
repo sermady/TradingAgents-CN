@@ -78,7 +78,7 @@ class RedisProgressTracker:
         self.progress_data['total_steps'] = len(self.analysis_steps)
         self.progress_data['steps'] = [asdict(step) for step in self.analysis_steps]
 
-        # 🔧 计算并设置预估总时长
+        # [CONFIG] 计算并设置预估总时长
         base_total_time = self._get_base_total_time()
         self.progress_data['estimated_total_time'] = base_total_time
         self.progress_data['remaining_time'] = base_total_time  # 初始时剩余时间 = 总时长
@@ -86,7 +86,7 @@ class RedisProgressTracker:
         # 保存初始状态
         self._save_progress()
 
-        logger.info(f"📊 [Redis进度] 初始化完成: {task_id}, 步骤数: {len(self.analysis_steps)}")
+        logger.info(f"[CHART] [Redis进度] 初始化完成: {task_id}, 步骤数: {len(self.analysis_steps)}")
 
     def _init_redis(self) -> bool:
         """初始化Redis连接"""
@@ -94,7 +94,7 @@ class RedisProgressTracker:
             # 检查REDIS_ENABLED环境变量
             redis_enabled = os.getenv('REDIS_ENABLED', 'false').lower() == 'true'
             if not redis_enabled:
-                logger.info(f"📊 [Redis进度] Redis未启用，使用文件存储")
+                logger.info(f"[CHART] [Redis进度] Redis未启用，使用文件存储")
                 return False
 
             import redis
@@ -124,10 +124,10 @@ class RedisProgressTracker:
 
             # 测试连接
             self.redis_client.ping()
-            logger.info(f"📊 [Redis进度] Redis连接成功: {redis_host}:{redis_port}")
+            logger.info(f"[CHART] [Redis进度] Redis连接成功: {redis_host}:{redis_port}")
             return True
         except Exception as e:
-            logger.warning(f"📊 [Redis进度] Redis连接失败，使用文件存储: {e}")
+            logger.warning(f"[CHART] [Redis进度] Redis连接失败，使用文件存储: {e}")
             return False
 
     def _generate_dynamic_steps(self) -> List[AnalysisStep]:
@@ -135,11 +135,11 @@ class RedisProgressTracker:
         steps: List[AnalysisStep] = []
         # 1) 基础准备阶段 (10%)
         steps.extend([
-            AnalysisStep("📋 准备阶段", "验证股票代码，检查数据源可用性", "pending", 0.03),
-            AnalysisStep("🔧 环境检查", "检查API密钥配置，确保数据获取正常", "pending", 0.02),
+            AnalysisStep("[CLIPBOARD] 准备阶段", "验证股票代码，检查数据源可用性", "pending", 0.03),
+            AnalysisStep("[CONFIG] 环境检查", "检查API密钥配置，确保数据获取正常", "pending", 0.02),
             AnalysisStep("💰 成本估算", "根据分析深度预估API调用成本", "pending", 0.01),
             AnalysisStep("⚙️ 参数设置", "配置分析参数和AI模型选择", "pending", 0.02),
-            AnalysisStep("🚀 启动引擎", "初始化AI分析引擎，准备开始分析", "pending", 0.02),
+            AnalysisStep("[START] 启动引擎", "初始化AI分析引擎，准备开始分析", "pending", 0.02),
         ])
         # 2) 分析师团队阶段 (35%) - 并行
         analyst_weight = 0.35 / max(len(self.analysts), 1)
@@ -154,22 +154,22 @@ class RedisProgressTracker:
             AnalysisStep("🐻 看跌研究员", "识别潜在风险和问题", "pending", debate_weight),
         ])
         for i in range(rounds):
-            steps.append(AnalysisStep(f"🎯 研究辩论 第{i+1}轮", "多头空头研究员深度辩论", "pending", debate_weight))
+            steps.append(AnalysisStep(f"[TARGET] 研究辩论 第{i+1}轮", "多头空头研究员深度辩论", "pending", debate_weight))
         steps.append(AnalysisStep("👔 研究经理", "综合辩论结果，形成研究共识", "pending", debate_weight))
         # 4) 交易团队阶段 (8%)
         steps.append(AnalysisStep("💼 交易员决策", "基于研究结果制定具体交易策略", "pending", 0.08))
         # 5) 风险管理团队阶段 (15%)
         risk_weight = 0.15 / 4
         steps.extend([
-            AnalysisStep("🔥 激进风险评估", "从激进角度评估投资风险", "pending", risk_weight),
+            AnalysisStep("[HOT] 激进风险评估", "从激进角度评估投资风险", "pending", risk_weight),
             AnalysisStep("🛡️ 保守风险评估", "从保守角度评估投资风险", "pending", risk_weight),
             AnalysisStep("⚖️ 中性风险评估", "从中性角度评估投资风险", "pending", risk_weight),
-            AnalysisStep("🎯 风险经理", "综合风险评估，制定风险控制策略", "pending", risk_weight),
+            AnalysisStep("[TARGET] 风险经理", "综合风险评估，制定风险控制策略", "pending", risk_weight),
         ])
         # 6) 最终决策阶段 (7%)
         steps.extend([
             AnalysisStep("📡 信号处理", "处理所有分析结果，生成交易信号", "pending", 0.04),
-            AnalysisStep("📊 生成报告", "整理分析结果，生成完整报告", "pending", 0.03),
+            AnalysisStep("[CHART] 生成报告", "整理分析结果，生成完整报告", "pending", 0.03),
         ])
         return steps
 
@@ -184,12 +184,12 @@ class RedisProgressTracker:
     def _get_analyst_step_info(self, analyst: str) -> Dict[str, str]:
         """获取分析师步骤信息（名称与描述）"""
         mapping = {
-            'market': {"name": "📊 市场分析师", "description": "分析股价走势、成交量、技术指标等市场表现"},
+            'market': {"name": "[CHART] 市场分析师", "description": "分析股价走势、成交量、技术指标等市场表现"},
             'fundamentals': {"name": "💼 基本面分析师", "description": "分析公司财务状况、盈利能力、成长性等基本面"},
             'news': {"name": "📰 新闻分析师", "description": "分析相关新闻、公告、行业动态对股价的影响"},
             'social': {"name": "💬 社交媒体分析师", "description": "分析社交媒体讨论、网络热度、散户情绪等"},
         }
-        return mapping.get(analyst, {"name": f"🔍 {analyst}分析师", "description": f"进行{analyst}相关的专业分析"})
+        return mapping.get(analyst, {"name": f"[SEARCH] {analyst}分析师", "description": f"进行{analyst}相关的专业分析"})
 
     def _estimate_step_time(self, step: AnalysisStep) -> float:
         """估算步骤执行时间（秒）"""
@@ -206,7 +206,7 @@ class RedisProgressTracker:
         4. 分析师之间有并行处理，不是线性叠加
         """
 
-        # 🔧 支持5个级别的分析深度
+        # [CONFIG] 支持5个级别的分析深度
         depth_map = {
             "快速": 1,  # 1级 - 快速分析
             "基础": 2,  # 2级 - 基础分析
@@ -216,7 +216,7 @@ class RedisProgressTracker:
         }
         d = depth_map.get(self.research_depth, 3)  # 默认标准分析
 
-        # 📊 基于实际测试数据的基础时间（秒）
+        # [CHART] 基于实际测试数据的基础时间（秒）
         # 这是单个分析师的基础耗时
         base_time_per_depth = {
             1: 150,  # 1级：2.5分钟（实测4-5分钟是多个分析师的情况）
@@ -226,7 +226,7 @@ class RedisProgressTracker:
             5: 480   # 5级：8分钟（前端显示：15-25分钟）
         }.get(d, 240)
 
-        # 📈 分析师数量影响系数（基于实际测试数据）
+        # [CHART-UP] 分析师数量影响系数（基于实际测试数据）
         # 实测：4级 + 3个分析师 = 11分钟 = 660秒
         # 反推：330秒 * multiplier = 660秒 => multiplier = 2.0
         analyst_count = len(self.analysts)
@@ -241,7 +241,7 @@ class RedisProgressTracker:
         else:
             analyst_multiplier = 2.4 + (analyst_count - 4) * 0.3  # 每增加1个分析师增加30%
 
-        # 🚀 模型速度影响（基于实际测试）
+        # [START] 模型速度影响（基于实际测试）
         model_mult = {
             'dashscope': 1.0,  # 阿里百炼速度适中
             'deepseek': 0.8,   # DeepSeek较快
@@ -515,7 +515,7 @@ def get_progress_by_id(task_id: str) -> Optional[Dict[str, Any]]:
                     progress_data = RedisProgressTracker._calculate_static_time_estimates(progress_data)
                     return progress_data
             except Exception as e:
-                logger.debug(f"📊 [Redis进度] Redis读取失败: {e}")
+                logger.debug(f"[CHART] [Redis进度] Redis读取失败: {e}")
 
         # 尝试从文件读取
         progress_file = f"./data/progress/{task_id}.json"
@@ -536,5 +536,5 @@ def get_progress_by_id(task_id: str) -> Optional[Dict[str, Any]]:
         return None
 
     except Exception as e:
-        logger.error(f"📊 [Redis进度] 获取进度失败: {task_id} - {e}")
+        logger.error(f"[CHART] [Redis进度] 获取进度失败: {task_id} - {e}")
         return None

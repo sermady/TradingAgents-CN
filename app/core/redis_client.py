@@ -39,10 +39,10 @@ async def init_redis():
 
         # 测试连接
         await redis_client.ping()
-        logger.info(f"✅ Redis连接成功建立 (max_connections={settings.REDIS_MAX_CONNECTIONS})")
+        logger.info(f"[OK] Redis连接成功建立 (max_connections={settings.REDIS_MAX_CONNECTIONS})")
 
     except Exception as e:
-        logger.error(f"❌ Redis连接失败: {e}")
+        logger.error(f"[FAIL] Redis连接失败: {e}")
         raise
 
 
@@ -55,9 +55,9 @@ async def close_redis():
             await redis_client.close()
         if redis_pool:
             await redis_pool.disconnect()
-        logger.info("✅ Redis连接已关闭")
+        logger.info("[OK] Redis连接已关闭")
     except Exception as e:
-        logger.error(f"❌ 关闭Redis连接时出错: {e}")
+        logger.error(f"[FAIL] 关闭Redis连接时出错: {e}")
 
 
 def get_redis() -> redis.Redis:

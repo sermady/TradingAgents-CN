@@ -52,7 +52,7 @@ class HKDataService:
 
     async def initialize(self):
         """初始化数据服务"""
-        logger.info("✅ 港股数据服务初始化完成")
+        logger.info("[OK] 港股数据服务初始化完成")
     
     async def get_stock_info(
         self, 
@@ -83,20 +83,20 @@ class HKDataService:
             if not force_refresh:
                 cached_info = await self._get_cached_info(normalized_code, source)
                 if cached_info:
-                    logger.debug(f"✅ 使用缓存数据: {normalized_code} ({source})")
+                    logger.debug(f"[OK] 使用缓存数据: {normalized_code} ({source})")
                     return cached_info
             
             # 从数据源获取
             provider = self.providers.get(source)
             if not provider:
-                logger.error(f"❌ 不支持的数据源: {source}")
+                logger.error(f"[FAIL] 不支持的数据源: {source}")
                 return None
             
-            logger.info(f"🔄 从 {source} 获取港股信息: {stock_code}")
+            logger.info(f"[SYNC] 从 {source} 获取港股信息: {stock_code}")
             stock_info = provider.get_stock_info(stock_code)
             
             if not stock_info or not stock_info.get('name'):
-                logger.warning(f"⚠️ 获取失败或数据无效: {stock_code} ({source})")
+                logger.warning(f"[WARN] 获取失败或数据无效: {stock_code} ({source})")
                 return None
             
             # 标准化并保存到缓存
@@ -107,11 +107,11 @@ class HKDataService:
             
             await self._save_to_cache(normalized_info)
             
-            logger.info(f"✅ 获取成功: {normalized_code} - {stock_info.get('name')} ({source})")
+            logger.info(f"[OK] 获取成功: {normalized_code} - {stock_info.get('name')} ({source})")
             return normalized_info
             
         except Exception as e:
-            logger.error(f"❌ 获取港股信息失败: {stock_code} ({source}): {e}")
+            logger.error(f"[FAIL] 获取港股信息失败: {stock_code} ({source}): {e}")
             return None
     
     async def _get_cached_info(self, code: str, source: str) -> Optional[Dict[str, Any]]:
@@ -128,7 +128,7 @@ class HKDataService:
             return cached
             
         except Exception as e:
-            logger.error(f"❌ 读取缓存失败: {code} ({source}): {e}")
+            logger.error(f"[FAIL] 读取缓存失败: {code} ({source}): {e}")
             return None
     
     async def _save_to_cache(self, stock_info: Dict[str, Any]) -> bool:
@@ -142,7 +142,7 @@ class HKDataService:
             return True
             
         except Exception as e:
-            logger.error(f"❌ 保存缓存失败: {stock_info.get('code')} ({stock_info.get('source')}): {e}")
+            logger.error(f"[FAIL] 保存缓存失败: {stock_info.get('code')} ({stock_info.get('source')}): {e}")
             return False
     
     def _normalize_stock_info(self, stock_info: Dict, source: str) -> Dict:

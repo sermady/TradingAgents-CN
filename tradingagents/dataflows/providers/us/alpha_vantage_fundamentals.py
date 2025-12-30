@@ -43,7 +43,7 @@ def get_fundamentals(
         >>> fundamentals = get_fundamentals("AAPL")
     """
     try:
-        logger.info(f"📊 [Alpha Vantage] 获取基本面数据: {ticker}")
+        logger.info(f"[CHART] [Alpha Vantage] 获取基本面数据: {ticker}")
         
         # 构建请求参数
         params = {
@@ -133,13 +133,13 @@ def get_fundamentals(
             result += f"**Analyst Rating Sell**: {data.get('AnalystRatingSell', 'N/A')}\n"
             result += f"**Analyst Rating Strong Sell**: {data.get('AnalystRatingStrongSell', 'N/A')}\n\n"
             
-            logger.info(f"✅ [Alpha Vantage] 成功获取基本面数据: {ticker}")
+            logger.info(f"[OK] [Alpha Vantage] 成功获取基本面数据: {ticker}")
             return result
         else:
             return format_response_as_string(data, f"Fundamentals for {ticker}")
             
     except Exception as e:
-        logger.error(f"❌ [Alpha Vantage] 获取基本面数据失败 {ticker}: {e}")
+        logger.error(f"[FAIL] [Alpha Vantage] 获取基本面数据失败 {ticker}: {e}")
         return f"Error retrieving fundamentals for {ticker}: {str(e)}"
 
 
@@ -160,7 +160,7 @@ def get_balance_sheet(
         格式化的资产负债表数据字符串
     """
     try:
-        logger.info(f"📊 [Alpha Vantage] 获取资产负债表: {ticker}")
+        logger.info(f"[CHART] [Alpha Vantage] 获取资产负债表: {ticker}")
         
         params = {"symbol": ticker.upper()}
         data = _make_api_request("BALANCE_SHEET", params)
@@ -168,7 +168,7 @@ def get_balance_sheet(
         return format_response_as_string(data, f"Balance Sheet for {ticker}")
         
     except Exception as e:
-        logger.error(f"❌ [Alpha Vantage] 获取资产负债表失败 {ticker}: {e}")
+        logger.error(f"[FAIL] [Alpha Vantage] 获取资产负债表失败 {ticker}: {e}")
         return f"Error retrieving balance sheet for {ticker}: {str(e)}"
 
 
@@ -189,7 +189,7 @@ def get_cashflow(
         格式化的现金流量表数据字符串
     """
     try:
-        logger.info(f"📊 [Alpha Vantage] 获取现金流量表: {ticker}")
+        logger.info(f"[CHART] [Alpha Vantage] 获取现金流量表: {ticker}")
         
         params = {"symbol": ticker.upper()}
         data = _make_api_request("CASH_FLOW", params)
@@ -197,7 +197,7 @@ def get_cashflow(
         return format_response_as_string(data, f"Cash Flow for {ticker}")
         
     except Exception as e:
-        logger.error(f"❌ [Alpha Vantage] 获取现金流量表失败 {ticker}: {e}")
+        logger.error(f"[FAIL] [Alpha Vantage] 获取现金流量表失败 {ticker}: {e}")
         return f"Error retrieving cash flow for {ticker}: {str(e)}"
 
 
@@ -218,7 +218,7 @@ def get_income_statement(
         格式化的利润表数据字符串
     """
     try:
-        logger.info(f"📊 [Alpha Vantage] 获取利润表: {ticker}")
+        logger.info(f"[CHART] [Alpha Vantage] 获取利润表: {ticker}")
         
         params = {"symbol": ticker.upper()}
         data = _make_api_request("INCOME_STATEMENT", params)
@@ -226,6 +226,6 @@ def get_income_statement(
         return format_response_as_string(data, f"Income Statement for {ticker}")
         
     except Exception as e:
-        logger.error(f"❌ [Alpha Vantage] 获取利润表失败 {ticker}: {e}")
+        logger.error(f"[FAIL] [Alpha Vantage] 获取利润表失败 {ticker}: {e}")
         return f"Error retrieving income statement for {ticker}: {str(e)}"
 

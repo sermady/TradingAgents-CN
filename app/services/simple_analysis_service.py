@@ -127,13 +127,13 @@ def get_provider_and_url_by_model_sync(model_name: str) -> dict:
                 if config_dict.get("model_name") == model_name:
                     provider = config_dict.get("provider")
                     api_base = config_dict.get("api_base")
-                    model_api_key = config_dict.get("api_key")  # 🔥 获取模型配置的 API Key
+                    model_api_key = config_dict.get("api_key")  # [HOT] 获取模型配置的 API Key
 
                     # 从 llm_providers 集合中查找厂家配置
                     providers_collection = db.llm_providers
                     provider_doc = providers_collection.find_one({"name": provider})
 
-                    # 🔥 确定 API Key（优先级：模型配置 > 厂家配置 > 环境变量）
+                    # [HOT] 确定 API Key（优先级：模型配置 > 厂家配置 > 环境变量）
                     api_key = None
                     if model_api_key and model_api_key.strip() and model_api_key != "your-api-key":
                         api_key = model_api_key
@@ -420,7 +420,7 @@ def create_analysis_config(
                 research_depth = "标准"
         # 如果已经是中文等级，直接使用
         elif research_depth in ["快速", "基础", "标准", "深度", "全面"]:
-            logger.info(f"📝 [等级确认] 使用中文等级: '{research_depth}'")
+            logger.info(f"[LOG] [等级确认] 使用中文等级: '{research_depth}'")
         else:
             logger.warning(f"[WARNING] 未知的研究深度: {research_depth}，使用默认标准分析")
             research_depth = "标准"
@@ -490,13 +490,13 @@ def create_analysis_config(
 
     # [INFO] 获取 backend_url 和 API Key（优先级：模型配置 > 厂家配置 > 环境变量）
     try:
-        # 1️⃣ 优先从数据库获取（包含模型配置的 api_base、API Key 和厂家的 default_base_url、API Key）
+        # [1] 优先从数据库获取（包含模型配置的 api_base、API Key 和厂家的 default_base_url、API Key）
         quick_provider_info = get_provider_and_url_by_model_sync(quick_model)
         deep_provider_info = get_provider_and_url_by_model_sync(deep_model)
 
         config["backend_url"] = quick_provider_info["backend_url"]
-        config["quick_api_key"] = quick_provider_info.get("api_key")  # 🔥 保存快速模型的 API Key
-        config["deep_api_key"] = deep_provider_info.get("api_key")    # 🔥 保存深度模型的 API Key
+        config["quick_api_key"] = quick_provider_info.get("api_key")  # [HOT] 保存快速模型的 API Key
+        config["deep_api_key"] = deep_provider_info.get("api_key")    # [HOT] 保存深度模型的 API Key
 
         logger.info(f"[SUCCESS] 使用数据库配置的 backend_url: {quick_provider_info['backend_url']}")
         logger.info(f"   来源: 模型 {quick_model} 的配置或厂家 {quick_provider_info['provider']} 的默认地址")
@@ -504,7 +504,7 @@ def create_analysis_config(
         logger.info(f"🔑 深度模型 API Key: {'已配置' if config['deep_api_key'] else '未配置（将使用环境变量）'}")
     except Exception as e:
         logger.warning(f"[WARNING]  无法从数据库获取 backend_url 和 API Key: {e}")
-        # 2️⃣ 回退到硬编码的默认 URL，API Key 将从环境变量读取
+        # [2] 回退到硬编码的默认 URL，API Key 将从环境变量读取
         if llm_provider == "dashscope":
             config["backend_url"] = "https://dashscope.aliyuncs.com/api/v1"
         elif llm_provider == "deepseek":
@@ -564,16 +564,16 @@ def create_analysis_config(
                    f"timeout={deep_model_config.get('timeout')}, "
                    f"retry_times={deep_model_config.get('retry_times')}")
 
-    logger.info(f"📋 ========== 创建分析配置完成 ==========")
-    logger.info(f"   🎯 研究深度: {research_depth}")
-    logger.info(f"   🔥 辩论轮次: {config['max_debate_rounds']}")
+    logger.info(f"[CLIPBOARD] ========== 创建分析配置完成 ==========")
+    logger.info(f"   [TARGET] 研究深度: {research_depth}")
+    logger.info(f"   [HOT] 辩论轮次: {config['max_debate_rounds']}")
     logger.info(f"   ⚖️ 风险讨论轮次: {config['max_risk_discuss_rounds']}")
-    logger.info(f"   💾 记忆功能: {config['memory_enabled']}")
-    logger.info(f"   🌐 在线工具: {config['online_tools']}")
+    logger.info(f"   [SAVE] 记忆功能: {config['memory_enabled']}")
+    logger.info(f"   [WEB] 在线工具: {config['online_tools']}")
     logger.info(f"   🤖 LLM供应商: {llm_provider}")
-    logger.info(f"   ⚡ 快速模型: {config['quick_think_llm']}")
+    logger.info(f"   [FAST] 快速模型: {config['quick_think_llm']}")
     logger.info(f"   🧠 深度模型: {config['deep_think_llm']}")
-    logger.info(f"📋 ========================================")
+    logger.info(f"[CLIPBOARD] ========================================")
 
     return config
 
@@ -732,7 +732,7 @@ class SimpleAnalysisService:
             if not stock_code:
                 raise ValueError("股票代码不能为空")
 
-            logger.info(f"📝 创建分析任务: {task_id} - {stock_code}")
+            logger.info(f"[LOG] 创建分析任务: {task_id} - {stock_code}")
             logger.info(f"[DEBUG] 内存管理器实例ID: {id(self.memory_manager)}")
 
             # 在内存中创建任务状态
@@ -808,8 +808,8 @@ class SimpleAnalysisService:
 
         # 添加最外层的异常捕获，确保所有异常都被记录
         try:
-            logger.info(f"🎯🎯🎯 [ENTRY] execute_analysis_background 方法被调用: {task_id}")
-            logger.info(f"🎯🎯🎯 [ENTRY] user_id={user_id}, stock_code={stock_code}")
+            logger.info(f"[TARGET][TARGET][TARGET] [ENTRY] execute_analysis_background 方法被调用: {task_id}")
+            logger.info(f"[TARGET][TARGET][TARGET] [ENTRY] user_id={user_id}, stock_code={stock_code}")
         except Exception as entry_error:
             print(f"[ERROR][ERROR][ERROR] [CRITICAL] 日志记录失败: {entry_error}")
             import traceback
@@ -817,7 +817,7 @@ class SimpleAnalysisService:
 
         progress_tracker = None
         try:
-            logger.info(f"🚀 开始后台执行分析任务: {task_id}")
+            logger.info(f"[START] 开始后台执行分析任务: {task_id}")
 
             # [DEBUG] 验证股票代码是否存在
             logger.info(f"[DEBUG] 开始验证股票代码: {stock_code}")
@@ -844,7 +844,7 @@ class SimpleAnalysisService:
                         analysis_date = datetime.now().strftime('%Y-%m-%d')
                         logger.warning(f"[WARNING] 分析日期格式不正确，使用今天: {analysis_date}")
 
-            # 🔥 使用异步版本，直接 await，避免事件循环冲突
+            # [HOT] 使用异步版本，直接 await，避免事件循环冲突
             validation_result = await prepare_stock_data_async(
                 stock_code=stock_code,
                 market_type=market_type,
@@ -884,8 +884,8 @@ class SimpleAnalysisService:
 
             logger.info(f"[SUCCESS] 股票代码验证通过: {stock_code} - {validation_result.stock_name}")
             logger.info(f"[INFO] 市场类型: {validation_result.market_type}")
-            logger.info(f"📈 历史数据: {'有' if validation_result.has_historical_data else '无'}")
-            logger.info(f"📋 基本信息: {'有' if validation_result.has_basic_info else '无'}")
+            logger.info(f"[CHART-UP] 历史数据: {'有' if validation_result.has_historical_data else '无'}")
+            logger.info(f"[CLIPBOARD] 基本信息: {'有' if validation_result.has_basic_info else '无'}")
 
             # 在线程池中创建Redis进度跟踪器（避免阻塞事件循环）
             def create_progress_tracker():
@@ -913,7 +913,7 @@ class SimpleAnalysisService:
                 progress_tracker.update_progress,
                 {
                     "progress_percentage": 10,
-                    "last_message": "🚀 开始股票分析"
+                    "last_message": "[START] 开始股票分析"
                 }
             )
 
@@ -956,7 +956,7 @@ class SimpleAnalysisService:
 
             # 保存分析结果到文件和数据库
             try:
-                logger.info(f"💾 开始保存分析结果: {task_id}")
+                logger.info(f"[SAVE] 开始保存分析结果: {task_id}")
                 await self._save_analysis_results_complete(task_id, result)
                 logger.info(f"[SUCCESS] 分析结果保存完成: {task_id}")
             except Exception as save_error:
@@ -1061,7 +1061,7 @@ class SimpleAnalysisService:
         # [INFO] 使用共享线程池，支持多个任务并发执行
         # 不再每次创建新的线程池，避免串行执行
         loop = asyncio.get_event_loop()
-        logger.info(f"🚀 [线程池] 提交分析任务到共享线程池: {task_id} - {request.stock_code}")
+        logger.info(f"[START] [线程池] 提交分析任务到共享线程池: {task_id} - {request.stock_code}")
         result = await loop.run_in_executor(
             self._thread_pool,  # 使用共享线程池
             self._run_analysis_sync,
@@ -1107,7 +1107,7 @@ class SimpleAnalysisService:
                             "last_message": message
                         })
 
-                    # 🔥 使用 run_coroutine_threadsafe 调度回主事件循环更新内存状态
+                    # [HOT] 使用 run_coroutine_threadsafe 调度回主事件循环更新内存状态
                     if main_loop and not main_loop.is_closed():
                         asyncio.run_coroutine_threadsafe(
                             self.memory_manager.update_task_status(
@@ -1182,7 +1182,7 @@ class SimpleAnalysisService:
                 quick_model = request.parameters.quick_analysis_model
                 deep_model = request.parameters.deep_analysis_model
 
-                logger.info(f"📝 [分析服务] 用户指定模型: quick={quick_model}, deep={deep_model}")
+                logger.info(f"[LOG] [分析服务] 用户指定模型: quick={quick_model}, deep={deep_model}")
 
                 # 验证模型是否合适
                 validation = capability_service.validate_model_pair(
@@ -1259,8 +1259,8 @@ class SimpleAnalysisService:
             logger.info(f"[DEBUG] [模型验证] 配置中的深度模型: {config.get('deep_think_llm')}")
             logger.info(f"[DEBUG] [模型验证] 配置中的LLM供应商: {config.get('llm_provider')}")
 
-            # 初始化分析引擎 - 对应步骤4 "🚀 启动引擎" (8-10%)
-            update_progress_sync(9, "🚀 初始化AI分析引擎", "engine_initialization")
+            # 初始化分析引擎 - 对应步骤4 "[START] 启动引擎" (8-10%)
+            update_progress_sync(9, "[START] 初始化AI分析引擎", "engine_initialization")
             trading_graph = self._get_trading_graph(config)
 
             # [DEBUG] 验证TradingGraph实例中的配置
@@ -1312,10 +1312,10 @@ class SimpleAnalysisService:
                 # 交易员阶段 (70% → 78%)
                 "💼 交易员决策": 78,         # 70% + 8%
                 # 风险评估阶段 (78% → 93%)
-                "🔥 激进风险评估": 81.75,    # 78% + 3.75%
+                "[HOT] 激进风险评估": 81.75,    # 78% + 3.75%
                 "🛡️ 保守风险评估": 85.5,    # 78% + 7.5%
                 "⚖️ 中性风险评估": 89.25,   # 78% + 11.25%
-                "🎯 风险经理": 93,           # 78% + 15%
+                "[TARGET] 风险经理": 93,           # 78% + 15%
                 # 最终阶段 (93% → 100%)
                 "[INFO] 生成报告": 97,           # 93% + 4%
             }
@@ -1327,7 +1327,7 @@ class SimpleAnalysisService:
                 注意：只在进度增加时更新，避免覆盖 RedisProgressTracker 的虚拟步骤进度
                 """
                 try:
-                    logger.info(f"🎯🎯🎯 [Graph进度回调被调用] message={message}")
+                    logger.info(f"[TARGET][TARGET][TARGET] [Graph进度回调被调用] message={message}")
                     if not progress_tracker:
                         logger.warning(f"[WARNING] progress_tracker 为 None，无法更新进度")
                         return
@@ -1348,7 +1348,7 @@ class SimpleAnalysisService:
                             })
                             logger.info(f"[INFO] [Graph进度] 进度已更新: {current_progress}% → {int(progress_pct)}% - {message}")
 
-                            # 🔥 同时更新内存和 MongoDB
+                            # [HOT] 同时更新内存和 MongoDB
                             try:
                                 import asyncio
                                 from datetime import datetime
@@ -1419,7 +1419,7 @@ class SimpleAnalysisService:
                 except Exception as e:
                     logger.error(f"[ERROR] Graph进度回调失败: {e}", exc_info=True)
 
-            logger.info(f"🚀 准备调用 trading_graph.propagate，progress_callback={graph_progress_callback}")
+            logger.info(f"[START] 准备调用 trading_graph.propagate，progress_callback={graph_progress_callback}")
 
             # 执行实际分析，传递进度回调和task_id
             state, decision = trading_graph.propagate(
@@ -1581,7 +1581,7 @@ class SimpleAnalysisService:
                 except Exception as fallback_error:
                     logger.warning(f"[WARNING] 降级提取也失败: {fallback_error}")
 
-            # 🔥 格式化decision数据（参考web目录的实现）
+            # [HOT] 格式化decision数据（参考web目录的实现）
             formatted_decision = {}
             try:
                 if isinstance(decision, dict):
@@ -1622,7 +1622,7 @@ class SimpleAnalysisService:
                         'reasoning': decision.get('reasoning', '暂无分析推理')
                     }
 
-                    logger.info(f"🎯 [DEBUG] 格式化后的decision: {formatted_decision}")
+                    logger.info(f"[TARGET] [DEBUG] 格式化后的decision: {formatted_decision}")
                 else:
                     # 处理其他类型
                     formatted_decision = {
@@ -1643,7 +1643,7 @@ class SimpleAnalysisService:
                     'reasoning': '暂无分析推理'
                 }
 
-            # 🔥 按照web目录的方式生成summary和recommendation
+            # [HOT] 按照web目录的方式生成summary和recommendation
             summary = ""
             recommendation = ""
 
@@ -1655,7 +1655,7 @@ class SimpleAnalysisService:
                     summary = final_decision_content[:200].replace('#', '').replace('*', '').strip()
                     if len(final_decision_content) > 200:
                         summary += "..."
-                    logger.info(f"📝 [SUMMARY] 从final_trade_decision提取摘要: {len(summary)}字符")
+                    logger.info(f"[LOG] [SUMMARY] 从final_trade_decision提取摘要: {len(summary)}字符")
 
             # 2. 如果没有final_trade_decision，从state中提取
             if not summary and isinstance(state, dict):
@@ -1664,7 +1664,7 @@ class SimpleAnalysisService:
                     summary = final_decision[:200].replace('#', '').replace('*', '').strip()
                     if len(final_decision) > 200:
                         summary += "..."
-                    logger.info(f"📝 [SUMMARY] 从state.final_trade_decision提取摘要: {len(summary)}字符")
+                    logger.info(f"[LOG] [SUMMARY] 从state.final_trade_decision提取摘要: {len(summary)}字符")
 
             # 3. 生成recommendation（从decision的reasoning）
             if isinstance(formatted_decision, dict):
@@ -1688,7 +1688,7 @@ class SimpleAnalysisService:
                         summary = content[:200].replace('#', '').replace('*', '').strip()
                         if len(content) > 200:
                             summary += "..."
-                        logger.info(f"📝 [SUMMARY] 从{report_name}提取摘要: {len(summary)}字符")
+                        logger.info(f"[LOG] [SUMMARY] 从{report_name}提取摘要: {len(summary)}字符")
                         break
 
             # 5. 最后的备用方案
@@ -1723,9 +1723,9 @@ class SimpleAnalysisService:
                 "research_depth": request.parameters.research_depth if request.parameters else "快速",
                 # 添加提取的报告内容
                 "reports": reports,
-                # 🔥 关键修复：添加格式化后的decision字段！
+                # [HOT] 关键修复：添加格式化后的decision字段！
                 "decision": formatted_decision,
-                # 🔥 添加模型信息字段
+                # [HOT] 添加模型信息字段
                 "model_info": model_info,
                 # 🆕 性能指标数据
                 "performance_metrics": state.get("performance_metrics", {}) if isinstance(state, dict) else {}
@@ -1814,7 +1814,7 @@ class SimpleAnalysisService:
                     current_step_info = steps[current_step_index]
                     current_step_name = current_step_info.get('name', '')
                     current_step_description = current_step_info.get('description', '')
-                    logger.info(f"📋 从steps数组提取当前步骤信息: index={current_step_index}, name={current_step_name}")
+                    logger.info(f"[CLIPBOARD] 从steps数组提取当前步骤信息: index={current_step_index}, name={current_step_name}")
 
                 # 合并Redis进度数据
                 result.update({
@@ -1884,13 +1884,13 @@ class SimpleAnalysisService:
                     task_status = None
 
             # 1) 从内存读取所有任务
-            logger.info(f"📋 [Tasks] 准备从内存读取所有任务: status={status}, limit={limit}, offset={offset}")
+            logger.info(f"[CLIPBOARD] [Tasks] 准备从内存读取所有任务: status={status}, limit={limit}, offset={offset}")
             tasks_in_mem = await self.memory_manager.list_all_tasks(
                 status=task_status,
                 limit=limit * 2,
                 offset=0
             )
-            logger.info(f"📋 [Tasks] 内存返回数量: {len(tasks_in_mem)}")
+            logger.info(f"[CLIPBOARD] [Tasks] 内存返回数量: {len(tasks_in_mem)}")
 
             # 2) 从 MongoDB 读取任务
             db = get_mongo_db()
@@ -1901,7 +1901,7 @@ class SimpleAnalysisService:
                 query["status"] = task_status.value
 
             count = await collection.count_documents(query)
-            logger.info(f"📋 [Tasks] MongoDB 任务总数: {count}")
+            logger.info(f"[CLIPBOARD] [Tasks] MongoDB 任务总数: {count}")
 
             cursor = collection.find(query).sort("start_time", -1).limit(limit * 2)
             tasks_from_db = []
@@ -1909,7 +1909,7 @@ class SimpleAnalysisService:
                 doc.pop("_id", None)
                 tasks_from_db.append(doc)
 
-            logger.info(f"📋 [Tasks] MongoDB 返回数量: {len(tasks_from_db)}")
+            logger.info(f"[CLIPBOARD] [Tasks] MongoDB 返回数量: {len(tasks_from_db)}")
 
             # 3) 合并任务（内存优先）
             task_dict = {}
@@ -1935,7 +1935,7 @@ class SimpleAnalysisService:
 
             # 为结果补齐股票名称
             results = self._enrich_stock_names(results)
-            logger.info(f"📋 [Tasks] 合并后返回数量: {len(results)} (内存: {len(tasks_in_mem)}, MongoDB: {count})")
+            logger.info(f"[CLIPBOARD] [Tasks] 合并后返回数量: {len(results)} (内存: {len(tasks_in_mem)}, MongoDB: {count})")
             return results
         except Exception as outer_e:
             logger.error(f"[ERROR] list_all_tasks 外层异常: {outer_e}", exc_info=True)
@@ -1972,20 +1972,20 @@ class SimpleAnalysisService:
                     task_status = None
 
             # 1) 从内存读取任务
-            logger.info(f"📋 [Tasks] 准备从内存读取任务: user_id={user_id}, status={status} (mapped to {task_status}), limit={limit}, offset={offset}")
+            logger.info(f"[CLIPBOARD] [Tasks] 准备从内存读取任务: user_id={user_id}, status={status} (mapped to {task_status}), limit={limit}, offset={offset}")
             tasks_in_mem = await self.memory_manager.list_user_tasks(
                 user_id=user_id,
                 status=task_status,
                 limit=limit * 2,  # 多读一些，后面合并去重
                 offset=0  # 内存中的任务不多，全部读取
             )
-            logger.info(f"📋 [Tasks] 内存返回数量: {len(tasks_in_mem)}")
+            logger.info(f"[CLIPBOARD] [Tasks] 内存返回数量: {len(tasks_in_mem)}")
 
             # 2) [INFO] 对于 processing/running 状态，需要合并 MongoDB 数据以获取最新进度
             # 因为 graph_progress_callback 可能直接更新了 MongoDB，而内存数据可能是旧的
 
             # 3) 从 MongoDB 读取历史任务（用于合并或兜底）
-            logger.info(f"📋 [Tasks] 从 MongoDB 读取历史任务")
+            logger.info(f"[CLIPBOARD] [Tasks] 从 MongoDB 读取历史任务")
             mongo_tasks: List[Dict[str, Any]] = []
             count = 0
             try:
@@ -2002,7 +2002,7 @@ class SimpleAnalysisService:
                         admin_oid_str = '507f1f77bcf86cd799439011'
                         uid_candidates.append(ObjectId(admin_oid_str))
                         uid_candidates.append(admin_oid_str)  # 兼容字符串存储
-                        logger.info(f"📋 [Tasks] admin用户查询，候选ID: ['admin', ObjectId('{admin_oid_str}'), '{admin_oid_str}']")
+                        logger.info(f"[CLIPBOARD] [Tasks] admin用户查询，候选ID: ['admin', ObjectId('{admin_oid_str}'), '{admin_oid_str}']")
                     except Exception as e:
                         logger.warning(f"[WARNING] [Tasks] admin用户ObjectId创建失败: {e}")
                 else:
@@ -2010,7 +2010,7 @@ class SimpleAnalysisService:
                     try:
                         from bson import ObjectId
                         uid_candidates.append(ObjectId(user_id))
-                        logger.debug(f"📋 [Tasks] 用户ID已转换为ObjectId: {user_id}")
+                        logger.debug(f"[CLIPBOARD] [Tasks] 用户ID已转换为ObjectId: {user_id}")
                     except Exception as conv_err:
                         logger.warning(f"[WARNING] [Tasks] 用户ID转换ObjectId失败，按字符串匹配: {conv_err}")
 
@@ -2025,9 +2025,9 @@ class SimpleAnalysisService:
                 if task_status:
                     # 使用映射后的状态值（TaskStatus枚举的value）
                     query["status"] = task_status.value
-                    logger.info(f"📋 [Tasks] 添加状态过滤: {task_status.value}")
+                    logger.info(f"[CLIPBOARD] [Tasks] 添加状态过滤: {task_status.value}")
 
-                logger.info(f"📋 [Tasks] MongoDB 查询条件: {query}")
+                logger.info(f"[CLIPBOARD] [Tasks] MongoDB 查询条件: {query}")
                 # 读取更多数据用于合并
                 cursor = db.analysis_tasks.find(query).sort("created_at", -1).limit(limit * 2)
                 async for doc in cursor:
@@ -2067,7 +2067,7 @@ class SimpleAnalysisService:
                             item[k] = dt.isoformat()
                     mongo_tasks.append(item)
 
-                logger.info(f"📋 [Tasks] MongoDB 返回数量: {count}")
+                logger.info(f"[CLIPBOARD] [Tasks] MongoDB 返回数量: {count}")
             except Exception as mongo_e:
                 logger.error(f"[ERROR] MongoDB 查询任务列表失败: {mongo_e}", exc_info=True)
                 # MongoDB 查询失败，继续使用内存数据
@@ -2114,7 +2114,7 @@ class SimpleAnalysisService:
             # 分页
             results = merged_tasks[offset:offset + limit]
 
-            # 🔥 统一处理时区信息（确保所有时间字段都有时区标识）
+            # [HOT] 统一处理时区信息（确保所有时间字段都有时区标识）
             from datetime import timezone, timedelta
             china_tz = timezone(timedelta(hours=8))
 
@@ -2136,7 +2136,7 @@ class SimpleAnalysisService:
 
             # 为结果补齐股票名称
             results = self._enrich_stock_names(results)
-            logger.info(f"📋 [Tasks] 合并后返回数量: {len(results)} (内存: {len(tasks_in_mem)}, MongoDB: {count})")
+            logger.info(f"[CLIPBOARD] [Tasks] 合并后返回数量: {len(results)} (内存: {len(tasks_in_mem)}, MongoDB: {count})")
             return results
         except Exception as outer_e:
             logger.error(f"[ERROR] list_user_tasks 外层异常: {outer_e}", exc_info=True)
@@ -2250,7 +2250,7 @@ class SimpleAnalysisService:
 
                 zombie_tasks.append(task)
 
-            logger.info(f"📋 查询到 {len(zombie_tasks)} 个僵尸任务")
+            logger.info(f"[CLIPBOARD] 查询到 {len(zombie_tasks)} 个僵尸任务")
             return zombie_tasks
 
         except Exception as e:
@@ -2301,7 +2301,7 @@ class SimpleAnalysisService:
                 {"task_id": task_id},
                 {"$set": {"result": result}}
             )
-            logger.debug(f"💾 分析结果已保存: {task_id}")
+            logger.debug(f"[SAVE] 分析结果已保存: {task_id}")
         except Exception as e:
             logger.error(f"[ERROR] 保存分析结果失败: {task_id} - {e}")
 
@@ -2446,7 +2446,7 @@ class SimpleAnalysisService:
                         except Exception as fallback_error:
                             logger.warning(f"[WARNING] 降级提取也失败: {fallback_error}")
 
-            # 🔥 根据股票代码推断市场类型
+            # [HOT] 根据股票代码推断市场类型
             from tradingagents.utils.stock_utils import StockUtils
             market_info = StockUtils.get_market_info(stock_symbol)
             market_type_map = {
@@ -2458,7 +2458,7 @@ class SimpleAnalysisService:
             market_type = market_type_map.get(market_info.get("market", "unknown"), "A股")
             logger.info(f"[INFO] 推断市场类型: {stock_symbol} -> {market_type}")
 
-            # 🔥 获取股票名称
+            # [HOT] 获取股票名称
             stock_name = stock_symbol  # 默认使用股票代码
             try:
                 if market_info.get("market") == "china_a":
@@ -2508,9 +2508,9 @@ class SimpleAnalysisService:
             document = {
                 "analysis_id": analysis_id,
                 "stock_symbol": stock_symbol,
-                "stock_name": stock_name,  # 🔥 添加股票名称字段
-                "market_type": market_type,  # 🔥 添加市场类型字段
-                "model_info": result.get("model_info", "Unknown"),  # 🔥 添加模型信息字段
+                "stock_name": stock_name,  # [HOT] 添加股票名称字段
+                "market_type": market_type,  # [HOT] 添加市场类型字段
+                "model_info": result.get("model_info", "Unknown"),  # [HOT] 添加模型信息字段
                 "analysis_date": timestamp.strftime('%Y-%m-%d'),
                 "timestamp": timestamp,
                 "status": "completed",
@@ -2524,7 +2524,7 @@ class SimpleAnalysisService:
                 # 报告内容
                 "reports": reports,
 
-                # 🔥 关键修复：添加格式化后的decision字段！
+                # [HOT] 关键修复：添加格式化后的decision字段！
                 "decision": result.get("decision", {}),
 
                 # 元数据
@@ -2567,11 +2567,11 @@ class SimpleAnalysisService:
                         "execution_time": result.get("execution_time", 0),
                         "tokens_used": result.get("tokens_used", 0),
                         "reports": reports,  # 包含提取的报告内容
-                        # 🔥 关键修复：添加格式化后的decision字段！
+                        # [HOT] 关键修复：添加格式化后的decision字段！
                         "decision": result.get("decision", {})
                     }}}
                 )
-                logger.info(f"💾 分析结果已保存 (web风格): {task_id}")
+                logger.info(f"[SAVE] 分析结果已保存 (web风格): {task_id}")
             else:
                 logger.error("[ERROR] MongoDB插入失败")
 
@@ -2589,7 +2589,7 @@ class SimpleAnalysisService:
                     {"task_id": task_id},
                     {"$set": {"result": simple_result}}
                 )
-                logger.info(f"💾 使用简化结果保存: {task_id}")
+                logger.info(f"[SAVE] 使用简化结果保存: {task_id}")
             except Exception as fallback_error:
                 logger.error(f"[ERROR] 简化保存也失败: {task_id} - {fallback_error}")
 
@@ -2603,10 +2603,10 @@ class SimpleAnalysisService:
 
             # 优先使用stock_symbol，如果没有则使用stock_code
             stock_symbol = result.get('stock_symbol') or result.get('stock_code', 'UNKNOWN')
-            logger.info(f"💾 开始完整保存分析结果: {stock_symbol}")
+            logger.info(f"[SAVE] 开始完整保存分析结果: {stock_symbol}")
 
             # 1. 保存分模块报告到本地目录
-            logger.info(f"📁 [本地保存] 开始保存分模块报告到本地目录")
+            logger.info(f"[FOLDER] [本地保存] 开始保存分模块报告到本地目录")
             local_files = await self._save_modular_reports_to_data_dir(result, stock_symbol)
             if local_files:
                 logger.info(f"[SUCCESS] [本地保存] 已保存 {len(local_files)} 个本地报告文件")
@@ -2631,7 +2631,7 @@ class SimpleAnalysisService:
             # 降级到仅数据库保存
             try:
                 await self._save_analysis_result_web_style(task_id, result)
-                logger.info(f"💾 降级保存成功 (仅数据库): {task_id}")
+                logger.info(f"[SAVE] 降级保存成功 (仅数据库): {task_id}")
             except Exception as fallback_error:
                 logger.error(f"[ERROR] 降级保存也失败: {task_id} - {fallback_error}")
 
@@ -2684,7 +2684,7 @@ class SimpleAnalysisService:
             log_file = stock_dir / "message_tool.log"
             log_file.touch(exist_ok=True)
 
-            logger.info(f"📁 创建分析结果目录: {reports_dir}")
+            logger.info(f"[FOLDER] 创建分析结果目录: {reports_dir}")
             logger.info(f"[DEBUG] [调试] analysis_date_raw 类型: {type(analysis_date_raw)}, 值: {analysis_date_raw}")
             logger.info(f"[DEBUG] [调试] analysis_date_str: {analysis_date_str}")
             logger.info(f"[DEBUG] [调试] 完整路径: {os.path.normpath(str(reports_dir))}")
@@ -2804,7 +2804,7 @@ class SimpleAnalysisService:
 
             logger.info(f"[SUCCESS] 保存分析元数据: {metadata_file}")
             logger.info(f"[SUCCESS] 分模块报告保存完成，共保存 {len(saved_files)} 个文件")
-            logger.info(f"📁 保存目录: {os.path.normpath(str(reports_dir))}")
+            logger.info(f"[FOLDER] 保存目录: {os.path.normpath(str(reports_dir))}")
 
             return saved_files
 

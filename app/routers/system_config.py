@@ -77,18 +77,18 @@ async def validate_config():
     from app.services.config_service import config_service
 
     try:
-        # 🔧 步骤1: 重载配置 - 从 MongoDB 读取配置并桥接到环境变量
+        # [CONFIG] 步骤1: 重载配置 - 从 MongoDB 读取配置并桥接到环境变量
         try:
             bridge_config_to_env()
-            logger.info("✅ 配置已从 MongoDB 重载到环境变量")
+            logger.info("[OK] 配置已从 MongoDB 重载到环境变量")
         except Exception as e:
-            logger.warning(f"⚠️  配置重载失败: {e}，将验证 .env 文件中的配置")
+            logger.warning(f"[WARN]  配置重载失败: {e}，将验证 .env 文件中的配置")
 
-        # 🔍 步骤2: 验证环境变量配置
+        # [SEARCH] 步骤2: 验证环境变量配置
         validator = StartupValidator()
         env_result = validator.validate()
 
-        # 🔍 步骤3: 验证 MongoDB 中的配置（厂家级别）
+        # [SEARCH] 步骤3: 验证 MongoDB 中的配置（厂家级别）
         mongodb_validation = {
             "llm_providers": [],
             "data_source_configs": [],
@@ -101,7 +101,7 @@ async def validate_config():
                 get_env_api_key_for_provider
             )
 
-            # 🔥 修改：直接从数据库读取原始数据，避免使用 get_llm_providers() 返回的已修改数据
+            # [HOT] 修改：直接从数据库读取原始数据，避免使用 get_llm_providers() 返回的已修改数据
             # get_llm_providers() 会将环境变量的 Key 赋值给 provider.api_key，导致无法区分来源
             from pymongo import MongoClient
             from app.core.config import settings
@@ -119,7 +119,7 @@ async def validate_config():
             # 关闭同步客户端
             client.close()
 
-            logger.info(f"🔍 获取到 {len(llm_providers)} 个大模型厂家")
+            logger.info(f"[SEARCH] 获取到 {len(llm_providers)} 个大模型厂家")
 
             for provider in llm_providers:
                 # 只验证已启用的厂家
@@ -137,7 +137,7 @@ async def validate_config():
                     "env_configured": False  # 环境变量是否配置
                 }
 
-                # 🔥 关键：检查数据库中的原始 API Key 是否有效
+                # [HOT] 关键：检查数据库中的原始 API Key 是否有效
                 db_key_valid = is_valid_api_key(provider.api_key)
                 validation_item["mongodb_configured"] = db_key_valid
 
@@ -177,7 +177,7 @@ async def validate_config():
 
             system_config = await config_service.get_system_config()
             if system_config and system_config.data_source_configs:
-                logger.info(f"🔍 获取到 {len(system_config.data_source_configs)} 个数据源配置")
+                logger.info(f"[SEARCH] 获取到 {len(system_config.data_source_configs)} 个数据源配置")
 
                 for ds_config in system_config.data_source_configs:
                     # 只验证已启用的数据源
@@ -241,9 +241,9 @@ async def validate_config():
             mongodb_validation["warnings"].append(f"MongoDB 配置验证失败: {str(e)}")
 
         # 合并验证结果
-        logger.info(f"🔍 MongoDB 验证结果: {len(mongodb_validation['llm_providers'])} 个大模型厂家, {len(mongodb_validation['data_source_configs'])} 个数据源, {len(mongodb_validation['warnings'])} 个警告")
+        logger.info(f"[SEARCH] MongoDB 验证结果: {len(mongodb_validation['llm_providers'])} 个大模型厂家, {len(mongodb_validation['data_source_configs'])} 个数据源, {len(mongodb_validation['warnings'])} 个警告")
 
-        # 🔥 修改：只有必需配置有问题时才认为验证失败
+        # [HOT] 修改：只有必需配置有问题时才认为验证失败
         # MongoDB 配置警告（推荐配置）不影响总体验证结果
         # 只有环境变量中的必需配置缺失或无效时才显示红色错误
         overall_success = env_result.success

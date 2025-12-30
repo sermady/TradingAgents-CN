@@ -14,7 +14,7 @@ from app.services.auth_service import AuthService
 router = APIRouter()
 logger = logging.getLogger("webapi.websocket")
 
-# 🔥 全局 WebSocket 连接管理器
+# [HOT] 全局 WebSocket 连接管理器
 class ConnectionManager:
     """WebSocket 连接管理器"""
     
@@ -33,7 +33,7 @@ class ConnectionManager:
             self.active_connections[user_id].add(websocket)
             
             total_connections = sum(len(conns) for conns in self.active_connections.values())
-            logger.info(f"✅ [WS] 新连接: user={user_id}, "
+            logger.info(f"[OK] [WS] 新连接: user={user_id}, "
                        f"该用户连接数={len(self.active_connections[user_id])}, "
                        f"总连接数={total_connections}")
     
@@ -46,13 +46,13 @@ class ConnectionManager:
                     del self.active_connections[user_id]
             
             total_connections = sum(len(conns) for conns in self.active_connections.values())
-            logger.info(f"🔌 [WS] 断开连接: user={user_id}, 总连接数={total_connections}")
+            logger.info(f"[PORT] [WS] 断开连接: user={user_id}, 总连接数={total_connections}")
     
     async def send_personal_message(self, message: dict, user_id: str):
         """发送消息给指定用户的所有连接"""
         async with self._lock:
             if user_id not in self.active_connections:
-                logger.debug(f"⚠️ [WS] 用户 {user_id} 没有活跃连接")
+                logger.debug(f"[WARN] [WS] 用户 {user_id} 没有活跃连接")
                 return
             
             connections = list(self.active_connections[user_id])
@@ -64,9 +64,9 @@ class ConnectionManager:
         for connection in connections:
             try:
                 await connection.send_text(message_json)
-                logger.debug(f"📤 [WS] 发送消息给 user={user_id}")
+                logger.debug(f"[EXPORT] [WS] 发送消息给 user={user_id}")
             except Exception as e:
-                logger.warning(f"❌ [WS] 发送消息失败: {e}")
+                logger.warning(f"[FAIL] [WS] 发送消息失败: {e}")
                 dead_connections.append(connection)
         
         # 清理死连接
@@ -91,7 +91,7 @@ class ConnectionManager:
             try:
                 await connection.send_text(message_json)
             except Exception as e:
-                logger.warning(f"❌ [WS] 广播消息失败: {e}")
+                logger.warning(f"[FAIL] [WS] 广播消息失败: {e}")
     
     def get_stats(self) -> dict:
         """获取连接统计"""
@@ -176,12 +176,12 @@ async def websocket_notifications_endpoint(
             try:
                 data = await websocket.receive_text()
                 # 可以处理客户端发送的消息（如 ping/pong）
-                logger.debug(f"📥 [WS] 收到客户端消息: user={user_id}, data={data}")
+                logger.debug(f"[IMPORT] [WS] 收到客户端消息: user={user_id}, data={data}")
             except WebSocketDisconnect:
-                logger.info(f"🔌 [WS] 客户端主动断开: user={user_id}")
+                logger.info(f"[PORT] [WS] 客户端主动断开: user={user_id}")
                 break
             except Exception as e:
-                logger.error(f"❌ [WS] 接收消息错误: {e}")
+                logger.error(f"[FAIL] [WS] 接收消息错误: {e}")
                 break
     
     finally:
@@ -232,7 +232,7 @@ async def websocket_task_progress_endpoint(
     
     # 连接 WebSocket
     await websocket.accept()
-    logger.info(f"✅ [WS-Task] 新连接: task={task_id}, user={user_id}")
+    logger.info(f"[OK] [WS-Task] 新连接: task={task_id}, user={user_id}")
     
     # 发送连接确认
     await websocket.send_json({
@@ -250,16 +250,16 @@ async def websocket_task_progress_endpoint(
         while True:
             try:
                 data = await websocket.receive_text()
-                logger.debug(f"📥 [WS-Task] 收到客户端消息: task={task_id}, data={data}")
+                logger.debug(f"[IMPORT] [WS-Task] 收到客户端消息: task={task_id}, data={data}")
             except WebSocketDisconnect:
-                logger.info(f"🔌 [WS-Task] 客户端主动断开: task={task_id}")
+                logger.info(f"[PORT] [WS-Task] 客户端主动断开: task={task_id}")
                 break
             except Exception as e:
-                logger.error(f"❌ [WS-Task] 接收消息错误: {e}")
+                logger.error(f"[FAIL] [WS-Task] 接收消息错误: {e}")
                 break
     
     finally:
-        logger.info(f"🔌 [WS-Task] 断开连接: task={task_id}")
+        logger.info(f"[PORT] [WS-Task] 断开连接: task={task_id}")
 
 
 @router.get("/ws/stats")
@@ -268,7 +268,7 @@ async def get_websocket_stats():
     return manager.get_stats()
 
 
-# 🔥 辅助函数：供其他模块调用，发送通知
+# [HOT] 辅助函数：供其他模块调用，发送通知
 async def send_notification_via_websocket(user_id: str, notification: dict):
     """
     通过 WebSocket 发送通知

@@ -38,13 +38,13 @@ def create_trader(llm, memory):
 
         # 检查memory是否可用
         if memory is not None:
-            logger.warning(f"⚠️ [DEBUG] memory可用，获取历史记忆")
+            logger.warning(f"[WARN] [DEBUG] memory可用，获取历史记忆")
             past_memories = memory.get_memories(curr_situation, n_matches=2)
             past_memory_str = ""
             for i, rec in enumerate(past_memories, 1):
                 past_memory_str += rec["recommendation"] + "\n\n"
         else:
-            logger.warning(f"⚠️ [DEBUG] memory为None，跳过历史记忆检索")
+            logger.warning(f"[WARN] [DEBUG] memory为None，跳过历史记忆检索")
             past_memories = []
             past_memory_str = "暂无历史记忆数据可参考。"
 
@@ -58,9 +58,9 @@ def create_trader(llm, memory):
                 "role": "system",
                 "content": f"""您是一位专业的交易员，负责分析市场数据并做出投资决策。基于您的分析，请提供具体的买入、卖出或持有建议。
 
-⚠️ 重要提醒：当前分析的股票代码是 {company_name}，请使用正确的货币单位：{currency}（{currency_symbol}）
+[WARN] 重要提醒：当前分析的股票代码是 {company_name}，请使用正确的货币单位：{currency}（{currency_symbol}）
 
-🔴 严格要求：
+[REDIS] 严格要求：
 - 股票代码 {company_name} 的公司名称必须严格按照基本面报告中的真实数据
 - 绝对禁止使用错误的公司名称或混淆不同的股票
 - 所有分析必须基于提供的真实数据，不允许假设或编造
@@ -68,7 +68,7 @@ def create_trader(llm, memory):
 
 请在您的分析中包含以下关键信息：
 1. **投资建议**: 明确的买入/持有/卖出决策
-2. **目标价位**: 基于分析的合理目标价格({currency}) - 🚨 强制要求提供具体数值
+2. **目标价位**: 基于分析的合理目标价格({currency}) - [ALERT] 强制要求提供具体数值
    - 买入建议：提供目标价位和预期涨幅
    - 持有建议：提供合理价格区间（如：{currency_symbol}XX-XX）
    - 卖出建议：提供止损价位和目标卖出价
@@ -76,7 +76,7 @@ def create_trader(llm, memory):
 4. **风险评分**: 投资风险等级(0-1之间，0为低风险，1为高风险)
 5. **详细推理**: 支持决策的具体理由
 
-🎯 目标价位计算指导：
+[TARGET] 目标价位计算指导：
 - 基于基本面分析中的估值数据（P/E、P/B、DCF等）
 - 参考技术分析的支撑位和阻力位
 - 考虑行业平均估值水平

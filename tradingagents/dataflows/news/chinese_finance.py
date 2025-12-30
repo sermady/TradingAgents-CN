@@ -271,7 +271,7 @@ def get_chinese_social_sentiment(ticker: str, curr_date: str) -> str:
 中国市场情绪分析报告 - {ticker}
 分析日期: {curr_date}
 
-⚠️ 数据获取限制说明:
+[WARN] 数据获取限制说明:
 {sentiment_data.get('fallback_message', '数据获取遇到技术限制')}
 
 建议:
@@ -291,7 +291,7 @@ def get_chinese_social_sentiment(ticker: str, curr_date: str) -> str:
 分析日期: {curr_date}
 分析周期: {sentiment_data.get('analysis_period', '7天')}
 
-📊 综合情绪评估:
+[CHART] 综合情绪评估:
 {sentiment_data.get('summary', '数据不足')}
 
 📰 财经新闻情绪:
@@ -300,14 +300,14 @@ def get_chinese_social_sentiment(ticker: str, curr_date: str) -> str:
 - 负面新闻比例: {news.get('negative_ratio', 0):.1%}
 - 新闻数量: {news.get('news_count', 0)}条
 
-💡 投资建议:
+[INFO] 投资建议:
 基于当前可获取的中国市场数据，建议投资者:
 1. 密切关注官方财经媒体报道
 2. 重视基本面分析和财务数据
 3. 考虑政策环境对股价的影响
 4. 关注国际市场动态
 
-⚠️ 数据说明:
+[WARN] 数据说明:
 由于中国社交媒体平台API获取限制，本分析主要基于公开财经新闻数据。
 建议结合其他分析维度进行综合判断。
 
@@ -319,9 +319,9 @@ def get_chinese_social_sentiment(ticker: str, curr_date: str) -> str:
 中国市场情绪分析 - {ticker}
 分析日期: {curr_date}
 
-❌ 分析失败: {str(e)}
+[FAIL] 分析失败: {str(e)}
 
-💡 替代建议:
+[INFO] 替代建议:
 1. 查看财经新闻网站的相关报道
 2. 关注雪球、东方财富等投资社区讨论
 3. 参考专业机构的研究报告

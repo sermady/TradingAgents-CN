@@ -91,7 +91,7 @@ class NewsDataService:
 
         try:
             collection = self._get_collection()
-            self.logger.info("📊 检查并创建新闻数据索引...")
+            self.logger.info("[CHART] 检查并创建新闻数据索引...")
 
             # 1. 唯一索引：防止重复新闻（URL+标题+发布时间）
             await collection.create_index([
@@ -131,10 +131,10 @@ class NewsDataService:
             await collection.create_index([("updated_at", -1)], name="updated_at_index", background=True)
 
             self._indexes_ensured = True
-            self.logger.info("✅ 新闻数据索引检查完成")
+            self.logger.info("[OK] 新闻数据索引检查完成")
         except Exception as e:
             # 索引创建失败不应该阻止服务启动
-            self.logger.warning(f"⚠️ 创建索引时出现警告（可能已存在）: {e}")
+            self.logger.warning(f"[WARN] 创建索引时出现警告（可能已存在）: {e}")
 
     def _get_collection(self):
         """获取新闻数据集合"""
@@ -161,7 +161,7 @@ class NewsDataService:
             保存的记录数量
         """
         try:
-            # 🔥 确保索引存在（第一次调用时创建）
+            # [HOT] 确保索引存在（第一次调用时创建）
             await self._ensure_indexes()
 
             collection = self._get_collection()
@@ -185,9 +185,9 @@ class NewsDataService:
                     news, data_source, market, now
                 )
 
-                # 🔍 记录前3条数据的详细信息
+                # [SEARCH] 记录前3条数据的详细信息
                 if i < 3:
-                    self.logger.info(f"   📝 标准化后的新闻 {i+1}:")
+                    self.logger.info(f"   [LOG] 标准化后的新闻 {i+1}:")
                     self.logger.info(f"      symbol: {standardized_news.get('symbol')}")
                     self.logger.info(f"      title: {standardized_news.get('title', '')[:50]}...")
                     self.logger.info(f"      publish_time: {standardized_news.get('publish_time')} (type: {type(standardized_news.get('publish_time'))})")
@@ -213,7 +213,7 @@ class NewsDataService:
                 result = await collection.bulk_write(operations)
                 saved_count = result.upserted_count + result.modified_count
                 
-                self.logger.info(f"💾 新闻数据保存完成: {saved_count}条记录 (数据源: {data_source})")
+                self.logger.info(f"[SAVE] 新闻数据保存完成: {saved_count}条记录 (数据源: {data_source})")
                 return saved_count
             
             return 0
@@ -222,7 +222,7 @@ class NewsDataService:
             # 处理批量写入错误，但不完全失败
             write_errors = e.details.get('writeErrors', [])
             error_count = len(write_errors)
-            self.logger.warning(f"⚠️ 部分新闻数据保存失败: {error_count}条错误")
+            self.logger.warning(f"[WARN] 部分新闻数据保存失败: {error_count}条错误")
 
             # 记录详细错误信息
             for i, error in enumerate(write_errors[:3], 1):  # 只记录前3个错误
@@ -233,12 +233,12 @@ class NewsDataService:
             # 计算成功保存的数量
             success_count = len(operations) - error_count
             if success_count > 0:
-                self.logger.info(f"💾 成功保存 {success_count} 条新闻数据")
+                self.logger.info(f"[SAVE] 成功保存 {success_count} 条新闻数据")
 
             return success_count
             
         except Exception as e:
-            self.logger.error(f"❌ 保存新闻数据失败: {e}")
+            self.logger.error(f"[FAIL] 保存新闻数据失败: {e}")
             return 0
 
     def save_news_data_sync(
@@ -279,7 +279,7 @@ class NewsDataService:
             # 准备批量操作
             operations = []
 
-            self.logger.info(f"📝 开始标准化 {len(news_list)} 条新闻数据...")
+            self.logger.info(f"[LOG] 开始标准化 {len(news_list)} 条新闻数据...")
 
             for i, news in enumerate(news_list, 1):
                 # 标准化新闻数据
@@ -287,7 +287,7 @@ class NewsDataService:
 
                 # 记录前3条新闻的详细信息
                 if i <= 3:
-                    self.logger.info(f"   📝 标准化后的新闻 {i}:")
+                    self.logger.info(f"   [LOG] 标准化后的新闻 {i}:")
                     self.logger.info(f"      symbol: {standardized_news.get('symbol')}")
                     self.logger.info(f"      title: {standardized_news.get('title', '')[:50]}...")
                     publish_time = standardized_news.get('publish_time')
@@ -314,7 +314,7 @@ class NewsDataService:
                 result = collection.bulk_write(operations)
                 saved_count = result.upserted_count + result.modified_count
 
-                self.logger.info(f"💾 新闻数据保存完成: {saved_count}条记录 (数据源: {data_source})")
+                self.logger.info(f"[SAVE] 新闻数据保存完成: {saved_count}条记录 (数据源: {data_source})")
                 return saved_count
 
             return 0
@@ -323,7 +323,7 @@ class NewsDataService:
             # 处理批量写入错误，但不完全失败
             write_errors = e.details.get('writeErrors', [])
             error_count = len(write_errors)
-            self.logger.warning(f"⚠️ 部分新闻数据保存失败: {error_count}条错误")
+            self.logger.warning(f"[WARN] 部分新闻数据保存失败: {error_count}条错误")
 
             # 记录详细错误信息
             for i, error in enumerate(write_errors[:3], 1):  # 只记录前3个错误
@@ -334,12 +334,12 @@ class NewsDataService:
             # 计算成功保存的数量
             success_count = len(operations) - error_count
             if success_count > 0:
-                self.logger.info(f"💾 成功保存 {success_count} 条新闻数据")
+                self.logger.info(f"[SAVE] 成功保存 {success_count} 条新闻数据")
 
             return success_count
 
         except Exception as e:
-            self.logger.error(f"❌ 保存新闻数据失败: {e}")
+            self.logger.error(f"[FAIL] 保存新闻数据失败: {e}")
             import traceback
             self.logger.error(traceback.format_exc())
             return 0
@@ -436,7 +436,7 @@ class NewsDataService:
                         continue
                 
                 # 如果都失败了，返回当前时间
-                self.logger.warning(f"⚠️ 无法解析日期时间: {dt_value}")
+                self.logger.warning(f"[WARN] 无法解析日期时间: {dt_value}")
                 return datetime.utcnow()
                 
             except Exception:
@@ -467,7 +467,7 @@ class NewsDataService:
         try:
             collection = self._get_collection()
 
-            self.logger.info(f"🔍 [query_news] 开始查询新闻数据")
+            self.logger.info(f"[SEARCH] [query_news] 开始查询新闻数据")
             self.logger.info(f"   参数: symbol={params.symbol}, start_time={params.start_time}, end_time={params.end_time}, limit={params.limit}")
 
             # 构建查询条件
@@ -532,7 +532,7 @@ class NewsDataService:
             results = await cursor.to_list(length=None)
             self.logger.info(f"   查询返回: {len(results)} 条记录")
 
-            # 🔧 转换 ObjectId 为字符串，避免 JSON 序列化错误
+            # [CONFIG] 转换 ObjectId 为字符串，避免 JSON 序列化错误
             results = convert_objectid_to_str(results)
 
             if results:
@@ -540,13 +540,13 @@ class NewsDataService:
                 for i, r in enumerate(results[:3], 1):
                     self.logger.info(f"      {i}. symbol={r.get('symbol')}, title={r.get('title', 'N/A')[:50]}..., publish_time={r.get('publish_time')}")
             else:
-                self.logger.warning(f"   ⚠️ 查询结果为空")
+                self.logger.warning(f"   [WARN] 查询结果为空")
 
-            self.logger.info(f"✅ [query_news] 查询完成，返回 {len(results)} 条记录")
+            self.logger.info(f"[OK] [query_news] 查询完成，返回 {len(results)} 条记录")
             return results
 
         except Exception as e:
-            self.logger.error(f"❌ 查询新闻数据失败: {e}", exc_info=True)
+            self.logger.error(f"[FAIL] 查询新闻数据失败: {e}", exc_info=True)
             return []
     
     async def get_latest_news(
@@ -677,7 +677,7 @@ class NewsDataService:
             return NewsStats()
             
         except Exception as e:
-            self.logger.error(f"❌ 获取新闻统计失败: {e}")
+            self.logger.error(f"[FAIL] 获取新闻统计失败: {e}")
             return NewsStats()
     
     async def delete_old_news(self, days_to_keep: int = 90) -> int:
@@ -705,7 +705,7 @@ class NewsDataService:
             return deleted_count
             
         except Exception as e:
-            self.logger.error(f"❌ 删除过期新闻失败: {e}")
+            self.logger.error(f"[FAIL] 删除过期新闻失败: {e}")
             return 0
 
     async def search_news(
@@ -743,14 +743,14 @@ class NewsDataService:
             cursor = cursor.limit(limit)
             results = await cursor.to_list(length=None)
 
-            # 🔧 转换 ObjectId 为字符串，避免 JSON 序列化错误
+            # [CONFIG] 转换 ObjectId 为字符串，避免 JSON 序列化错误
             results = convert_objectid_to_str(results)
 
-            self.logger.info(f"🔍 全文搜索返回 {len(results)} 条结果")
+            self.logger.info(f"[SEARCH] 全文搜索返回 {len(results)} 条结果")
             return results
 
         except Exception as e:
-            self.logger.error(f"❌ 全文搜索失败: {e}")
+            self.logger.error(f"[FAIL] 全文搜索失败: {e}")
             return []
 
 
@@ -762,5 +762,5 @@ async def get_news_data_service() -> NewsDataService:
     global _service_instance
     if _service_instance is None:
         _service_instance = NewsDataService()
-        logger.info("✅ 新闻数据服务初始化成功")
+        logger.info("[OK] 新闻数据服务初始化成功")
     return _service_instance

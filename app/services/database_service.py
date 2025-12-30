@@ -130,7 +130,7 @@ class DatabaseService:
         """
         # 检查 mongodump 是否可用
         if _db_backups._check_mongodump_available():
-            logger.info("✅ 使用 mongodump 原生备份（推荐）")
+            logger.info("[OK] 使用 mongodump 原生备份（推荐）")
             return await _db_backups.create_backup_native(
                 name=name,
                 backup_dir=self.backup_dir,
@@ -138,8 +138,8 @@ class DatabaseService:
                 user_id=user_id
             )
         else:
-            logger.warning("⚠️ mongodump 不可用，使用 Python 备份（较慢）")
-            logger.warning("💡 建议安装 MongoDB Database Tools 以获得更快的备份速度")
+            logger.warning("[WARN] mongodump 不可用，使用 Python 备份（较慢）")
+            logger.warning("[INFO] 建议安装 MongoDB Database Tools 以获得更快的备份速度")
             return await _db_backups.create_backup(
                 name=name,
                 backup_dir=self.backup_dir,

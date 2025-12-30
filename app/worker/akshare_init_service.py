@@ -58,7 +58,7 @@ class AKShareInitService:
         """初始化服务"""
         self.db = get_mongo_db()
         self.sync_service = await get_akshare_sync_service()
-        logger.info("✅ AKShare初始化服务准备完成")
+        logger.info("[OK] AKShare初始化服务准备完成")
     
     async def run_full_initialization(
         self,
@@ -95,8 +95,8 @@ class AKShareInitService:
             if enable_multi_period:
                 sync_items.extend(['weekly', 'monthly'])
 
-        logger.info("🚀 开始AKShare数据完整初始化...")
-        logger.info(f"📋 同步项目: {', '.join(sync_items)}")
+        logger.info("[START] 开始AKShare数据完整初始化...")
+        logger.info(f"[CLIPBOARD] 同步项目: {', '.join(sync_items)}")
 
         # 计算总步骤数（检查状态 + 同步项目数 + 验证）
         total_steps = 1 + len(sync_items) + 1
@@ -112,11 +112,11 @@ class AKShareInitService:
             if 'basic_info' in sync_items:
                 await self._step_check_database_status(skip_if_exists)
             else:
-                logger.info("📊 检查数据库状态...")
+                logger.info("[CHART] 检查数据库状态...")
                 basic_count = await self.db.stock_basic_info.count_documents({})
                 logger.info(f"  当前股票基础信息: {basic_count}条")
                 if basic_count == 0:
-                    logger.warning("⚠️ 数据库中没有股票基础信息，建议先同步 basic_info")
+                    logger.warning("[WARN] 数据库中没有股票基础信息，建议先同步 basic_info")
 
             # 步骤2: 初始化股票基础信息
             if 'basic_info' in sync_items:
@@ -166,12 +166,12 @@ class AKShareInitService:
             self.stats.finished_at = datetime.utcnow()
             duration = (self.stats.finished_at - self.stats.started_at).total_seconds()
             
-            logger.info(f"🎉 AKShare数据初始化完成！耗时: {duration:.2f}秒")
+            logger.info(f"[SUCCESS] AKShare数据初始化完成！耗时: {duration:.2f}秒")
             
             return self._get_initialization_summary()
             
         except Exception as e:
-            logger.error(f"❌ AKShare数据初始化失败: {e}")
+            logger.error(f"[FAIL] AKShare数据初始化失败: {e}")
             self.stats.errors.append({
                 "step": self.stats.current_step,
                 "error": str(e),
@@ -182,7 +182,7 @@ class AKShareInitService:
     async def _step_check_database_status(self, skip_if_exists: bool):
         """步骤1: 检查数据库状态"""
         self.stats.current_step = "检查数据库状态"
-        logger.info(f"📊 {self.stats.current_step}...")
+        logger.info(f"[CHART] {self.stats.current_step}...")
         
         # 检查各集合的数据量
         basic_count = await self.db.stock_basic_info.count_documents({})
@@ -193,23 +193,23 @@ class AKShareInitService:
         logger.info(f"    行情数据: {quotes_count}条")
         
         if skip_if_exists and basic_count > 0:
-            logger.info("⚠️ 检测到已有数据，跳过初始化（可通过skip_if_exists=False强制初始化）")
+            logger.info("[WARN] 检测到已有数据，跳过初始化（可通过skip_if_exists=False强制初始化）")
             raise Exception("数据已存在，跳过初始化")
         
         self.stats.completed_steps += 1
-        logger.info(f"✅ {self.stats.current_step}完成")
+        logger.info(f"[OK] {self.stats.current_step}完成")
     
     async def _step_initialize_basic_info(self):
         """步骤2: 初始化股票基础信息"""
         self.stats.current_step = "初始化股票基础信息"
-        logger.info(f"📋 {self.stats.current_step}...")
+        logger.info(f"[CLIPBOARD] {self.stats.current_step}...")
         
         # 强制更新所有基础信息
         result = await self.sync_service.sync_stock_basic_info(force_update=True)
         
         if result:
             self.stats.basic_info_count = result.get("success_count", 0)
-            logger.info(f"✅ 基础信息初始化完成: {self.stats.basic_info_count}只股票")
+            logger.info(f"[OK] 基础信息初始化完成: {self.stats.basic_info_count}只股票")
         else:
             raise Exception("基础信息初始化失败")
         
@@ -218,7 +218,7 @@ class AKShareInitService:
     async def _step_initialize_historical_data(self, historical_days: int):
         """步骤3: 同步历史数据"""
         self.stats.current_step = f"同步历史数据({historical_days}天)"
-        logger.info(f"📊 {self.stats.current_step}...")
+        logger.info(f"[CHART] {self.stats.current_step}...")
 
         # 计算日期范围
         end_date = datetime.now().strftime('%Y-%m-%d')
@@ -240,16 +240,16 @@ class AKShareInitService:
         
         if result:
             self.stats.historical_records = result.get("total_records", 0)
-            logger.info(f"✅ 历史数据初始化完成: {self.stats.historical_records}条记录")
+            logger.info(f"[OK] 历史数据初始化完成: {self.stats.historical_records}条记录")
         else:
-            logger.warning("⚠️ 历史数据初始化部分失败，继续后续步骤")
+            logger.warning("[WARN] 历史数据初始化部分失败，继续后续步骤")
         
         self.stats.completed_steps += 1
 
     async def _step_initialize_weekly_data(self, historical_days: int):
         """步骤4a: 同步周线数据"""
         self.stats.current_step = f"同步周线数据({historical_days}天)"
-        logger.info(f"📊 {self.stats.current_step}...")
+        logger.info(f"[CHART] {self.stats.current_step}...")
 
         # 计算日期范围
         end_date = datetime.now().strftime('%Y-%m-%d')
@@ -274,18 +274,18 @@ class AKShareInitService:
             if result:
                 weekly_records = result.get("total_records", 0)
                 self.stats.weekly_records = weekly_records
-                logger.info(f"✅ 周线数据初始化完成: {weekly_records}条记录")
+                logger.info(f"[OK] 周线数据初始化完成: {weekly_records}条记录")
             else:
-                logger.warning("⚠️ 周线数据初始化部分失败，继续后续步骤")
+                logger.warning("[WARN] 周线数据初始化部分失败，继续后续步骤")
         except Exception as e:
-            logger.warning(f"⚠️ 周线数据初始化失败: {e}（继续后续步骤）")
+            logger.warning(f"[WARN] 周线数据初始化失败: {e}（继续后续步骤）")
 
         self.stats.completed_steps += 1
 
     async def _step_initialize_monthly_data(self, historical_days: int):
         """步骤4b: 同步月线数据"""
         self.stats.current_step = f"同步月线数据({historical_days}天)"
-        logger.info(f"📊 {self.stats.current_step}...")
+        logger.info(f"[CHART] {self.stats.current_step}...")
 
         # 计算日期范围
         end_date = datetime.now().strftime('%Y-%m-%d')
@@ -310,11 +310,11 @@ class AKShareInitService:
             if result:
                 monthly_records = result.get("total_records", 0)
                 self.stats.monthly_records = monthly_records
-                logger.info(f"✅ 月线数据初始化完成: {monthly_records}条记录")
+                logger.info(f"[OK] 月线数据初始化完成: {monthly_records}条记录")
             else:
-                logger.warning("⚠️ 月线数据初始化部分失败，继续后续步骤")
+                logger.warning("[WARN] 月线数据初始化部分失败，继续后续步骤")
         except Exception as e:
-            logger.warning(f"⚠️ 月线数据初始化失败: {e}（继续后续步骤）")
+            logger.warning(f"[WARN] 月线数据初始化失败: {e}（继续后续步骤）")
 
         self.stats.completed_steps += 1
 
@@ -328,29 +328,29 @@ class AKShareInitService:
             
             if result:
                 self.stats.financial_records = result.get("success_count", 0)
-                logger.info(f"✅ 财务数据初始化完成: {self.stats.financial_records}条记录")
+                logger.info(f"[OK] 财务数据初始化完成: {self.stats.financial_records}条记录")
             else:
-                logger.warning("⚠️ 财务数据初始化失败")
+                logger.warning("[WARN] 财务数据初始化失败")
         except Exception as e:
-            logger.warning(f"⚠️ 财务数据初始化失败: {e}（继续后续步骤）")
+            logger.warning(f"[WARN] 财务数据初始化失败: {e}（继续后续步骤）")
         
         self.stats.completed_steps += 1
     
     async def _step_initialize_quotes(self):
         """步骤5: 同步最新行情"""
         self.stats.current_step = "同步最新行情"
-        logger.info(f"📈 {self.stats.current_step}...")
+        logger.info(f"[CHART-UP] {self.stats.current_step}...")
 
         try:
             result = await self.sync_service.sync_realtime_quotes()
 
             if result:
                 self.stats.quotes_count = result.get("success_count", 0)
-                logger.info(f"✅ 最新行情初始化完成: {self.stats.quotes_count}只股票")
+                logger.info(f"[OK] 最新行情初始化完成: {self.stats.quotes_count}只股票")
             else:
-                logger.warning("⚠️ 最新行情初始化失败")
+                logger.warning("[WARN] 最新行情初始化失败")
         except Exception as e:
-            logger.warning(f"⚠️ 最新行情初始化失败: {e}（继续后续步骤）")
+            logger.warning(f"[WARN] 最新行情初始化失败: {e}（继续后续步骤）")
 
         self.stats.completed_steps += 1
 
@@ -366,18 +366,18 @@ class AKShareInitService:
 
             if result:
                 self.stats.news_count = result.get("news_count", 0)
-                logger.info(f"✅ 新闻数据初始化完成: {self.stats.news_count}条新闻")
+                logger.info(f"[OK] 新闻数据初始化完成: {self.stats.news_count}条新闻")
             else:
-                logger.warning("⚠️ 新闻数据初始化失败")
+                logger.warning("[WARN] 新闻数据初始化失败")
         except Exception as e:
-            logger.warning(f"⚠️ 新闻数据初始化失败: {e}（继续后续步骤）")
+            logger.warning(f"[WARN] 新闻数据初始化失败: {e}（继续后续步骤）")
 
         self.stats.completed_steps += 1
 
     async def _step_verify_data_integrity(self):
         """步骤6: 验证数据完整性"""
         self.stats.current_step = "验证数据完整性"
-        logger.info(f"🔍 {self.stats.current_step}...")
+        logger.info(f"[SEARCH] {self.stats.current_step}...")
         
         # 检查最终数据状态
         basic_count = await self.db.stock_basic_info.count_documents({})
@@ -398,10 +398,10 @@ class AKShareInitService:
             raise Exception("数据初始化失败：无基础数据")
         
         if extended_count / basic_count < 0.9:  # 90%以上应该有扩展字段
-            logger.warning("⚠️ 扩展字段覆盖率较低，可能存在数据质量问题")
+            logger.warning("[WARN] 扩展字段覆盖率较低，可能存在数据质量问题")
         
         self.stats.completed_steps += 1
-        logger.info(f"✅ {self.stats.current_step}完成")
+        logger.info(f"[OK] {self.stats.current_step}完成")
     
     def _get_initialization_summary(self) -> Dict[str, Any]:
         """获取初始化总结"""
@@ -455,8 +455,8 @@ async def run_akshare_full_initialization(
             historical_days=historical_days,
             skip_if_exists=skip_if_exists
         )
-        logger.info(f"✅ AKShare完整初始化完成: {result}")
+        logger.info(f"[OK] AKShare完整初始化完成: {result}")
         return result
     except Exception as e:
-        logger.error(f"❌ AKShare完整初始化失败: {e}")
+        logger.error(f"[FAIL] AKShare完整初始化失败: {e}")
         raise

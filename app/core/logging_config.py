@@ -8,7 +8,7 @@ import platform
 from app.core.logging_context import LoggingContextFilter, trace_id_var
 from app.utils.log_sanitizer import LogSanitizer
 
-# 🔥 在 Windows 上使用 concurrent-log-handler 避免文件占用问题
+# [HOT] 在 Windows 上使用 concurrent-log-handler 避免文件占用问题
 _IS_WINDOWS = platform.system() == "Windows"
 if _IS_WINDOWS:
     try:
@@ -102,15 +102,15 @@ def setup_logging(log_level: str = "INFO"):
     # 1) 若存在 TOML 配置且可解析，则优先使用
     try:
         cfg_path = resolve_logging_cfg_path()
-        print(f"🔍 [setup_logging] 日志配置文件路径: {cfg_path}")
-        print(f"🔍 [setup_logging] 配置文件存在: {cfg_path.exists()}")
-        print(f"🔍 [setup_logging] TOML加载器可用: {toml_loader is not None}")
+        print(f"[SEARCH] [setup_logging] 日志配置文件路径: {cfg_path}")
+        print(f"[SEARCH] [setup_logging] 配置文件存在: {cfg_path.exists()}")
+        print(f"[SEARCH] [setup_logging] TOML加载器可用: {toml_loader is not None}")
 
         if cfg_path.exists() and toml_loader is not None:
             with cfg_path.open("rb") as f:
                 toml_data = toml_loader.load(f)
 
-            print(f"🔍 [setup_logging] 成功加载TOML配置")
+            print(f"[SEARCH] [setup_logging] 成功加载TOML配置")
 
             # 读取基础字段
             logging_root = toml_data.get("logging", {})
@@ -150,10 +150,10 @@ def setup_logging(log_level: str = "INFO"):
             webapi_handler_cfg = handlers_cfg.get("webapi", {})
             worker_handler_cfg = handlers_cfg.get("worker", {})
 
-            print(f"🔍 [setup_logging] handlers配置: {list(handlers_cfg.keys())}")
-            print(f"🔍 [setup_logging] main_handler_cfg: {main_handler_cfg}")
-            print(f"🔍 [setup_logging] webapi_handler_cfg: {webapi_handler_cfg}")
-            print(f"🔍 [setup_logging] worker_handler_cfg: {worker_handler_cfg}")
+            print(f"[SEARCH] [setup_logging] handlers配置: {list(handlers_cfg.keys())}")
+            print(f"[SEARCH] [setup_logging] main_handler_cfg: {main_handler_cfg}")
+            print(f"[SEARCH] [setup_logging] webapi_handler_cfg: {webapi_handler_cfg}")
+            print(f"[SEARCH] [setup_logging] worker_handler_cfg: {worker_handler_cfg}")
 
             # 主日志文件（tradingagents.log）
             main_log = main_handler_cfg.get("filename", str(Path(file_dir) / "tradingagents.log"))
@@ -162,7 +162,7 @@ def setup_logging(log_level: str = "INFO"):
             main_max_bytes = _parse_size(main_handler_cfg.get("max_size", "100MB"))
             main_backup_count = int(main_handler_cfg.get("backup_count", 5))
 
-            print(f"🔍 [setup_logging] 主日志文件配置:")
+            print(f"[SEARCH] [setup_logging] 主日志文件配置:")
             print(f"  - 文件路径: {main_log}")
             print(f"  - 是否启用: {main_enabled}")
             print(f"  - 日志级别: {main_level}")
@@ -176,7 +176,7 @@ def setup_logging(log_level: str = "INFO"):
             webapi_max_bytes = _parse_size(webapi_handler_cfg.get("max_size", "100MB"))
             webapi_backup_count = int(webapi_handler_cfg.get("backup_count", 5))
 
-            print(f"🔍 [setup_logging] WebAPI日志文件: {webapi_log}, 启用: {webapi_enabled}")
+            print(f"[SEARCH] [setup_logging] WebAPI日志文件: {webapi_log}, 启用: {webapi_enabled}")
 
             # Worker日志文件
             worker_log = worker_handler_cfg.get("filename", str(Path(file_dir) / "worker.log"))
@@ -185,7 +185,7 @@ def setup_logging(log_level: str = "INFO"):
             worker_max_bytes = _parse_size(worker_handler_cfg.get("max_size", "100MB"))
             worker_backup_count = int(worker_handler_cfg.get("backup_count", 5))
 
-            print(f"🔍 [setup_logging] Worker日志文件: {worker_log}, 启用: {worker_enabled}")
+            print(f"[SEARCH] [setup_logging] Worker日志文件: {worker_log}, 启用: {worker_enabled}")
 
             # 错误日志文件
             error_handler_cfg = handlers_cfg.get("error", {})
@@ -214,14 +214,14 @@ def setup_logging(log_level: str = "INFO"):
                 },
             }
 
-            print(f"🔍 [setup_logging] 开始构建handlers配置")
+            print(f"[SEARCH] [setup_logging] 开始构建handlers配置")
 
-            # 🔥 选择日志处理器类（Windows 使用 ConcurrentRotatingFileHandler）
+            # [HOT] 选择日志处理器类（Windows 使用 ConcurrentRotatingFileHandler）
             handler_class = "concurrent_log_handler.ConcurrentRotatingFileHandler" if _USE_CONCURRENT_HANDLER else "logging.handlers.RotatingFileHandler"
 
             # 主日志文件（tradingagents.log）
             if main_enabled:
-                print(f"✅ [setup_logging] 添加 main_file handler: {main_log} (使用 {handler_class})")
+                print(f"[OK] [setup_logging] 添加 main_file handler: {main_log} (使用 {handler_class})")
                 handlers_config["main_file"] = {
                     "class": handler_class,
                     "formatter": "json_file_fmt" if use_json_file else "file_fmt",
@@ -233,7 +233,7 @@ def setup_logging(log_level: str = "INFO"):
                     "filters": ["request_context"],
                 }
             else:
-                print(f"⚠️ [setup_logging] main_file handler 未启用")
+                print(f"[WARN] [setup_logging] main_file handler 未启用")
 
             # WebAPI日志文件
             if webapi_enabled:
@@ -281,7 +281,7 @@ def setup_logging(log_level: str = "INFO"):
             if error_enabled:
                 main_handlers.append("error_file")
 
-            print(f"🔍 [setup_logging] main_handlers: {main_handlers}")
+            print(f"[SEARCH] [setup_logging] main_handlers: {main_handlers}")
 
             webapi_handlers = ["console"]
             if webapi_enabled:
@@ -291,7 +291,7 @@ def setup_logging(log_level: str = "INFO"):
             if error_enabled:
                 webapi_handlers.append("error_file")
 
-            print(f"🔍 [setup_logging] webapi_handlers: {webapi_handlers}")
+            print(f"[SEARCH] [setup_logging] webapi_handlers: {webapi_handlers}")
 
             worker_handlers = ["console"]
             if worker_enabled:
@@ -301,7 +301,7 @@ def setup_logging(log_level: str = "INFO"):
             if error_enabled:
                 worker_handlers.append("error_file")
 
-            print(f"🔍 [setup_logging] worker_handlers: {worker_handlers}")
+            print(f"[SEARCH] [setup_logging] worker_handlers: {worker_handlers}")
 
             logging_config = {
                 "version": 1,
@@ -363,20 +363,20 @@ def setup_logging(log_level: str = "INFO"):
                 "root": {"level": level, "handlers": main_handlers},
             }
 
-            print(f"🔍 [setup_logging] 最终handlers配置: {list(handlers_config.keys())}")
-            print(f"🔍 [setup_logging] 开始应用 dictConfig")
+            print(f"[SEARCH] [setup_logging] 最终handlers配置: {list(handlers_config.keys())}")
+            print(f"[SEARCH] [setup_logging] 开始应用 dictConfig")
 
             logging.config.dictConfig(logging_config)
 
-            print(f"✅ [setup_logging] dictConfig 应用成功")
+            print(f"[OK] [setup_logging] dictConfig 应用成功")
 
             logging.getLogger("webapi").info(f"Logging configured from {cfg_path}")
 
             # 测试主日志文件是否可写
             if main_enabled:
                 test_logger = logging.getLogger("tradingagents")
-                test_logger.info(f"🔍 测试主日志文件写入: {main_log}")
-                print(f"🔍 [setup_logging] 已向 tradingagents logger 写入测试日志")
+                test_logger.info(f"[SEARCH] 测试主日志文件写入: {main_log}")
+                print(f"[SEARCH] [setup_logging] 已向 tradingagents logger 写入测试日志")
 
             return
     except Exception as e:
@@ -387,7 +387,7 @@ def setup_logging(log_level: str = "INFO"):
     log_dir = Path("logs")
     log_dir.mkdir(exist_ok=True)
 
-    # 🔥 选择日志处理器类（Windows 使用 ConcurrentRotatingFileHandler）
+    # [HOT] 选择日志处理器类（Windows 使用 ConcurrentRotatingFileHandler）
     handler_class = "concurrent_log_handler.ConcurrentRotatingFileHandler" if _USE_CONCURRENT_HANDLER else "logging.handlers.RotatingFileHandler"
 
     logging_config = {

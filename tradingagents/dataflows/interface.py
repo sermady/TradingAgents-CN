@@ -1025,7 +1025,7 @@ def get_fundamentals_finnhub(ticker, curr_date):
         if cached_key:
             cached_data = cache.load_fundamentals_data(cached_key)
             if cached_data:
-                logger.debug(f"💾 [DEBUG] 从缓存加载Finnhub基本面数据: {ticker}")
+                logger.debug(f"[SAVE] [DEBUG] 从缓存加载Finnhub基本面数据: {ticker}")
                 return cached_data
         
         # 获取Finnhub API密钥
@@ -1188,10 +1188,10 @@ def get_fundamentals_openai(ticker, curr_date):
                 if cached_key:
                     cached_data = cache.load_fundamentals_data(cached_key)
                     if cached_data:
-                        logger.info(f"💾 [缓存] 从 {cache_name} 缓存加载基本面数据: {ticker}")
+                        logger.info(f"[SAVE] [缓存] 从 {cache_name} 缓存加载基本面数据: {ticker}")
                         return cached_data
 
-        # 🔥 从数据库获取数据源优先级顺序
+        # [HOT] 从数据库获取数据源优先级顺序
         priority_order = us_manager._get_data_source_priority_order(ticker)
         logger.info(f"[INFO] [美股基本面] 数据源优先级: {[s.value for s in priority_order]}")
 
@@ -1218,7 +1218,7 @@ def get_fundamentals_openai(ticker, curr_date):
                 logger.warning(f"[WARNING] [{source.value}] 获取失败: {e}，尝试下一个数据源")
                 continue
 
-        # 🔥 特殊处理：OpenAI（如果配置了）
+        # [HOT] 特殊处理：OpenAI（如果配置了）
         config = get_config()
         openai_api_key = os.getenv("OPENAI_API_KEY")
         if openai_api_key and config.get("backend_url") and config.get("quick_think_llm"):
@@ -1462,7 +1462,7 @@ def get_china_stock_info_tushare(
 
         manager = get_data_source_manager()
 
-        # 🔥 直接调用 _get_tushare_stock_info()，避免循环调用
+        # [HOT] 直接调用 _get_tushare_stock_info()，避免循环调用
         # 不要调用 get_stock_info()，因为它会再次调用 get_china_stock_info_tushare()
         info = manager._get_tushare_stock_info(ticker)
 
@@ -1785,7 +1785,7 @@ def get_hk_stock_data_unified(symbol: str, start_date: str = None, end_date: str
         logger.info(f"[INFO] [港股智能日期] 计算结果: {start_date} 至 {end_date}")
         logger.info(f"[INFO] [港股智能日期] 实际天数: {(datetime.strptime(end_date, '%Y-%m-%d') - datetime.strptime(start_date, '%Y-%m-%d')).days}天")
 
-        # 🔥 从数据库读取用户启用的数据源配置
+        # [HOT] 从数据库读取用户启用的数据源配置
         enabled_sources = _get_enabled_hk_data_sources()
 
         # 按优先级尝试各个数据源
@@ -1855,7 +1855,7 @@ def get_hk_stock_info_unified(symbol: str) -> Dict:
         Dict: 港股信息
     """
     try:
-        # 🔥 从数据库读取用户启用的数据源配置
+        # [HOT] 从数据库读取用户启用的数据源配置
         enabled_sources = _get_enabled_hk_data_sources()
 
         # 按优先级尝试各个数据源

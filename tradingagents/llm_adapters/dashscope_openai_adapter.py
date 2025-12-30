@@ -26,11 +26,11 @@ class ChatDashScopeOpenAI(ChatOpenAI):
     def __init__(self, **kwargs):
         """初始化 DashScope OpenAI 兼容客户端"""
 
-        # 🔍 [DEBUG] 读取环境变量前的日志
-        logger.info(f"🔍 [DashScope初始化] 开始初始化 ChatDashScopeOpenAI")
-        logger.info(f"🔍 [DashScope初始化] kwargs 中是否包含 api_key: {'api_key' in kwargs}")
+        # [SEARCH] [DEBUG] 读取环境变量前的日志
+        logger.info(f"[SEARCH] [DashScope初始化] 开始初始化 ChatDashScopeOpenAI")
+        logger.info(f"[SEARCH] [DashScope初始化] kwargs 中是否包含 api_key: {'api_key' in kwargs}")
 
-        # 🔥 优先使用 kwargs 中传入的 API Key（来自数据库配置）
+        # [HOT] 优先使用 kwargs 中传入的 API Key（来自数据库配置）
         api_key_from_kwargs = kwargs.get("api_key")
 
         # 如果 kwargs 中没有 API Key 或者是 None，尝试从环境变量读取
@@ -54,24 +54,24 @@ class ChatDashScopeOpenAI(ChatOpenAI):
 
             # 尝试从环境变量读取 API Key
             env_api_key = os.getenv("DASHSCOPE_API_KEY")
-            logger.info(f"🔍 [DashScope初始化] 从环境变量读取 DASHSCOPE_API_KEY: {'有值' if env_api_key else '空'}")
+            logger.info(f"[SEARCH] [DashScope初始化] 从环境变量读取 DASHSCOPE_API_KEY: {'有值' if env_api_key else '空'}")
 
             # 验证环境变量中的 API Key 是否有效（排除占位符）
             if env_api_key and is_valid_api_key(env_api_key):
-                logger.info(f"✅ [DashScope初始化] 环境变量中的 API Key 有效，长度: {len(env_api_key)}, 前10位: {env_api_key[:10]}...")
+                logger.info(f"[OK] [DashScope初始化] 环境变量中的 API Key 有效，长度: {len(env_api_key)}, 前10位: {env_api_key[:10]}...")
                 api_key_from_kwargs = env_api_key
             elif env_api_key:
-                logger.warning(f"⚠️ [DashScope初始化] 环境变量中的 API Key 无效（可能是占位符），将被忽略")
+                logger.warning(f"[WARN] [DashScope初始化] 环境变量中的 API Key 无效（可能是占位符），将被忽略")
                 api_key_from_kwargs = None
             else:
-                logger.warning(f"⚠️ [DashScope初始化] DASHSCOPE_API_KEY 环境变量为空")
+                logger.warning(f"[WARN] [DashScope初始化] DASHSCOPE_API_KEY 环境变量为空")
                 api_key_from_kwargs = None
         else:
-            logger.info(f"✅ [DashScope初始化] 使用 kwargs 中传入的 API Key（来自数据库配置）")
+            logger.info(f"[OK] [DashScope初始化] 使用 kwargs 中传入的 API Key（来自数据库配置）")
 
         # 设置 DashScope OpenAI 兼容接口的默认配置
         kwargs.setdefault("base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1")
-        kwargs["api_key"] = api_key_from_kwargs  # 🔥 使用验证后的 API Key
+        kwargs["api_key"] = api_key_from_kwargs  # [HOT] 使用验证后的 API Key
         kwargs.setdefault("model", "qwen-turbo")
         kwargs.setdefault("temperature", 0.1)
         kwargs.setdefault("max_tokens", 2000)
@@ -79,11 +79,11 @@ class ChatDashScopeOpenAI(ChatOpenAI):
         # 检查 API 密钥和 base_url
         final_api_key = kwargs.get("api_key")
         final_base_url = kwargs.get("base_url")
-        logger.info(f"🔍 [DashScope初始化] 最终使用的 API Key: {'有值' if final_api_key else '空'}")
-        logger.info(f"🔍 [DashScope初始化] 最终使用的 base_url: {final_base_url}")
+        logger.info(f"[SEARCH] [DashScope初始化] 最终使用的 API Key: {'有值' if final_api_key else '空'}")
+        logger.info(f"[SEARCH] [DashScope初始化] 最终使用的 base_url: {final_base_url}")
 
         if not final_api_key:
-            logger.error(f"❌ [DashScope初始化] API Key 检查失败，即将抛出异常")
+            logger.error(f"[FAIL] [DashScope初始化] API Key 检查失败，即将抛出异常")
             raise ValueError(
                 "DashScope API key not found. Please configure API key in web interface "
                 "(Settings -> LLM Providers) or set DASHSCOPE_API_KEY environment variable."
@@ -92,7 +92,7 @@ class ChatDashScopeOpenAI(ChatOpenAI):
         # 调用父类初始化
         super().__init__(**kwargs)
 
-        logger.info(f"✅ 阿里百炼 OpenAI 兼容适配器初始化成功")
+        logger.info(f"[OK] 阿里百炼 OpenAI 兼容适配器初始化成功")
         logger.info(f"   模型: {kwargs.get('model', 'qwen-turbo')}")
 
         # 兼容不同版本的属性名
@@ -131,7 +131,7 @@ class ChatDashScopeOpenAI(ChatOpenAI):
                     
         except Exception as track_error:
             # token 追踪失败不应该影响主要功能
-            logger.error(f"⚠️ Token 追踪失败: {track_error}")
+            logger.error(f"[WARN] Token 追踪失败: {track_error}")
         
         return result
 
@@ -222,15 +222,15 @@ def test_dashscope_openai_connection(
         response = llm.invoke("你好，请简单介绍一下你自己。")
         
         if response and hasattr(response, 'content') and response.content:
-            logger.info(f"✅ DashScope OpenAI 兼容接口连接成功")
+            logger.info(f"[OK] DashScope OpenAI 兼容接口连接成功")
             logger.info(f"   响应: {response.content[:100]}...")
             return True
         else:
-            logger.error(f"❌ DashScope OpenAI 兼容接口响应为空")
+            logger.error(f"[FAIL] DashScope OpenAI 兼容接口响应为空")
             return False
             
     except Exception as e:
-        logger.error(f"❌ DashScope OpenAI 兼容接口连接失败: {e}")
+        logger.error(f"[FAIL] DashScope OpenAI 兼容接口连接失败: {e}")
         return False
 
 
@@ -271,7 +271,7 @@ def test_dashscope_openai_function_calling(
         # 测试工具调用
         response = llm_with_tools.invoke("请使用test_tool查询'hello world'")
         
-        logger.info(f"✅ DashScope OpenAI Function Calling 测试完成")
+        logger.info(f"[OK] DashScope OpenAI Function Calling 测试完成")
         logger.info(f"   响应类型: {type(response)}")
         
         if hasattr(response, 'tool_calls') and response.tool_calls:
@@ -282,7 +282,7 @@ def test_dashscope_openai_function_calling(
             return True  # 即使没有工具调用也算成功，因为模型可能选择不调用工具
             
     except Exception as e:
-        logger.error(f"❌ DashScope OpenAI Function Calling 测试失败: {e}")
+        logger.error(f"[FAIL] DashScope OpenAI Function Calling 测试失败: {e}")
         return False
 
 
@@ -299,8 +299,8 @@ if __name__ == "__main__":
         function_calling_ok = test_dashscope_openai_function_calling()
         
         if function_calling_ok:
-            logger.info(f"\n🎉 所有测试通过！DashScope OpenAI 兼容适配器工作正常")
+            logger.info(f"\n[SUCCESS] 所有测试通过！DashScope OpenAI 兼容适配器工作正常")
         else:
-            logger.error(f"\n⚠️ Function Calling 测试失败")
+            logger.error(f"\n[WARN] Function Calling 测试失败")
     else:
-        logger.error(f"\n❌ 连接测试失败")
+        logger.error(f"\n[FAIL] 连接测试失败")

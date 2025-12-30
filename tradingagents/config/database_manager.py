@@ -165,18 +165,18 @@ class DatabaseManager:
         self.mongodb_available = mongodb_available
         
         if mongodb_available:
-            self.logger.info(f"✅ MongoDB: {mongodb_msg}")
+            self.logger.info(f"[OK] MongoDB: {mongodb_msg}")
         else:
-            self.logger.info(f"❌ MongoDB: {mongodb_msg}")
+            self.logger.info(f"[FAIL] MongoDB: {mongodb_msg}")
         
         # 检测Redis
         redis_available, redis_msg = self._detect_redis()
         self.redis_available = redis_available
         
         if redis_available:
-            self.logger.info(f"✅ Redis: {redis_msg}")
+            self.logger.info(f"[OK] Redis: {redis_msg}")
         else:
-            self.logger.info(f"❌ Redis: {redis_msg}")
+            self.logger.info(f"[FAIL] Redis: {redis_msg}")
         
         # 更新配置
         self._update_config_based_on_detection()

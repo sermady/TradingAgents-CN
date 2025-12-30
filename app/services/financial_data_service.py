@@ -28,20 +28,20 @@ class FinancialDataService:
             if self.db is None:
                 raise Exception("MongoDB数据库未初始化")
 
-            # 🔥 确保索引存在（提升查询和 upsert 性能）
+            # [HOT] 确保索引存在（提升查询和 upsert 性能）
             await self._ensure_indexes()
 
-            logger.info("✅ 财务数据服务初始化成功")
+            logger.info("[OK] 财务数据服务初始化成功")
 
         except Exception as e:
-            logger.error(f"❌ 财务数据服务初始化失败: {e}")
+            logger.error(f"[FAIL] 财务数据服务初始化失败: {e}")
             raise
 
     async def _ensure_indexes(self):
         """确保必要的索引存在"""
         try:
             collection = self.db[self.collection_name]
-            logger.info("📊 检查并创建财务数据索引...")
+            logger.info("[CHART] 检查并创建财务数据索引...")
 
             # 1. 复合唯一索引：股票代码+报告期+数据源（用于 upsert）
             await collection.create_index([
@@ -68,10 +68,10 @@ class FinancialDataService:
             # 6. 更新时间索引（数据维护）
             await collection.create_index([("updated_at", -1)], name="updated_at_index", background=True)
 
-            logger.info("✅ 财务数据索引检查完成")
+            logger.info("[OK] 财务数据索引检查完成")
         except Exception as e:
             # 索引创建失败不应该阻止服务启动
-            logger.warning(f"⚠️ 创建索引时出现警告（可能已存在）: {e}")
+            logger.warning(f"[WARN] 创建索引时出现警告（可能已存在）: {e}")
     
     async def save_financial_data(
         self,
@@ -100,7 +100,7 @@ class FinancialDataService:
             await self.initialize()
         
         try:
-            logger.info(f"💾 开始保存 {symbol} 财务数据 (数据源: {data_source})")
+            logger.info(f"[SAVE] 开始保存 {symbol} 财务数据 (数据源: {data_source})")
             
             collection = self.db[self.collection_name]
             
@@ -110,7 +110,7 @@ class FinancialDataService:
             )
             
             if not standardized_data:
-                logger.warning(f"⚠️ {symbol} 财务数据标准化后为空")
+                logger.warning(f"[WARN] {symbol} 财务数据标准化后为空")
                 return 0
             
             # 批量操作
@@ -152,13 +152,13 @@ class FinancialDataService:
                 result = await collection.bulk_write(operations)
                 actual_saved = result.upserted_count + result.modified_count
                 
-                logger.info(f"✅ {symbol} 财务数据保存完成: {actual_saved}条记录")
+                logger.info(f"[OK] {symbol} 财务数据保存完成: {actual_saved}条记录")
                 return actual_saved
             
             return 0
             
         except Exception as e:
-            logger.error(f"❌ 保存财务数据失败 {symbol}: {e}")
+            logger.error(f"[FAIL] 保存财务数据失败 {symbol}: {e}")
             return 0
     
     async def get_financial_data(
@@ -208,11 +208,11 @@ class FinancialDataService:
             
             results = await cursor.to_list(length=None)
             
-            logger.info(f"📊 查询财务数据: {symbol} 返回 {len(results)} 条记录")
+            logger.info(f"[CHART] 查询财务数据: {symbol} 返回 {len(results)} 条记录")
             return results
             
         except Exception as e:
-            logger.error(f"❌ 查询财务数据失败 {symbol}: {e}")
+            logger.error(f"[FAIL] 查询财务数据失败 {symbol}: {e}")
             return []
     
     async def get_latest_financial_data(
@@ -283,7 +283,7 @@ class FinancialDataService:
             }
             
         except Exception as e:
-            logger.error(f"❌ 获取财务数据统计失败: {e}")
+            logger.error(f"[FAIL] 获取财务数据统计失败: {e}")
             return {}
     
     def _standardize_financial_data(
@@ -313,11 +313,11 @@ class FinancialDataService:
                     symbol, financial_data, market, report_period, report_type, now
                 )
             else:
-                logger.warning(f"⚠️ 不支持的数据源: {data_source}")
+                logger.warning(f"[WARN] 不支持的数据源: {data_source}")
                 return None
                 
         except Exception as e:
-            logger.error(f"❌ 标准化财务数据失败 {symbol}: {e}")
+            logger.error(f"[FAIL] 标准化财务数据失败 {symbol}: {e}")
             return None
     
     def _standardize_tushare_data(
@@ -451,12 +451,12 @@ class FinancialDataService:
                 "total_equity": self._safe_float(main_data.get('股东权益合计')),
             })
 
-            # 🔥 新增：提取 ROE（净资产收益率）
+            # [HOT] 新增：提取 ROE（净资产收益率）
             roe = main_data.get('净资产收益率(ROE)') or main_data.get('净资产收益率')
             if roe is not None:
                 indicators["roe"] = self._safe_float(roe)
 
-            # 🔥 新增：提取负债率（资产负债率）
+            # [HOT] 新增：提取负债率（资产负债率）
             debt_ratio = main_data.get('资产负债率') or main_data.get('负债率')
             if debt_ratio is not None:
                 indicators["debt_to_assets"] = self._safe_float(debt_ratio)
@@ -469,7 +469,7 @@ class FinancialDataService:
                 "cash_and_equivalents": self._safe_float(balance_data.get('货币资金')),
             })
 
-            # 🔥 如果主要指标中没有负债率，从资产负债表计算
+            # [HOT] 如果主要指标中没有负债率，从资产负债表计算
             if "debt_to_assets" not in indicators:
                 total_liab = indicators.get("total_liab")
                 total_assets = indicators.get("total_assets")

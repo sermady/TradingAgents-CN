@@ -286,7 +286,7 @@ async def get_industries(user: dict = Depends(get_current_user)):
         db = get_mongo_db()
         collection = db["stock_basic_info"]
 
-        # 🔥 获取数据源优先级配置（使用统一配置管理器的异步方法）
+        # [HOT] 获取数据源优先级配置（使用统一配置管理器的异步方法）
         config = UnifiedConfigManager()
         data_source_configs = await config.get_data_source_configs_async()
 
@@ -302,14 +302,14 @@ async def get_industries(user: dict = Depends(get_current_user)):
 
         logger.info(f"[get_industries] 数据源优先级: {enabled_sources}")
 
-        # 🔥 按优先级查询：优先使用优先级最高的数据源
+        # [HOT] 按优先级查询：优先使用优先级最高的数据源
         preferred_source = enabled_sources[0] if enabled_sources else 'tushare'
 
         # 聚合查询：按行业分组并统计股票数量（只查询指定数据源）
         pipeline = [
             {
                 "$match": {
-                    "source": preferred_source,  # 🔥 只查询优先级最高的数据源
+                    "source": preferred_source,  # [HOT] 只查询优先级最高的数据源
                     "industry": {"$ne": None, "$ne": ""}  # 过滤空行业
                 }
             },
@@ -371,7 +371,7 @@ async def get_industries(user: dict = Depends(get_current_user)):
         return {
             "industries": industries,
             "total": len(industries),
-            "source": preferred_source  # 🔥 返回数据来源
+            "source": preferred_source  # [HOT] 返回数据来源
         }
 
     except Exception as e:

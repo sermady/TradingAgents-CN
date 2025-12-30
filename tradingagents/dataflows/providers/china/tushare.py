@@ -35,7 +35,7 @@ class TushareProvider(BaseStockDataProvider):
         self.token_source = None  # 记录 Token 来源: 'database' 或 'env'
 
         if not TUSHARE_AVAILABLE:
-            self.logger.error("❌ Tushare库未安装，请运行: pip install tushare")
+            self.logger.error("[FAIL] Tushare库未安装，请运行: pip install tushare")
 
     def _get_token_from_database(self) -> Optional[str]:
         """
@@ -45,164 +45,164 @@ class TushareProvider(BaseStockDataProvider):
         这样用户在 Web 后台修改配置后可以立即生效
         """
         try:
-            self.logger.info("🔍 [DB查询] 开始从数据库读取 Token...")
+            self.logger.info("[SEARCH] [DB查询] 开始从数据库读取 Token...")
             from app.core.database import get_mongo_db_sync
             db = get_mongo_db_sync()
             config_collection = db.system_configs
 
             # 获取最新的激活配置
-            self.logger.info("🔍 [DB查询] 查询 is_active=True 的配置...")
+            self.logger.info("[SEARCH] [DB查询] 查询 is_active=True 的配置...")
             config_data = config_collection.find_one(
                 {"is_active": True},
                 sort=[("version", -1)]
             )
 
             if config_data:
-                self.logger.info(f"✅ [DB查询] 找到激活配置，版本: {config_data.get('version')}")
+                self.logger.info(f"[OK] [DB查询] 找到激活配置，版本: {config_data.get('version')}")
                 if config_data.get('data_source_configs'):
-                    self.logger.info(f"✅ [DB查询] 配置中有 {len(config_data['data_source_configs'])} 个数据源")
+                    self.logger.info(f"[OK] [DB查询] 配置中有 {len(config_data['data_source_configs'])} 个数据源")
                     for ds_config in config_data['data_source_configs']:
                         ds_type = ds_config.get('type')
-                        self.logger.info(f"🔍 [DB查询] 检查数据源: {ds_type}")
+                        self.logger.info(f"[SEARCH] [DB查询] 检查数据源: {ds_type}")
                         if ds_type == 'tushare':
                             api_key = ds_config.get('api_key')
-                            self.logger.info(f"✅ [DB查询] 找到 Tushare 配置，api_key 长度: {len(api_key) if api_key else 0}")
+                            self.logger.info(f"[OK] [DB查询] 找到 Tushare 配置，api_key 长度: {len(api_key) if api_key else 0}")
                             if api_key and not api_key.startswith("your_"):
-                                self.logger.info(f"✅ [DB查询] Token 有效 (长度: {len(api_key)})")
+                                self.logger.info(f"[OK] [DB查询] Token 有效 (长度: {len(api_key)})")
                                 return api_key
                             else:
-                                self.logger.warning(f"⚠️ [DB查询] Token 无效或为占位符")
+                                self.logger.warning(f"[WARN] [DB查询] Token 无效或为占位符")
                 else:
-                    self.logger.warning("⚠️ [DB查询] 配置中没有 data_source_configs")
+                    self.logger.warning("[WARN] [DB查询] 配置中没有 data_source_configs")
             else:
-                self.logger.warning("⚠️ [DB查询] 未找到激活的配置")
+                self.logger.warning("[WARN] [DB查询] 未找到激活的配置")
 
-            self.logger.info("⚠️ [DB查询] 数据库中未找到有效的 Tushare Token")
+            self.logger.info("[WARN] [DB查询] 数据库中未找到有效的 Tushare Token")
         except Exception as e:
-            self.logger.error(f"❌ [DB查询] 从数据库读取 Token 失败: {e}")
+            self.logger.error(f"[FAIL] [DB查询] 从数据库读取 Token 失败: {e}")
             import traceback
-            self.logger.error(f"❌ [DB查询] 堆栈跟踪:\n{traceback.format_exc()}")
+            self.logger.error(f"[FAIL] [DB查询] 堆栈跟踪:\n{traceback.format_exc()}")
 
         return None
 
     def connect_sync(self) -> bool:
         """同步连接到Tushare"""
         if not TUSHARE_AVAILABLE:
-            self.logger.error("❌ Tushare库不可用")
+            self.logger.error("[FAIL] Tushare库不可用")
             return False
 
         # 测试连接超时时间（秒）- 只是测试连通性，不需要很长时间
         test_timeout = 10
 
         try:
-            # 🔥 优先从数据库读取 Token
-            self.logger.info("🔍 [步骤1] 开始从数据库读取 Tushare Token...")
+            # [HOT] 优先从数据库读取 Token
+            self.logger.info("[SEARCH] [步骤1] 开始从数据库读取 Tushare Token...")
             db_token = self._get_token_from_database()
             if db_token:
-                self.logger.info(f"✅ [步骤1] 数据库中找到 Token (长度: {len(db_token)})")
+                self.logger.info(f"[OK] [步骤1] 数据库中找到 Token (长度: {len(db_token)})")
             else:
-                self.logger.info("⚠️ [步骤1] 数据库中未找到 Token")
+                self.logger.info("[WARN] [步骤1] 数据库中未找到 Token")
 
-            self.logger.info("🔍 [步骤2] 读取 .env 中的 Token...")
+            self.logger.info("[SEARCH] [步骤2] 读取 .env 中的 Token...")
             env_token = self.config.get('token')
             if env_token:
-                self.logger.info(f"✅ [步骤2] .env 中找到 Token (长度: {len(env_token)})")
+                self.logger.info(f"[OK] [步骤2] .env 中找到 Token (长度: {len(env_token)})")
             else:
-                self.logger.info("⚠️ [步骤2] .env 中未找到 Token")
+                self.logger.info("[WARN] [步骤2] .env 中未找到 Token")
 
             # 尝试数据库 Token
             if db_token:
                 try:
-                    self.logger.info(f"🔄 [步骤3] 尝试使用数据库中的 Tushare Token (超时: {test_timeout}秒)...")
+                    self.logger.info(f"[SYNC] [步骤3] 尝试使用数据库中的 Tushare Token (超时: {test_timeout}秒)...")
                     ts.set_token(db_token)
                     self.api = ts.pro_api()
 
                     # 测试连接 - 直接调用同步方法（不使用 asyncio.run）
                     try:
-                        self.logger.info("🔄 [步骤3.1] 调用 stock_basic API 测试连接...")
+                        self.logger.info("[SYNC] [步骤3.1] 调用 stock_basic API 测试连接...")
                         test_data = self.api.stock_basic(list_status='L', limit=1)
-                        self.logger.info(f"✅ [步骤3.1] API 调用成功，返回数据: {len(test_data) if test_data is not None else 0} 条")
+                        self.logger.info(f"[OK] [步骤3.1] API 调用成功，返回数据: {len(test_data) if test_data is not None else 0} 条")
                     except Exception as e:
                         error_msg = str(e)
                         if "您的token不对" in error_msg or "token" in error_msg.lower():
-                            self.logger.warning(f"⚠️ [步骤3.1] 数据库 Token 无效: {error_msg}，尝试降级到 .env 配置...")
+                            self.logger.warning(f"[WARN] [步骤3.1] 数据库 Token 无效: {error_msg}，尝试降级到 .env 配置...")
                         else:
-                            self.logger.warning(f"⚠️ [步骤3.1] 数据库 Token 测试失败: {e}，尝试降级到 .env 配置...")
+                            self.logger.warning(f"[WARN] [步骤3.1] 数据库 Token 测试失败: {e}，尝试降级到 .env 配置...")
                         test_data = None
 
                     if test_data is not None and not test_data.empty:
                         self.connected = True
                         self.token_source = 'database'
-                        self.logger.info(f"✅ [步骤3.2] Tushare连接成功 (Token来源: 数据库)")
+                        self.logger.info(f"[OK] [步骤3.2] Tushare连接成功 (Token来源: 数据库)")
                         return True
                     else:
-                        self.logger.warning("⚠️ [步骤3.2] 数据库 Token 测试失败，尝试降级到 .env 配置...")
+                        self.logger.warning("[WARN] [步骤3.2] 数据库 Token 测试失败，尝试降级到 .env 配置...")
                 except Exception as e:
-                    self.logger.warning(f"⚠️ [步骤3] 数据库 Token 连接失败: {e}，尝试降级到 .env 配置...")
+                    self.logger.warning(f"[WARN] [步骤3] 数据库 Token 连接失败: {e}，尝试降级到 .env 配置...")
 
             # 降级到环境变量 Token
             if env_token:
                 try:
-                    self.logger.info(f"🔄 [步骤4] 尝试使用 .env 中的 Tushare Token (超时: {test_timeout}秒)...")
+                    self.logger.info(f"[SYNC] [步骤4] 尝试使用 .env 中的 Tushare Token (超时: {test_timeout}秒)...")
                     ts.set_token(env_token)
                     self.api = ts.pro_api()
 
                     # 测试连接 - 直接调用同步方法（不使用 asyncio.run）
                     try:
-                        self.logger.info("🔄 [步骤4.1] 调用 stock_basic API 测试连接...")
+                        self.logger.info("[SYNC] [步骤4.1] 调用 stock_basic API 测试连接...")
                         test_data = self.api.stock_basic(list_status='L', limit=1)
-                        self.logger.info(f"✅ [步骤4.1] API 调用成功，返回数据: {len(test_data) if test_data is not None else 0} 条")
+                        self.logger.info(f"[OK] [步骤4.1] API 调用成功，返回数据: {len(test_data) if test_data is not None else 0} 条")
                     except Exception as e:
                         error_msg = str(e)
                         if "您的token不对" in error_msg or "token" in error_msg.lower():
-                            self.logger.error(f"❌ [步骤4.1] .env Token 无效: {error_msg}")
+                            self.logger.error(f"[FAIL] [步骤4.1] .env Token 无效: {error_msg}")
                             # 提供更详细的错误建议
-                            self.logger.error("❌ [建议] 请检查以下内容：")
+                            self.logger.error("[FAIL] [建议] 请检查以下内容：")
                             self.logger.error("   1. TUSHARE_TOKEN 是否正确（可在 https://tushare.pro 注册获取）")
                             self.logger.error("   2. Token 是否已过期（个人用户需定期续费）")
                             self.logger.error("   3. Token 是否有足够权限（需开通相应数据接口权限）")
                         else:
-                            self.logger.error(f"❌ [步骤4.1] .env Token 测试失败: {e}")
+                            self.logger.error(f"[FAIL] [步骤4.1] .env Token 测试失败: {e}")
                         return False
 
                     if test_data is not None and not test_data.empty:
                         self.connected = True
                         self.token_source = 'env'
-                        self.logger.info(f"✅ [步骤4.2] Tushare连接成功 (Token来源: .env 环境变量)")
+                        self.logger.info(f"[OK] [步骤4.2] Tushare连接成功 (Token来源: .env 环境变量)")
                         return True
                     else:
-                        self.logger.error("❌ [步骤4.2] .env Token 测试失败")
+                        self.logger.error("[FAIL] [步骤4.2] .env Token 测试失败")
                         return False
                 except Exception as e:
-                    self.logger.error(f"❌ [步骤4] .env Token 连接失败: {e}")
+                    self.logger.error(f"[FAIL] [步骤4] .env Token 连接失败: {e}")
                     return False
 
             # 两个都没有
-            self.logger.error("❌ [步骤5] Tushare token未配置，请在 Web 后台或 .env 文件中配置 TUSHARE_TOKEN")
+            self.logger.error("[FAIL] [步骤5] Tushare token未配置，请在 Web 后台或 .env 文件中配置 TUSHARE_TOKEN")
             return False
 
         except Exception as e:
-            self.logger.error(f"❌ Tushare连接失败: {e}")
+            self.logger.error(f"[FAIL] Tushare连接失败: {e}")
             return False
 
     async def connect(self) -> bool:
         """异步连接到Tushare"""
         if not TUSHARE_AVAILABLE:
-            self.logger.error("❌ Tushare库不可用")
+            self.logger.error("[FAIL] Tushare库不可用")
             return False
 
         # 测试连接超时时间（秒）- 只是测试连通性，不需要很长时间
         test_timeout = 10
 
         try:
-            # 🔥 优先从数据库读取 Token
+            # [HOT] 优先从数据库读取 Token
             db_token = self._get_token_from_database()
             env_token = self.config.get('token')
 
             # 尝试数据库 Token
             if db_token:
                 try:
-                    self.logger.info(f"🔄 尝试使用数据库中的 Tushare Token (超时: {test_timeout}秒)...")
+                    self.logger.info(f"[SYNC] 尝试使用数据库中的 Tushare Token (超时: {test_timeout}秒)...")
                     ts.set_token(db_token)
                     self.api = ts.pro_api()
 
@@ -217,22 +217,22 @@ class TushareProvider(BaseStockDataProvider):
                             timeout=test_timeout
                         )
                     except asyncio.TimeoutError:
-                        self.logger.warning(f"⚠️ 数据库 Token 测试超时 ({test_timeout}秒)，尝试降级到 .env 配置...")
+                        self.logger.warning(f"[WARN] 数据库 Token 测试超时 ({test_timeout}秒)，尝试降级到 .env 配置...")
                         test_data = None
 
                     if test_data is not None and not test_data.empty:
                         self.connected = True
-                        self.logger.info(f"✅ Tushare连接成功 (Token来源: 数据库)")
+                        self.logger.info(f"[OK] Tushare连接成功 (Token来源: 数据库)")
                         return True
                     else:
-                        self.logger.warning("⚠️ 数据库 Token 测试失败，尝试降级到 .env 配置...")
+                        self.logger.warning("[WARN] 数据库 Token 测试失败，尝试降级到 .env 配置...")
                 except Exception as e:
-                    self.logger.warning(f"⚠️ 数据库 Token 连接失败: {e}，尝试降级到 .env 配置...")
+                    self.logger.warning(f"[WARN] 数据库 Token 连接失败: {e}，尝试降级到 .env 配置...")
 
             # 降级到环境变量 Token
             if env_token:
                 try:
-                    self.logger.info(f"🔄 尝试使用 .env 中的 Tushare Token (超时: {test_timeout}秒)...")
+                    self.logger.info(f"[SYNC] 尝试使用 .env 中的 Tushare Token (超时: {test_timeout}秒)...")
                     ts.set_token(env_token)
                     self.api = ts.pro_api()
 
@@ -247,26 +247,26 @@ class TushareProvider(BaseStockDataProvider):
                             timeout=test_timeout
                         )
                     except asyncio.TimeoutError:
-                        self.logger.error(f"❌ .env Token 测试超时 ({test_timeout}秒)")
+                        self.logger.error(f"[FAIL] .env Token 测试超时 ({test_timeout}秒)")
                         return False
 
                     if test_data is not None and not test_data.empty:
                         self.connected = True
-                        self.logger.info(f"✅ Tushare连接成功 (Token来源: .env 环境变量)")
+                        self.logger.info(f"[OK] Tushare连接成功 (Token来源: .env 环境变量)")
                         return True
                     else:
-                        self.logger.error("❌ .env Token 测试失败")
+                        self.logger.error("[FAIL] .env Token 测试失败")
                         return False
                 except Exception as e:
-                    self.logger.error(f"❌ .env Token 连接失败: {e}")
+                    self.logger.error(f"[FAIL] .env Token 连接失败: {e}")
                     return False
 
             # 两个都没有
-            self.logger.error("❌ Tushare token未配置，请在 Web 后台或 .env 文件中配置 TUSHARE_TOKEN")
+            self.logger.error("[FAIL] Tushare token未配置，请在 Web 后台或 .env 文件中配置 TUSHARE_TOKEN")
             return False
 
         except Exception as e:
-            self.logger.error(f"❌ Tushare连接失败: {e}")
+            self.logger.error(f"[FAIL] Tushare连接失败: {e}")
             return False
     
     def is_available(self) -> bool:
@@ -286,13 +286,13 @@ class TushareProvider(BaseStockDataProvider):
                 fields='ts_code,symbol,name,area,industry,market,exchange,list_date,is_hs'
             )
             if df is not None and not df.empty:
-                self.logger.info(f"✅ 成功获取 {len(df)} 条股票数据")
+                self.logger.info(f"[OK] 成功获取 {len(df)} 条股票数据")
                 return df
             else:
-                self.logger.warning("⚠️ Tushare API 返回空数据")
+                self.logger.warning("[WARN] Tushare API 返回空数据")
                 return None
         except Exception as e:
-            self.logger.error(f"❌ 获取股票列表失败: {e}")
+            self.logger.error(f"[FAIL] 获取股票列表失败: {e}")
             return None
 
     async def get_stock_list(self, market: str = None) -> Optional[List[Dict[str, Any]]]:
@@ -328,11 +328,11 @@ class TushareProvider(BaseStockDataProvider):
                 stock_info = self.standardize_basic_info(row.to_dict())
                 stock_list.append(stock_info)
             
-            self.logger.info(f"✅ 获取股票列表: {len(stock_list)}只")
+            self.logger.info(f"[OK] 获取股票列表: {len(stock_list)}只")
             return stock_list
             
         except Exception as e:
-            self.logger.error(f"❌ 获取股票列表失败: {e}")
+            self.logger.error(f"[FAIL] 获取股票列表失败: {e}")
             return None
     
     def get_stock_basic_info_sync(self, symbol: str = None) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
@@ -359,7 +359,7 @@ class TushareProvider(BaseStockDataProvider):
                 return self.get_stock_list_sync()
                 
         except Exception as e:
-            self.logger.error(f"❌ 获取股票基础信息(同步)失败 symbol={symbol}: {e}")
+            self.logger.error(f"[FAIL] 获取股票基础信息(同步)失败 symbol={symbol}: {e}")
             return None
 
     async def get_stock_basic_info(self, symbol: str = None) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
@@ -386,14 +386,14 @@ class TushareProvider(BaseStockDataProvider):
                 return await self.get_stock_list()
                 
         except Exception as e:
-            self.logger.error(f"❌ 获取股票基础信息失败 symbol={symbol}: {e}")
+            self.logger.error(f"[FAIL] 获取股票基础信息失败 symbol={symbol}: {e}")
             return None
     
     async def get_stock_quotes(self, symbol: str) -> Optional[Dict[str, Any]]:
         """
         获取单只股票实时行情
 
-        🔥 策略：使用 daily 接口获取最新一天的数据（不使用 rt_k 批量接口）
+        [HOT] 策略：使用 daily 接口获取最新一天的数据（不使用 rt_k 批量接口）
         - rt_k 接口是批量接口，单只股票调用浪费配额
         - daily 接口可以获取单只股票的最新日线数据，包含更多指标
 
@@ -405,7 +405,7 @@ class TushareProvider(BaseStockDataProvider):
         try:
             ts_code = self._normalize_ts_code(symbol)
 
-            # 🔥 使用 daily 接口获取最新一天的数据（更节省配额）
+            # [HOT] 使用 daily 接口获取最新一天的数据（更节省配额）
             from datetime import datetime, timedelta
 
             # 获取最近3天的数据（考虑周末和节假日）
@@ -446,10 +446,10 @@ class TushareProvider(BaseStockDataProvider):
         except Exception as e:
             # 检查是否为限流错误
             if self._is_rate_limit_error(str(e)):
-                self.logger.error(f"❌ 获取实时行情失败（限流） symbol={symbol}: {e}")
+                self.logger.error(f"[FAIL] 获取实时行情失败（限流） symbol={symbol}: {e}")
                 raise  # 抛出限流错误，让上层处理
 
-            self.logger.error(f"❌ 获取实时行情失败 symbol={symbol}: {e}")
+            self.logger.error(f"[FAIL] 获取实时行情失败 symbol={symbol}: {e}")
             return None
 
     async def get_realtime_quotes_batch(self) -> Optional[Dict[str, Dict[str, Any]]]:
@@ -473,12 +473,12 @@ class TushareProvider(BaseStockDataProvider):
             )
 
             if df is None or df.empty:
-                self.logger.warning("⚠️ rt_k 接口返回空数据")
+                self.logger.warning("[WARN] rt_k 接口返回空数据")
                 return None
 
-            self.logger.info(f"✅ 获取到 {len(df)} 只股票的实时行情")
+            self.logger.info(f"[OK] 获取到 {len(df)} 只股票的实时行情")
 
-            # 🔥 获取当前日期（UTC+8）
+            # [HOT] 获取当前日期（UTC+8）
             from datetime import datetime, timezone, timedelta
             cn_tz = timezone(timedelta(hours=8))
             now_cn = datetime.now(cn_tz)
@@ -507,7 +507,7 @@ class TushareProvider(BaseStockDataProvider):
                     'volume': row.get('vol'),  # 成交量（股）
                     'amount': row.get('amount'),  # 成交额（元）
                     'num': row.get('num'),  # 成交笔数
-                    'trade_date': trade_date,  # 🔥 添加交易日期字段
+                    'trade_date': trade_date,  # [HOT] 添加交易日期字段
                 }
 
                 # 计算涨跌幅
@@ -529,10 +529,10 @@ class TushareProvider(BaseStockDataProvider):
         except Exception as e:
             # 检查是否为限流错误
             if self._is_rate_limit_error(str(e)):
-                self.logger.error(f"❌ 批量获取实时行情失败（限流）: {e}")
+                self.logger.error(f"[FAIL] 批量获取实时行情失败（限流）: {e}")
                 raise  # 抛出限流错误，让上层处理
 
-            self.logger.error(f"❌ 批量获取实时行情失败: {e}")
+            self.logger.error(f"[FAIL] 批量获取实时行情失败: {e}")
             return None
 
     def _is_rate_limit_error(self, error_msg: str) -> bool:
@@ -595,7 +595,7 @@ class TushareProvider(BaseStockDataProvider):
 
             if df is None or df.empty:
                 self.logger.warning(
-                    f"⚠️ Tushare API (Sync) 返回空数据: symbol={symbol}, ts_code={ts_code}, "
+                    f"[WARN] Tushare API (Sync) 返回空数据: symbol={symbol}, ts_code={ts_code}, "
                     f"period={period}, start={start_str}, end={end_str}"
                 )
                 return None
@@ -603,11 +603,11 @@ class TushareProvider(BaseStockDataProvider):
             # 数据标准化
             df = self._standardize_historical_data(df)
 
-            self.logger.info(f"✅ 获取{period}历史数据(同步): {symbol} {len(df)}条记录 (前复权 qfq)")
+            self.logger.info(f"[OK] 获取{period}历史数据(同步): {symbol} {len(df)}条记录 (前复权 qfq)")
             return df
             
         except Exception as e:
-            self.logger.error(f"❌ 获取历史数据(同步)失败 symbol={symbol}: {e}")
+            self.logger.error(f"[FAIL] 获取历史数据(同步)失败 symbol={symbol}: {e}")
             return None
 
     async def get_historical_data(
@@ -636,7 +636,7 @@ class TushareProvider(BaseStockDataProvider):
             start_str = self._format_date(start_date)
             end_str = self._format_date(end_date) if end_date else datetime.now().strftime('%Y%m%d')
 
-            # 🔧 使用 pro_bar 接口获取前复权数据（与同花顺一致）
+            # [CONFIG] 使用 pro_bar 接口获取前复权数据（与同花顺一致）
             # 注意：Tushare 的 daily/weekly/monthly 接口不支持复权
             # 必须使用 ts.pro_bar() 函数并指定 adj='qfq' 参数
 
@@ -662,11 +662,11 @@ class TushareProvider(BaseStockDataProvider):
 
             if df is None or df.empty:
                 self.logger.warning(
-                    f"⚠️ Tushare API 返回空数据: symbol={symbol}, ts_code={ts_code}, "
+                    f"[WARN] Tushare API 返回空数据: symbol={symbol}, ts_code={ts_code}, "
                     f"period={period}, start={start_str}, end={end_str}"
                 )
                 self.logger.warning(
-                    f"💡 可能原因: "
+                    f"[INFO] 可能原因: "
                     f"1) 该股票在此期间无交易数据 "
                     f"2) 日期范围不正确 "
                     f"3) 股票代码格式错误 "
@@ -677,14 +677,14 @@ class TushareProvider(BaseStockDataProvider):
             # 数据标准化
             df = self._standardize_historical_data(df)
 
-            self.logger.info(f"✅ 获取{period}历史数据: {symbol} {len(df)}条记录 (前复权 qfq)")
+            self.logger.info(f"[OK] 获取{period}历史数据: {symbol} {len(df)}条记录 (前复权 qfq)")
             return df
             
         except Exception as e:
             import traceback
             error_details = traceback.format_exc()
             self.logger.error(
-                f"❌ 获取历史数据失败 symbol={symbol}, period={period}\n"
+                f"[FAIL] 获取历史数据失败 symbol={symbol}, period={period}\n"
                 f"   参数: ts_code={ts_code if 'ts_code' in locals() else 'N/A'}, "
                 f"start={start_str if 'start_str' in locals() else 'N/A'}, "
                 f"end={end_str if 'end_str' in locals() else 'N/A'}\n"
@@ -710,13 +710,13 @@ class TushareProvider(BaseStockDataProvider):
             )
             
             if df is not None and not df.empty:
-                self.logger.info(f"✅ 获取每日基础数据: {trade_date} {len(df)}条记录")
+                self.logger.info(f"[OK] 获取每日基础数据: {trade_date} {len(df)}条记录")
                 return df
             
             return None
             
         except Exception as e:
-            self.logger.error(f"❌ 获取每日基础数据失败 trade_date={trade_date}: {e}")
+            self.logger.error(f"[FAIL] 获取每日基础数据失败 trade_date={trade_date}: {e}")
             return None
     
     async def find_latest_trade_date(self) -> Optional[str]:
@@ -739,7 +739,7 @@ class TushareProvider(BaseStockDataProvider):
                     
                     if df is not None and not df.empty:
                         formatted_date = f"{check_date[:4]}-{check_date[4:6]}-{check_date[6:8]}"
-                        self.logger.info(f"✅ 找到最新交易日期: {formatted_date}")
+                        self.logger.info(f"[OK] 找到最新交易日期: {formatted_date}")
                         return formatted_date
                         
                 except Exception:
@@ -748,7 +748,7 @@ class TushareProvider(BaseStockDataProvider):
             return None
             
         except Exception as e:
-            self.logger.error(f"❌ 查找最新交易日期失败: {e}")
+            self.logger.error(f"[FAIL] 查找最新交易日期失败: {e}")
             return None
 
     def find_latest_trade_date_sync(self) -> Optional[str]:
@@ -770,7 +770,7 @@ class TushareProvider(BaseStockDataProvider):
 
                     if df is not None and not df.empty:
                         formatted_date = f"{check_date[:4]}-{check_date[4:6]}-{check_date[6:8]}"
-                        self.logger.info(f"✅ 找到最新交易日期(同步): {formatted_date}")
+                        self.logger.info(f"[OK] 找到最新交易日期(同步): {formatted_date}")
                         return formatted_date
                 except Exception:
                     continue
@@ -778,7 +778,7 @@ class TushareProvider(BaseStockDataProvider):
             return None
 
         except Exception as e:
-            self.logger.error(f"❌ 查找最新交易日期失败(同步): {e}")
+            self.logger.error(f"[FAIL] 查找最新交易日期失败(同步): {e}")
             return None
     
     async def get_financial_data(self, symbol: str, report_type: str = "quarterly",
@@ -820,7 +820,7 @@ class TushareProvider(BaseStockDataProvider):
 
         try:
             ts_code = self._normalize_ts_code(symbol)
-            self.logger.debug(f"📊 获取Tushare财务数据(同步): {ts_code}, 类型: {report_type}")
+            self.logger.debug(f"[CHART] 获取Tushare财务数据(同步): {ts_code}, 类型: {report_type}")
 
             query_params = {
                 'ts_code': ts_code,
@@ -835,39 +835,39 @@ class TushareProvider(BaseStockDataProvider):
                 income_df = self.api.income(**query_params)
                 if income_df is not None and not income_df.empty:
                     financial_data['income_statement'] = income_df.to_dict('records')
-                    self.logger.debug(f"✅ {ts_code} 利润表数据获取成功(同步): {len(income_df)} 条记录")
+                    self.logger.debug(f"[OK] {ts_code} 利润表数据获取成功(同步): {len(income_df)} 条记录")
             except Exception as e:
-                self.logger.warning(f"❌ 获取{ts_code}利润表数据失败(同步): {e}")
+                self.logger.warning(f"[FAIL] 获取{ts_code}利润表数据失败(同步): {e}")
 
             try:
                 balance_df = self.api.balancesheet(**query_params)
                 if balance_df is not None and not balance_df.empty:
                     financial_data['balance_sheet'] = balance_df.to_dict('records')
-                    self.logger.debug(f"✅ {ts_code} 资产负债表数据获取成功(同步): {len(balance_df)} 条记录")
+                    self.logger.debug(f"[OK] {ts_code} 资产负债表数据获取成功(同步): {len(balance_df)} 条记录")
             except Exception as e:
-                self.logger.warning(f"❌ 获取{ts_code}资产负债表数据失败(同步): {e}")
+                self.logger.warning(f"[FAIL] 获取{ts_code}资产负债表数据失败(同步): {e}")
 
             try:
                 cash_df = self.api.cashflow(**query_params)
                 if cash_df is not None and not cash_df.empty:
                     financial_data['cashflow_statement'] = cash_df.to_dict('records')
-                    self.logger.debug(f"✅ {ts_code} 现金流量表数据获取成功(同步): {len(cash_df)} 条记录")
+                    self.logger.debug(f"[OK] {ts_code} 现金流量表数据获取成功(同步): {len(cash_df)} 条记录")
             except Exception as e:
-                self.logger.warning(f"❌ 获取{ts_code}现金流量表数据失败(同步): {e}")
+                self.logger.warning(f"[FAIL] 获取{ts_code}现金流量表数据失败(同步): {e}")
 
             try:
                 indicator_df = self.api.fina_indicator(**query_params)
                 if indicator_df is not None and not indicator_df.empty:
                     financial_data['financial_indicators'] = indicator_df.to_dict('records')
-                    self.logger.debug(f"✅ {ts_code} 财务指标数据获取成功(同步): {len(indicator_df)} 条记录")
+                    self.logger.debug(f"[OK] {ts_code} 财务指标数据获取成功(同步): {len(indicator_df)} 条记录")
             except Exception as e:
-                self.logger.warning(f"❌ 获取{ts_code}财务指标数据失败(同步): {e}")
+                self.logger.warning(f"[FAIL] 获取{ts_code}财务指标数据失败(同步): {e}")
 
             try:
                 mainbz_df = self.api.fina_mainbz(**query_params)
                 if mainbz_df is not None and not mainbz_df.empty:
                     financial_data['main_business'] = mainbz_df.to_dict('records')
-                    self.logger.debug(f"✅ {ts_code} 主营业务构成数据获取成功(同步): {len(mainbz_df)} 条记录")
+                    self.logger.debug(f"[OK] {ts_code} 主营业务构成数据获取成功(同步): {len(mainbz_df)} 条记录")
             except Exception as e:
                 self.logger.debug(f"获取{ts_code}主营业务构成数据失败(同步): {e}")
 
@@ -875,11 +875,11 @@ class TushareProvider(BaseStockDataProvider):
                 return None
 
             standardized_data = self._standardize_tushare_financial_data(financial_data, ts_code)
-            self.logger.info(f"✅ {ts_code} Tushare财务数据获取完成(同步): {len(financial_data)} 个数据集")
+            self.logger.info(f"[OK] {ts_code} Tushare财务数据获取完成(同步): {len(financial_data)} 个数据集")
             return standardized_data
 
         except Exception as e:
-            self.logger.error(f"❌ 获取财务数据失败(同步) symbol={symbol}: {e}")
+            self.logger.error(f"[FAIL] 获取财务数据失败(同步) symbol={symbol}: {e}")
             return None
 
     async def get_stock_news(self, symbol: str = None, limit: int = 10,
@@ -948,13 +948,13 @@ class TushareProvider(BaseStockDataProvider):
                         source_news = self._process_tushare_news(news_df, source, symbol, limit)
                         all_news.extend(source_news)
 
-                        self.logger.info(f"✅ 从 {source} 获取到 {len(source_news)} 条新闻")
+                        self.logger.info(f"[OK] 从 {source} 获取到 {len(source_news)} 条新闻")
 
                         # 如果已经获取足够的新闻，停止尝试其他源
                         if len(all_news) >= limit:
                             break
                     else:
-                        self.logger.debug(f"⚠️ {source} 未返回新闻数据")
+                        self.logger.debug(f"[WARN] {source} 未返回新闻数据")
 
                 except Exception as e:
                     self.logger.debug(f"从 {source} 获取新闻失败: {e}")
@@ -972,20 +972,20 @@ class TushareProvider(BaseStockDataProvider):
                 # 限制返回数量
                 final_news = sorted_news[:limit]
 
-                self.logger.info(f"✅ Tushare新闻获取成功: {len(final_news)} 条（去重后）")
+                self.logger.info(f"[OK] Tushare新闻获取成功: {len(final_news)} 条（去重后）")
                 return final_news
             else:
-                self.logger.warning("⚠️ 未获取到任何Tushare新闻数据")
+                self.logger.warning("[WARN] 未获取到任何Tushare新闻数据")
                 return []
 
         except Exception as e:
             # 如果是权限问题，给出明确提示
             if any(keyword in str(e).lower() for keyword in ['权限', 'permission', 'unauthorized', 'access denied']):
-                self.logger.warning(f"⚠️ Tushare新闻接口需要单独开通权限（付费功能）: {e}")
+                self.logger.warning(f"[WARN] Tushare新闻接口需要单独开通权限（付费功能）: {e}")
             elif "积分" in str(e) or "point" in str(e).lower():
-                self.logger.warning(f"⚠️ Tushare积分不足，无法获取新闻数据: {e}")
+                self.logger.warning(f"[WARN] Tushare积分不足，无法获取新闻数据: {e}")
             else:
-                self.logger.error(f"❌ 获取Tushare新闻失败: {e}")
+                self.logger.error(f"[FAIL] 获取Tushare新闻失败: {e}")
             return None
 
     def _process_tushare_news(self, news_df: pd.DataFrame, source: str,
@@ -1171,7 +1171,7 @@ class TushareProvider(BaseStockDataProvider):
 
         try:
             ts_code = self._normalize_ts_code(symbol)
-            self.logger.debug(f"📊 按期间获取Tushare财务数据: {ts_code}, {start_period} - {end_period}")
+            self.logger.debug(f"[CHART] 按期间获取Tushare财务数据: {ts_code}, {start_period} - {end_period}")
 
             # 构建查询参数
             query_params = {'ts_code': ts_code}
@@ -1188,7 +1188,7 @@ class TushareProvider(BaseStockDataProvider):
             )
 
             if income_df is None or income_df.empty:
-                self.logger.warning(f"⚠️ {ts_code} 指定期间无财务数据")
+                self.logger.warning(f"[WARN] {ts_code} 指定期间无财务数据")
                 return None
 
             # 按报告期分组获取完整财务数据
@@ -1210,11 +1210,11 @@ class TushareProvider(BaseStockDataProvider):
                 # API限流
                 await asyncio.sleep(0.1)
 
-            self.logger.info(f"✅ {ts_code} 按期间获取财务数据完成: {len(financial_data_list)} 个报告期")
+            self.logger.info(f"[OK] {ts_code} 按期间获取财务数据完成: {len(financial_data_list)} 个报告期")
             return financial_data_list
 
         except Exception as e:
-            self.logger.error(f"❌ 按期间获取Tushare财务数据失败 symbol={symbol}: {e}")
+            self.logger.error(f"[FAIL] 按期间获取Tushare财务数据失败 symbol={symbol}: {e}")
             return None
 
     async def get_financial_indicators_only(self, symbol: str, limit: int = 4) -> Optional[Dict[str, Any]]:
@@ -1255,7 +1255,7 @@ class TushareProvider(BaseStockDataProvider):
             return None
 
         except Exception as e:
-            self.logger.error(f"❌ 获取Tushare财务指标失败 symbol={symbol}: {e}")
+            self.logger.error(f"[FAIL] 获取Tushare财务指标失败 symbol={symbol}: {e}")
             return None
 
     # ==================== 数据标准化方法 ====================
@@ -1319,9 +1319,9 @@ class TushareProvider(BaseStockDataProvider):
             "pct_chg": self._convert_to_float(raw_data.get('pct_chg')),
 
             # 成交数据
-            # 🔥 成交量单位转换：Tushare 返回的是手，需要转换为股
+            # [HOT] 成交量单位转换：Tushare 返回的是手，需要转换为股
             "volume": self._convert_to_float(raw_data.get('vol')) * 100 if raw_data.get('vol') else None,
-            # 🔥 成交额单位转换：Tushare daily 接口返回的是千元，需要转换为元
+            # [HOT] 成交额单位转换：Tushare daily 接口返回的是千元，需要转换为元
             "amount": self._convert_to_float(raw_data.get('amount')) * 1000 if raw_data.get('amount') else None,
 
             # 财务指标
@@ -1502,7 +1502,7 @@ class TushareProvider(BaseStockDataProvider):
                 "roe_waa": self._safe_float(latest_indicator.get('roe_waa')),  # 加权平均净资产收益率
                 "roe_dt": self._safe_float(latest_indicator.get('roe_dt')),  # 净资产收益率(扣除非经常损益)
                 "roa2": self._safe_float(latest_indicator.get('roa2')),  # 总资产收益率(扣除非经常损益)
-                "gross_margin": self._safe_float(latest_indicator.get('grossprofit_margin')),  # 🔥 修复：使用 grossprofit_margin（销售毛利率%）而不是 gross_margin（毛利绝对值）
+                "gross_margin": self._safe_float(latest_indicator.get('grossprofit_margin')),  # [HOT] 修复：使用 grossprofit_margin（销售毛利率%）而不是 gross_margin（毛利绝对值）
                 "netprofit_margin": self._safe_float(latest_indicator.get('netprofit_margin')),  # 销售净利率
                 "cogs_of_sales": self._safe_float(latest_indicator.get('cogs_of_sales')),  # 销售成本率
                 "expense_of_sales": self._safe_float(latest_indicator.get('expense_of_sales')),  # 销售期间费用率
@@ -1536,7 +1536,7 @@ class TushareProvider(BaseStockDataProvider):
             return standardized_data
 
         except Exception as e:
-            self.logger.error(f"❌ 标准化Tushare财务数据失败: {e}")
+            self.logger.error(f"[FAIL] 标准化Tushare财务数据失败: {e}")
             return {
                 "symbol": ts_code.split('.')[0] if '.' in ts_code else ts_code,
                 "data_source": "tushare",
@@ -1585,7 +1585,7 @@ class TushareProvider(BaseStockDataProvider):
 
             # 如果最新期是年报（1231），直接使用
             if month_day == '1231':
-                self.logger.debug(f"✅ TTM计算: 使用年报数据 {latest_period} = {latest_value:.2f}")
+                self.logger.debug(f"[OK] TTM计算: 使用年报数据 {latest_period} = {latest_value:.2f}")
                 return latest_value
 
             # 如果是季报/半年报，需要计算 TTM = 基准期 + (本期累计 - 去年同期累计)
@@ -1603,12 +1603,12 @@ class TushareProvider(BaseStockDataProvider):
 
             if not last_year_same:
                 # 缺少去年同期数据，无法准确计算 TTM
-                self.logger.warning(f"⚠️ TTM计算失败: 缺少去年同期数据（需要: {last_year_same_period}，最新期: {latest_period}）")
+                self.logger.warning(f"[WARN] TTM计算失败: 缺少去年同期数据（需要: {last_year_same_period}，最新期: {latest_period}）")
                 return None
 
             last_year_value = self._safe_float(last_year_same.get(field))
             if last_year_value is None:
-                self.logger.warning(f"⚠️ TTM计算失败: 去年同期数据值为空（{last_year_same_period}）")
+                self.logger.warning(f"[WARN] TTM计算失败: 去年同期数据值为空（{last_year_same_period}）")
                 return None
 
             # 2. 查找"去年同期之后的最近年报"作为基准期
@@ -1624,26 +1624,26 @@ class TushareProvider(BaseStockDataProvider):
             if not base_period:
                 # 没有找到合适的年报，无法计算
                 # 这种情况通常发生在：最新期是 2025Q1，但 2024年报还没公布
-                self.logger.warning(f"⚠️ TTM计算失败: 缺少基准年报（需要在 {last_year_same_period} 之后的年报，最新期: {latest_period}）")
+                self.logger.warning(f"[WARN] TTM计算失败: 缺少基准年报（需要在 {last_year_same_period} 之后的年报，最新期: {latest_period}）")
                 return None
 
             base_value = self._safe_float(base_period.get(field))
             if base_value is None:
-                self.logger.warning(f"⚠️ TTM计算失败: 基准年报数据值为空（{base_period.get('end_date')}）")
+                self.logger.warning(f"[WARN] TTM计算失败: 基准年报数据值为空（{base_period.get('end_date')}）")
                 return None
 
             # 3. 计算 TTM = 基准年报 + (本期累计 - 去年同期累计)
             ttm_value = base_value + (latest_value - last_year_value)
 
             self.logger.debug(
-                f"✅ TTM计算: {base_period.get('end_date')}({base_value:.2f}) + "
+                f"[OK] TTM计算: {base_period.get('end_date')}({base_value:.2f}) + "
                 f"({latest_period}({latest_value:.2f}) - {last_year_same_period}({last_year_value:.2f})) = {ttm_value:.2f}"
             )
 
             return ttm_value
 
         except Exception as e:
-            self.logger.warning(f"❌ TTM计算异常: {e}")
+            self.logger.warning(f"[FAIL] TTM计算异常: {e}")
             return None
 
     def _determine_report_type(self, report_period: str) -> str:
@@ -1722,5 +1722,5 @@ def get_tushare_provider() -> TushareProvider:
                 _tushare_provider.connect_sync()
                 _tushare_provider_initialized = True
             except Exception as e:
-                logger.warning(f"⚠️ Tushare自动连接失败: {e}")
+                logger.warning(f"[WARN] Tushare自动连接失败: {e}")
     return _tushare_provider

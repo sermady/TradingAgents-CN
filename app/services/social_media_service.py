@@ -66,9 +66,9 @@ class SocialMediaService:
         try:
             self.db = get_database()
             self.collection = self.db.social_media_messages
-            self.logger.info("✅ 社媒消息数据服务初始化成功")
+            self.logger.info("[OK] 社媒消息数据服务初始化成功")
         except Exception as e:
-            self.logger.error(f"❌ 社媒消息数据服务初始化失败: {e}")
+            self.logger.error(f"[FAIL] 社媒消息数据服务初始化失败: {e}")
             raise
     
     async def _get_collection(self):
@@ -115,7 +115,7 @@ class SocialMediaService:
             result = await collection.bulk_write(operations, ordered=False)
             
             saved_count = result.upserted_count + result.modified_count
-            self.logger.info(f"✅ 社媒消息批量保存完成: {saved_count}/{len(messages)}")
+            self.logger.info(f"[OK] 社媒消息批量保存完成: {saved_count}/{len(messages)}")
             
             return {
                 "saved": saved_count,
@@ -125,14 +125,14 @@ class SocialMediaService:
             }
             
         except BulkWriteError as e:
-            self.logger.error(f"❌ 社媒消息批量保存部分失败: {e.details}")
+            self.logger.error(f"[FAIL] 社媒消息批量保存部分失败: {e.details}")
             return {
                 "saved": e.details.get("nUpserted", 0) + e.details.get("nModified", 0),
                 "failed": len(e.details.get("writeErrors", [])),
                 "errors": e.details.get("writeErrors", [])
             }
         except Exception as e:
-            self.logger.error(f"❌ 社媒消息保存失败: {e}")
+            self.logger.error(f"[FAIL] 社媒消息保存失败: {e}")
             return {"saved": 0, "failed": len(messages), "error": str(e)}
     
     async def query_social_media_messages(
@@ -206,11 +206,11 @@ class SocialMediaService:
             # 获取结果
             messages = await cursor.to_list(length=params.limit)
             
-            self.logger.debug(f"📊 查询到 {len(messages)} 条社媒消息")
+            self.logger.debug(f"[CHART] 查询到 {len(messages)} 条社媒消息")
             return messages
             
         except Exception as e:
-            self.logger.error(f"❌ 社媒消息查询失败: {e}")
+            self.logger.error(f"[FAIL] 社媒消息查询失败: {e}")
             return []
     
     async def get_latest_messages(
@@ -259,11 +259,11 @@ class SocialMediaService:
             
             messages = await cursor.limit(limit).to_list(length=limit)
             
-            self.logger.debug(f"🔍 搜索到 {len(messages)} 条相关消息")
+            self.logger.debug(f"[SEARCH] 搜索到 {len(messages)} 条相关消息")
             return messages
             
         except Exception as e:
-            self.logger.error(f"❌ 社媒消息搜索失败: {e}")
+            self.logger.error(f"[FAIL] 社媒消息搜索失败: {e}")
             return []
     
     async def get_social_media_statistics(
@@ -336,7 +336,7 @@ class SocialMediaService:
                 return SocialMediaStats()
                 
         except Exception as e:
-            self.logger.error(f"❌ 社媒消息统计失败: {e}")
+            self.logger.error(f"[FAIL] 社媒消息统计失败: {e}")
             return SocialMediaStats()
 
 

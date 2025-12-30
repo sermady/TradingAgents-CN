@@ -78,7 +78,7 @@ class DataSourceConfig:
         #     "enabled": False,
         # }
 
-        logger.debug("✅ 数据源配置加载完成")
+        logger.debug("[OK] 数据源配置加载完成")
     
     def get_provider_config(self, provider_name: str) -> Dict[str, Any]:
         """
@@ -92,7 +92,7 @@ class DataSourceConfig:
         """
         config = self._configs.get(provider_name.lower(), {})
         if not config:
-            logger.warning(f"⚠️ 未找到 {provider_name} 的配置")
+            logger.warning(f"[WARN] 未找到 {provider_name} 的配置")
         return config
     
     def is_provider_enabled(self, provider_name: str) -> bool:

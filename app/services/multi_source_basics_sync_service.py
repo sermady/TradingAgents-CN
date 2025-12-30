@@ -121,21 +121,21 @@ class MultiSourceBasicsSyncService:
                 result = await db[COLLECTION_NAME].bulk_write(operations, ordered=False)
                 inserted = result.upserted_count
                 updated = result.modified_count
-                logger.debug(f"✅ 批量写入成功: 新增 {inserted}, 更新 {updated}")
+                logger.debug(f"[OK] 批量写入成功: 新增 {inserted}, 更新 {updated}")
                 return inserted, updated
 
             except asyncio.TimeoutError as e:
                 retry_count += 1
                 if retry_count < max_retries:
                     wait_time = 2 ** retry_count  # 指数退避：2秒、4秒、8秒
-                    logger.warning(f"⚠️ 批量写入超时 (第{retry_count}次重试)，等待{wait_time}秒后重试...")
+                    logger.warning(f"[WARN] 批量写入超时 (第{retry_count}次重试)，等待{wait_time}秒后重试...")
                     await asyncio.sleep(wait_time)
                 else:
-                    logger.error(f"❌ 批量写入失败，已重试{max_retries}次: {e}")
+                    logger.error(f"[FAIL] 批量写入失败，已重试{max_retries}次: {e}")
                     return 0, 0
 
             except Exception as e:
-                logger.error(f"❌ 批量写入失败: {e}")
+                logger.error(f"[FAIL] 批量写入失败: {e}")
                 return 0, 0
 
         return inserted, updated
@@ -207,10 +207,10 @@ class MultiSourceBasicsSyncService:
             # Step 5: 处理和更新数据（分批处理）
             ops = []
             inserted = updated = errors = 0
-            batch_size = 500  # 🔥 每批处理 500 只股票，避免超时
+            batch_size = 500  # [HOT] 每批处理 500 只股票，避免超时
             total_stocks = len(stock_df)
 
-            logger.info(f"🚀 开始处理 {total_stocks} 只股票，数据源: {source_used}")
+            logger.info(f"[START] 开始处理 {total_stocks} 只股票，数据源: {source_used}")
 
             for idx, (_, row) in enumerate(stock_df.iterrows(), 1):
                 try:
@@ -252,11 +252,11 @@ class MultiSourceBasicsSyncService:
                     # 生成 full_symbol（确保不为空）
                     full_symbol = ts_code if ts_code else self._generate_full_symbol(code)
 
-                    # 🔥 确定数据源标识
+                    # [HOT] 确定数据源标识
                     # 根据实际使用的数据源设置 source 字段
                     # 注意：不再使用 "multi_source" 作为默认值，必须有明确的数据源
                     if not source_used:
-                        logger.warning(f"⚠️ 股票 {code} 没有明确的数据源，跳过")
+                        logger.warning(f"[WARN] 股票 {code} 没有明确的数据源，跳过")
                         errors += 1
                         continue
                     data_source = source_used
@@ -273,40 +273,40 @@ class MultiSourceBasicsSyncService:
                         "sse": sse,
                         "full_symbol": full_symbol,  # 添加 full_symbol 字段
                         "category": category,
-                        "source": data_source,  # 🔥 使用实际数据源
+                        "source": data_source,  # [HOT] 使用实际数据源
                         "updated_at": datetime.now(),
                     }
 
                     # 添加财务指标
                     self._add_financial_metrics(doc, daily_metrics)
 
-                    # 🔥 使用 (code, source) 联合查询条件
+                    # [HOT] 使用 (code, source) 联合查询条件
                     ops.append(UpdateOne({"code": code, "source": data_source}, {"$set": doc}, upsert=True))
 
                 except Exception as e:
                     logger.error(f"Error processing stock {row.get('ts_code', 'unknown')}: {e}")
                     errors += 1
 
-                # 🔥 分批执行数据库操作
+                # [HOT] 分批执行数据库操作
                 if len(ops) >= batch_size or idx == total_stocks:
                     if ops:
                         progress_pct = (idx / total_stocks) * 100
-                        logger.info(f"📝 执行批量写入: {len(ops)} 条记录 ({idx}/{total_stocks}, {progress_pct:.1f}%)")
+                        logger.info(f"[LOG] 执行批量写入: {len(ops)} 条记录 ({idx}/{total_stocks}, {progress_pct:.1f}%)")
 
                         batch_inserted, batch_updated = await self._execute_bulk_write_with_retry(db, ops)
 
                         if batch_inserted > 0 or batch_updated > 0:
                             inserted += batch_inserted
                             updated += batch_updated
-                            logger.info(f"✅ 批量写入完成: 新增 {batch_inserted}, 更新 {batch_updated} | 累计: 新增 {inserted}, 更新 {updated}, 错误 {errors}")
+                            logger.info(f"[OK] 批量写入完成: 新增 {batch_inserted}, 更新 {batch_updated} | 累计: 新增 {inserted}, 更新 {updated}, 错误 {errors}")
                         else:
                             errors += len(ops)
-                            logger.warning(f"⚠️ 批量写入失败，标记 {len(ops)} 条记录为错误")
+                            logger.warning(f"[WARN] 批量写入失败，标记 {len(ops)} 条记录为错误")
 
                         ops = []  # 清空操作列表
 
             # Step 7: 更新统计信息
-            stats.total = total_stocks  # 🔥 使用总股票数
+            stats.total = total_stocks  # [HOT] 使用总股票数
             stats.inserted = inserted
             stats.updated = updated
             stats.errors = errors
@@ -315,7 +315,7 @@ class MultiSourceBasicsSyncService:
 
             await self._persist_status(db, stats.__dict__.copy())
             logger.info(
-                f"✅ Multi-source sync finished: total={stats.total} inserted={inserted} "
+                f"[OK] Multi-source sync finished: total={stats.total} inserted={inserted} "
                 f"updated={updated} errors={errors} sources={stats.data_sources_used}"
             )
             return stats.__dict__

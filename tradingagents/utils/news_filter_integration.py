@@ -108,9 +108,9 @@ def patch_akshare_utils():
     """
     为akshare_utils模块的get_stock_news_em函数添加过滤功能
 
-    ⚠️ 已废弃：akshare_utils 模块已被移除，此函数保留仅为向后兼容
+    [WARN] 已废弃：akshare_utils 模块已被移除，此函数保留仅为向后兼容
     """
-    logger.warning("[新闻过滤集成] ⚠️ patch_akshare_utils 已废弃：akshare_utils 模块已被移除")
+    logger.warning("[新闻过滤集成] [WARN] patch_akshare_utils 已废弃：akshare_utils 模块已被移除")
 
 
 def create_filtered_realtime_news_function():
@@ -176,7 +176,7 @@ def create_filtered_realtime_news_function():
                 
         except Exception as e:
             logger.error(f"[增强实时新闻] 增强新闻获取失败: {e}")
-            return f"❌ 新闻获取失败: {str(e)}"
+            return f"[FAIL] 新闻获取失败: {str(e)}"
     
     return get_filtered_realtime_stock_news
 
@@ -194,7 +194,7 @@ def apply_news_filtering_patches():
     # 2. 创建增强版实时新闻函数
     enhanced_function = create_filtered_realtime_news_function()
     
-    logger.info("[新闻过滤集成] ✅ 新闻过滤补丁应用完成")
+    logger.info("[新闻过滤集成] [OK] 新闻过滤补丁应用完成")
     
     return enhanced_function
 

@@ -77,14 +77,14 @@ async def add_favorite(
     logger = logging.getLogger("webapi")
 
     try:
-        logger.info(f"📝 添加自选股请求: user_id={current_user['id']}, stock_code={request.stock_code}, stock_name={request.stock_name}")
+        logger.info(f"[LOG] 添加自选股请求: user_id={current_user['id']}, stock_code={request.stock_code}, stock_name={request.stock_name}")
 
         # 检查是否已存在
         is_fav = await favorites_service.is_favorite(current_user["id"], request.stock_code)
-        logger.info(f"🔍 检查是否已存在: {is_fav}")
+        logger.info(f"[SEARCH] 检查是否已存在: {is_fav}")
 
         if is_fav:
-            logger.warning(f"⚠️ 股票已在自选股中: {request.stock_code}")
+            logger.warning(f"[WARN] 股票已在自选股中: {request.stock_code}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="该股票已在自选股中"
@@ -103,12 +103,12 @@ async def add_favorite(
             alert_price_low=request.alert_price_low
         )
 
-        logger.info(f"✅ 添加结果: success={success}")
+        logger.info(f"[OK] 添加结果: success={success}")
 
         if success:
             return ok({"stock_code": request.stock_code}, "添加成功")
         else:
-            logger.error(f"❌ 添加失败: success=False")
+            logger.error(f"[FAIL] 添加失败: success=False")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="添加失败"
@@ -117,7 +117,7 @@ async def add_favorite(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ 添加自选股异常: {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.error(f"[FAIL] 添加自选股异常: {type(e).__name__}: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"添加自选股失败: {str(e)}"
@@ -231,13 +231,13 @@ async def sync_favorites_realtime(
     - **data_source**: 数据源（tushare/akshare）
     """
     try:
-        logger.info(f"📊 开始同步自选股实时行情: user_id={current_user['id']}, data_source={request.data_source}")
+        logger.info(f"[CHART] 开始同步自选股实时行情: user_id={current_user['id']}, data_source={request.data_source}")
 
         # 获取用户自选股列表
         favorites = await favorites_service.get_user_favorites(current_user["id"])
 
         if not favorites:
-            logger.info("⚠️ 用户没有自选股")
+            logger.info("[WARN] 用户没有自选股")
             return ok({
                 "total": 0,
                 "success_count": 0,
@@ -249,7 +249,7 @@ async def sync_favorites_realtime(
         symbols = [fav.get("stock_code") or fav.get("symbol") for fav in favorites]
         symbols = [s for s in symbols if s]  # 过滤空值
 
-        logger.info(f"🎯 需要同步的股票: {len(symbols)} 只 - {symbols}")
+        logger.info(f"[TARGET] 需要同步的股票: {len(symbols)} 只 - {symbols}")
 
         # 根据数据源选择同步服务
         if request.data_source == "tushare":
@@ -271,7 +271,7 @@ async def sync_favorites_realtime(
             )
 
         # 同步实时行情
-        logger.info(f"🔄 调用 {request.data_source} 同步服务...")
+        logger.info(f"[SYNC] 调用 {request.data_source} 同步服务...")
         sync_result = await service.sync_realtime_quotes(
             symbols=symbols,
             force=True  # 强制执行，跳过交易时间检查
@@ -280,7 +280,7 @@ async def sync_favorites_realtime(
         success_count = sync_result.get("success_count", 0)
         failed_count = sync_result.get("failed_count", 0)
 
-        logger.info(f"✅ 自选股实时行情同步完成: 成功 {success_count}/{len(symbols)} 只")
+        logger.info(f"[OK] 自选股实时行情同步完成: 成功 {success_count}/{len(symbols)} 只")
 
         return ok({
             "total": len(symbols),
@@ -294,7 +294,7 @@ async def sync_favorites_realtime(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ 同步自选股实时行情失败: {e}", exc_info=True)
+        logger.error(f"[FAIL] 同步自选股实时行情失败: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"同步失败: {str(e)}"

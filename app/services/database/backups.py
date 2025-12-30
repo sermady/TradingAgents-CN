@@ -66,9 +66,9 @@ async def create_backup_native(name: str, backup_dir: str, collections: Optional
         for collection_name in collections:
             cmd.extend(["--collection", collection_name])
 
-    logger.info(f"🔄 开始执行 mongodump 备份: {name}")
+    logger.info(f"[SYNC] 开始执行 mongodump 备份: {name}")
 
-    # 🔥 使用 asyncio.to_thread 在线程池中执行阻塞的 subprocess 调用
+    # [HOT] 使用 asyncio.to_thread 在线程池中执行阻塞的 subprocess 调用
     def _run_mongodump():
         result = subprocess.run(
             cmd,
@@ -82,11 +82,11 @@ async def create_backup_native(name: str, backup_dir: str, collections: Optional
 
     try:
         await asyncio.to_thread(_run_mongodump)
-        logger.info(f"✅ mongodump 备份完成: {name}")
+        logger.info(f"[OK] mongodump 备份完成: {name}")
     except subprocess.TimeoutExpired:
         raise Exception("备份超时（超过1小时）")
     except Exception as e:
-        logger.error(f"❌ mongodump 备份失败: {e}")
+        logger.error(f"[FAIL] mongodump 备份失败: {e}")
         # 清理失败的备份目录
         if os.path.exists(backup_path):
             await asyncio.to_thread(shutil.rmtree, backup_path)
@@ -168,7 +168,7 @@ async def create_backup(name: str, backup_dir: str, collections: Optional[List[s
 
     os.makedirs(backup_dir, exist_ok=True)
 
-    # 🔥 使用 asyncio.to_thread 将阻塞的文件 I/O 操作放到线程池执行
+    # [HOT] 使用 asyncio.to_thread 将阻塞的文件 I/O 操作放到线程池执行
     def _write_backup():
         with gzip.open(backup_path, "wt", encoding="utf-8") as f:
             json.dump(backup_data, f, ensure_ascii=False, indent=2)
@@ -222,7 +222,7 @@ async def delete_backup(backup_id: str) -> None:
     if not backup:
         raise Exception("备份不存在")
     if os.path.exists(backup["file_path"]):
-        # 🔥 使用 asyncio.to_thread 将阻塞的文件删除操作放到线程池执行
+        # [HOT] 使用 asyncio.to_thread 将阻塞的文件删除操作放到线程池执行
         backup_type = backup.get("backup_type", "python")
         if backup_type == "mongodump":
             # mongodump 备份是目录，需要递归删除
@@ -255,9 +255,9 @@ def _convert_date_fields(doc: dict) -> dict:
             try:
                 # 尝试解析日期字符串
                 doc[field] = parser.parse(doc[field])
-                logger.debug(f"✅ 转换日期字段 {field}: {doc[field]}")
+                logger.debug(f"[OK] 转换日期字段 {field}: {doc[field]}")
             except Exception as e:
-                logger.warning(f"⚠️ 无法解析日期字段 {field}: {doc[field]}, 错误: {e}")
+                logger.warning(f"[WARN] 无法解析日期字段 {field}: {doc[field]}, 错误: {e}")
 
     return doc
 
@@ -273,7 +273,7 @@ async def import_data(content: bytes, collection: str, *, format: str = "json", 
     db = get_mongo_db()
 
     if format.lower() == "json":
-        # 🔥 使用 asyncio.to_thread 将阻塞的 JSON 解析放到线程池执行
+        # [HOT] 使用 asyncio.to_thread 将阻塞的 JSON 解析放到线程池执行
         def _parse_json():
             return json.loads(content.decode("utf-8"))
 
@@ -282,32 +282,32 @@ async def import_data(content: bytes, collection: str, *, format: str = "json", 
         raise Exception(f"不支持的格式: {format}")
 
     # 检测是否为多集合导出格式
-    logger.info(f"🔍 [导入检测] 数据类型: {type(data)}")
+    logger.info(f"[SEARCH] [导入检测] 数据类型: {type(data)}")
 
-    # 🔥 新格式：包含 export_info 和 data 的字典
+    # [HOT] 新格式：包含 export_info 和 data 的字典
     if isinstance(data, dict) and "export_info" in data and "data" in data:
-        logger.info(f"📦 检测到新版多集合导出文件（包含 export_info）")
+        logger.info(f"[PKG] 检测到新版多集合导出文件（包含 export_info）")
         export_info = data.get("export_info", {})
-        logger.info(f"📋 导出信息: 创建时间={export_info.get('created_at')}, 集合数={len(export_info.get('collections', []))}")
+        logger.info(f"[CLIPBOARD] 导出信息: 创建时间={export_info.get('created_at')}, 集合数={len(export_info.get('collections', []))}")
 
         # 提取实际数据
         data = data["data"]
-        logger.info(f"📦 包含 {len(data)} 个集合: {list(data.keys())}")
+        logger.info(f"[PKG] 包含 {len(data)} 个集合: {list(data.keys())}")
 
-    # 🔥 旧格式：直接是集合名到文档列表的映射
+    # [HOT] 旧格式：直接是集合名到文档列表的映射
     if isinstance(data, dict):
-        logger.info(f"🔍 [导入检测] 字典包含 {len(data)} 个键")
-        logger.info(f"🔍 [导入检测] 键列表: {list(data.keys())[:10]}")  # 只显示前10个
+        logger.info(f"[SEARCH] [导入检测] 字典包含 {len(data)} 个键")
+        logger.info(f"[SEARCH] [导入检测] 键列表: {list(data.keys())[:10]}")  # 只显示前10个
 
         # 检查每个键值对的类型
         for k, v in list(data.items())[:5]:  # 只检查前5个
-            logger.info(f"🔍 [导入检测] 键 '{k}': 值类型={type(v)}, 是否为列表={isinstance(v, list)}")
+            logger.info(f"[SEARCH] [导入检测] 键 '{k}': 值类型={type(v)}, 是否为列表={isinstance(v, list)}")
             if isinstance(v, list):
-                logger.info(f"🔍 [导入检测] 键 '{k}': 列表长度={len(v)}")
+                logger.info(f"[SEARCH] [导入检测] 键 '{k}': 列表长度={len(v)}")
 
     if isinstance(data, dict) and all(isinstance(k, str) and isinstance(v, list) for k, v in data.items()):
         # 多集合模式
-        logger.info(f"📦 确认为多集合导入模式，包含 {len(data)} 个集合")
+        logger.info(f"[PKG] 确认为多集合导入模式，包含 {len(data)} 个集合")
 
         total_inserted = 0
         imported_collections = []
@@ -332,7 +332,7 @@ async def import_data(content: bytes, collection: str, *, format: str = "json", 
                     except Exception:
                         del doc["_id"]
 
-                # 🔥 转换日期字段（字符串 -> datetime）
+                # [HOT] 转换日期字段（字符串 -> datetime）
                 _convert_date_fields(doc)
 
             # 插入数据
@@ -341,7 +341,7 @@ async def import_data(content: bytes, collection: str, *, format: str = "json", 
                 inserted_count = len(res.inserted_ids)
                 total_inserted += inserted_count
                 imported_collections.append(coll_name)
-                logger.info(f"✅ 导入集合 {coll_name}：{inserted_count} 条文档")
+                logger.info(f"[OK] 导入集合 {coll_name}：{inserted_count} 条文档")
 
         return {
             "mode": "multi_collection",
@@ -354,20 +354,20 @@ async def import_data(content: bytes, collection: str, *, format: str = "json", 
         }
     else:
         # 单集合模式（兼容旧版本）
-        logger.info(f"📄 单集合导入模式，目标集合: {collection}")
-        logger.info(f"🔍 [单集合模式] 数据类型: {type(data)}")
+        logger.info(f"[FILE] 单集合导入模式，目标集合: {collection}")
+        logger.info(f"[SEARCH] [单集合模式] 数据类型: {type(data)}")
 
         if isinstance(data, dict):
-            logger.info(f"🔍 [单集合模式] 字典包含 {len(data)} 个键")
-            logger.info(f"🔍 [单集合模式] 键列表: {list(data.keys())[:10]}")
+            logger.info(f"[SEARCH] [单集合模式] 字典包含 {len(data)} 个键")
+            logger.info(f"[SEARCH] [单集合模式] 键列表: {list(data.keys())[:10]}")
 
         collection_obj = db[collection]
 
         if not isinstance(data, list):
-            logger.info(f"🔍 [单集合模式] 数据不是列表，转换为列表")
+            logger.info(f"[SEARCH] [单集合模式] 数据不是列表，转换为列表")
             data = [data]
 
-        logger.info(f"🔍 [单集合模式] 准备插入 {len(data)} 条文档")
+        logger.info(f"[SEARCH] [单集合模式] 准备插入 {len(data)} 条文档")
 
         if overwrite:
             deleted_count = await collection_obj.delete_many({})
@@ -381,7 +381,7 @@ async def import_data(content: bytes, collection: str, *, format: str = "json", 
                 except Exception:
                     del doc["_id"]
 
-            # 🔥 转换日期字段（字符串 -> datetime）
+            # [HOT] 转换日期字段（字符串 -> datetime）
             _convert_date_fields(doc)
 
         inserted_count = 0
@@ -448,12 +448,12 @@ def _sanitize_document(doc: Any) -> Any:
 async def export_data(collections: Optional[List[str]] = None, *, export_dir: str, format: str = "json", sanitize: bool = False) -> str:
     import pandas as pd
 
-    # 🔥 使用异步数据库连接
+    # [HOT] 使用异步数据库连接
     db = get_mongo_db()
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
 
     if not collections:
-        # 🔥 异步调用 list_collection_names()
+        # [HOT] 异步调用 list_collection_names()
         collections = await db.list_collection_names()
         collections = [c for c in collections if not c.startswith("system.")]
 
@@ -469,7 +469,7 @@ async def export_data(collections: Optional[List[str]] = None, *, export_dir: st
             all_data[collection_name] = []
             continue
 
-        # 🔥 异步迭代查询结果
+        # [HOT] 异步迭代查询结果
         async for doc in collection.find():
             docs.append(serialize_document(doc))
         all_data[collection_name] = docs
@@ -490,7 +490,7 @@ async def export_data(collections: Optional[List[str]] = None, *, export_dir: st
             "data": all_data,
         }
 
-        # 🔥 使用 asyncio.to_thread 将阻塞的文件 I/O 操作放到线程池执行
+        # [HOT] 使用 asyncio.to_thread 将阻塞的文件 I/O 操作放到线程池执行
         def _write_json():
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(export_data_dict, f, ensure_ascii=False, indent=2)
@@ -508,7 +508,7 @@ async def export_data(collections: Optional[List[str]] = None, *, export_dir: st
                 row["_collection"] = collection_name
                 rows.append(row)
 
-        # 🔥 使用 asyncio.to_thread 将阻塞的文件 I/O 操作放到线程池执行
+        # [HOT] 使用 asyncio.to_thread 将阻塞的文件 I/O 操作放到线程池执行
         def _write_csv():
             if rows:
                 pd.DataFrame(rows).to_csv(file_path, index=False, encoding="utf-8-sig")
@@ -522,7 +522,7 @@ async def export_data(collections: Optional[List[str]] = None, *, export_dir: st
         filename = f"export_{timestamp}.xlsx"
         file_path = os.path.join(export_dir, filename)
 
-        # 🔥 使用 asyncio.to_thread 将阻塞的文件 I/O 操作放到线程池执行
+        # [HOT] 使用 asyncio.to_thread 将阻塞的文件 I/O 操作放到线程池执行
         def _write_excel():
             with pd.ExcelWriter(file_path, engine="openpyxl") as writer:
                 for collection_name, documents in all_data.items():

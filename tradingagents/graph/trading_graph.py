@@ -57,7 +57,7 @@ def create_llm_by_provider(provider: str, model: str, backend_url: str, temperat
     from tradingagents.llm_adapters.deepseek_adapter import ChatDeepSeek
     from tradingagents.llm_adapters.openai_compatible_base import create_openai_compatible_llm
 
-    logger.info(f"🔧 [创建LLM] provider={provider}, model={model}, url={backend_url}")
+    logger.info(f"[CONFIG] [创建LLM] provider={provider}, model={model}, url={backend_url}")
     logger.info(f"🔑 [API Key] 来源: {'数据库配置' if api_key else '环境变量'}")
 
     if provider.lower() == "google":
@@ -83,7 +83,7 @@ def create_llm_by_provider(provider: str, model: str, backend_url: str, temperat
         # 传递 base_url 参数，使厂家配置的 default_base_url 生效
         return ChatDashScopeOpenAI(
             model=model,
-            api_key=dashscope_api_key,  # 🔥 传递 API Key
+            api_key=dashscope_api_key,  # [HOT] 传递 API Key
             base_url=backend_url if backend_url else None,  # 如果有自定义 URL 则使用
             temperature=temperature,
             max_tokens=max_tokens,
@@ -160,8 +160,8 @@ def create_llm_by_provider(provider: str, model: str, backend_url: str, temperat
         )
 
     else:
-        # 🔧 自定义厂家：使用 OpenAI 兼容模式
-        logger.info(f"🔧 使用 OpenAI 兼容模式处理自定义厂家: {provider}")
+        # [CONFIG] 自定义厂家：使用 OpenAI 兼容模式
+        logger.info(f"[CONFIG] 使用 OpenAI 兼容模式处理自定义厂家: {provider}")
 
         # 尝试从环境变量获取 API Key（支持多种命名格式）
         api_key_candidates = [
@@ -174,11 +174,11 @@ def create_llm_by_provider(provider: str, model: str, backend_url: str, temperat
         for env_var in api_key_candidates:
             custom_api_key = os.getenv(env_var)
             if custom_api_key:
-                logger.info(f"✅ 从环境变量 {env_var} 获取到 API Key")
+                logger.info(f"[OK] 从环境变量 {env_var} 获取到 API Key")
                 break
 
         if not custom_api_key:
-            logger.warning(f"⚠️ 未找到自定义厂家 {provider} 的 API Key，尝试使用默认配置")
+            logger.warning(f"[WARN] 未找到自定义厂家 {provider} 的 API Key，尝试使用默认配置")
 
         return ChatOpenAI(
             model=model,
@@ -219,7 +219,7 @@ class TradingAgentsGraph:
         )
 
         # Initialize LLMs
-        # 🔧 从配置中读取模型参数（优先使用用户配置，否则使用默认值）
+        # [CONFIG] 从配置中读取模型参数（优先使用用户配置，否则使用默认值）
         quick_config = self.config.get("quick_model_config", {})
         deep_config = self.config.get("deep_model_config", {})
 
@@ -233,7 +233,7 @@ class TradingAgentsGraph:
         deep_temperature = deep_config.get("temperature", 0.7)
         deep_timeout = deep_config.get("timeout", 180)
 
-        # 🔧 检查是否为混合模式（快速模型和深度模型来自不同厂家）
+        # [CONFIG] 检查是否为混合模式（快速模型和深度模型来自不同厂家）
         quick_provider = self.config.get("quick_provider")
         deep_provider = self.config.get("deep_provider")
         quick_backend_url = self.config.get("quick_backend_url")
@@ -253,7 +253,7 @@ class TradingAgentsGraph:
                 temperature=quick_temperature,
                 max_tokens=quick_max_tokens,
                 timeout=quick_timeout,
-                api_key=self.config.get("quick_api_key")  # 🔥 传递 API Key
+                api_key=self.config.get("quick_api_key")  # [HOT] 传递 API Key
             )
 
             self.deep_thinking_llm = create_llm_by_provider(
@@ -263,14 +263,14 @@ class TradingAgentsGraph:
                 temperature=deep_temperature,
                 max_tokens=deep_max_tokens,
                 timeout=deep_timeout,
-                api_key=self.config.get("deep_api_key")  # 🔥 传递 API Key
+                api_key=self.config.get("deep_api_key")  # [HOT] 传递 API Key
             )
 
-            logger.info(f"✅ [混合模式] LLM 实例创建成功")
+            logger.info(f"[OK] [混合模式] LLM 实例创建成功")
 
         elif self.config["llm_provider"].lower() == "openai":
-            logger.info(f"🔧 [OpenAI-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
-            logger.info(f"🔧 [OpenAI-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
+            logger.info(f"[CONFIG] [OpenAI-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
+            logger.info(f"[CONFIG] [OpenAI-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
 
             self.deep_thinking_llm = ChatOpenAI(
                 model=self.config["deep_think_llm"],
@@ -292,9 +292,9 @@ class TradingAgentsGraph:
             if not siliconflow_api_key:
                 raise ValueError("使用SiliconFlow需要设置SILICONFLOW_API_KEY环境变量")
 
-            logger.info(f"🌐 [SiliconFlow] 使用API密钥: {siliconflow_api_key[:20]}...")
-            logger.info(f"🔧 [SiliconFlow-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
-            logger.info(f"🔧 [SiliconFlow-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
+            logger.info(f"[WEB] [SiliconFlow] 使用API密钥: {siliconflow_api_key[:20]}...")
+            logger.info(f"[CONFIG] [SiliconFlow-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
+            logger.info(f"[CONFIG] [SiliconFlow-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
 
             self.deep_thinking_llm = ChatOpenAI(
                 model=self.config["deep_think_llm"],
@@ -318,9 +318,9 @@ class TradingAgentsGraph:
             if not openrouter_api_key:
                 raise ValueError("使用OpenRouter需要设置OPENROUTER_API_KEY或OPENAI_API_KEY环境变量")
 
-            logger.info(f"🌐 [OpenRouter] 使用API密钥: {openrouter_api_key[:20]}...")
-            logger.info(f"🔧 [OpenRouter-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
-            logger.info(f"🔧 [OpenRouter-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
+            logger.info(f"[WEB] [OpenRouter] 使用API密钥: {openrouter_api_key[:20]}...")
+            logger.info(f"[CONFIG] [OpenRouter-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
+            logger.info(f"[CONFIG] [OpenRouter-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
 
             self.deep_thinking_llm = ChatOpenAI(
                 model=self.config["deep_think_llm"],
@@ -339,8 +339,8 @@ class TradingAgentsGraph:
                 timeout=quick_timeout
             )
         elif self.config["llm_provider"] == "ollama":
-            logger.info(f"🔧 [Ollama-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
-            logger.info(f"🔧 [Ollama-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
+            logger.info(f"[CONFIG] [Ollama-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
+            logger.info(f"[CONFIG] [Ollama-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
 
             self.deep_thinking_llm = ChatOpenAI(
                 model=self.config["deep_think_llm"],
@@ -357,8 +357,8 @@ class TradingAgentsGraph:
                 timeout=quick_timeout
             )
         elif self.config["llm_provider"].lower() == "anthropic":
-            logger.info(f"🔧 [Anthropic-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
-            logger.info(f"🔧 [Anthropic-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
+            logger.info(f"[CONFIG] [Anthropic-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
+            logger.info(f"[CONFIG] [Anthropic-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
 
             self.deep_thinking_llm = ChatAnthropic(
                 model=self.config["deep_think_llm"],
@@ -376,16 +376,16 @@ class TradingAgentsGraph:
             )
         elif self.config["llm_provider"].lower() == "google":
             # 使用 Google OpenAI 兼容适配器，解决工具调用格式不匹配问题
-            logger.info(f"🔧 使用Google AI OpenAI 兼容适配器 (解决工具调用问题)")
+            logger.info(f"[CONFIG] 使用Google AI OpenAI 兼容适配器 (解决工具调用问题)")
 
-            # 🔥 优先使用数据库配置的 API Key，否则从环境变量读取
+            # [HOT] 优先使用数据库配置的 API Key，否则从环境变量读取
             google_api_key = self.config.get("quick_api_key") or self.config.get("deep_api_key") or os.getenv('GOOGLE_API_KEY')
             if not google_api_key:
                 raise ValueError("使用Google AI需要在数据库中配置API Key或设置GOOGLE_API_KEY环境变量")
 
             logger.info(f"🔑 [Google AI] API Key 来源: {'数据库配置' if self.config.get('quick_api_key') or self.config.get('deep_api_key') else '环境变量'}")
 
-            # 🔧 从配置中读取模型参数（优先使用用户配置，否则使用默认值）
+            # [CONFIG] 从配置中读取模型参数（优先使用用户配置，否则使用默认值）
             quick_config = self.config.get("quick_model_config", {})
             deep_config = self.config.get("deep_model_config", {})
 
@@ -397,15 +397,15 @@ class TradingAgentsGraph:
             deep_temperature = deep_config.get("temperature", 0.7)
             deep_timeout = deep_config.get("timeout", 180)
 
-            logger.info(f"🔧 [Google-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
-            logger.info(f"🔧 [Google-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
+            logger.info(f"[CONFIG] [Google-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
+            logger.info(f"[CONFIG] [Google-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
 
             # 获取 backend_url（如果配置中有的话）
             backend_url = self.config.get("backend_url")
             if backend_url:
-                logger.info(f"🔧 [Google AI] 使用配置的 backend_url: {backend_url}")
+                logger.info(f"[CONFIG] [Google AI] 使用配置的 backend_url: {backend_url}")
             else:
-                logger.info(f"🔧 [Google AI] 未配置 backend_url，使用默认端点")
+                logger.info(f"[CONFIG] [Google AI] 未配置 backend_url，使用默认端点")
 
             self.deep_thinking_llm = ChatGoogleOpenAI(
                 model=self.config["deep_think_llm"],
@@ -425,19 +425,19 @@ class TradingAgentsGraph:
                 transport="rest"
             )
 
-            logger.info(f"✅ [Google AI] 已启用优化的工具调用和内容格式处理并应用用户配置的模型参数")
+            logger.info(f"[OK] [Google AI] 已启用优化的工具调用和内容格式处理并应用用户配置的模型参数")
         elif (self.config["llm_provider"].lower() == "dashscope" or
               self.config["llm_provider"].lower() == "alibaba" or
               "dashscope" in self.config["llm_provider"].lower() or
               "阿里百炼" in self.config["llm_provider"]):
             # 使用 OpenAI 兼容适配器，支持原生 Function Calling
-            logger.info(f"🔧 使用阿里百炼 OpenAI 兼容适配器 (支持原生工具调用)")
+            logger.info(f"[CONFIG] 使用阿里百炼 OpenAI 兼容适配器 (支持原生工具调用)")
 
-            # 🔥 优先使用数据库配置的 API Key，否则从环境变量读取
+            # [HOT] 优先使用数据库配置的 API Key，否则从环境变量读取
             dashscope_api_key = self.config.get("quick_api_key") or self.config.get("deep_api_key") or os.getenv('DASHSCOPE_API_KEY')
             logger.info(f"🔑 [阿里百炼] API Key 来源: {'数据库配置' if self.config.get('quick_api_key') or self.config.get('deep_api_key') else '环境变量'}")
 
-            # 🔧 从配置中读取模型参数（优先使用用户配置，否则使用默认值）
+            # [CONFIG] 从配置中读取模型参数（优先使用用户配置，否则使用默认值）
             quick_config = self.config.get("quick_model_config", {})
             deep_config = self.config.get("deep_model_config", {})
 
@@ -451,15 +451,15 @@ class TradingAgentsGraph:
             deep_temperature = deep_config.get("temperature", 0.7)
             deep_timeout = deep_config.get("timeout", 180)
 
-            logger.info(f"🔧 [阿里百炼-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
-            logger.info(f"🔧 [阿里百炼-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
+            logger.info(f"[CONFIG] [阿里百炼-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
+            logger.info(f"[CONFIG] [阿里百炼-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
 
             # 获取 backend_url（如果配置中有的话）
             backend_url = self.config.get("backend_url")
             if backend_url:
-                logger.info(f"🔧 [阿里百炼] 使用自定义 API 地址: {backend_url}")
+                logger.info(f"[CONFIG] [阿里百炼] 使用自定义 API 地址: {backend_url}")
 
-            # 🔥 详细日志：打印所有 LLM 初始化参数
+            # [HOT] 详细日志：打印所有 LLM 初始化参数
             logger.info("=" * 80)
             logger.info("🤖 [LLM初始化] 阿里百炼深度模型参数:")
             logger.info(f"   model: {self.config['deep_think_llm']}")
@@ -472,7 +472,7 @@ class TradingAgentsGraph:
 
             self.deep_thinking_llm = ChatDashScopeOpenAI(
                 model=self.config["deep_think_llm"],
-                api_key=dashscope_api_key,  # 🔥 传递 API Key
+                api_key=dashscope_api_key,  # [HOT] 传递 API Key
                 base_url=backend_url if backend_url else None,  # 传递 base_url
                 temperature=deep_temperature,
                 max_tokens=deep_max_tokens,
@@ -491,13 +491,13 @@ class TradingAgentsGraph:
 
             self.quick_thinking_llm = ChatDashScopeOpenAI(
                 model=self.config["quick_think_llm"],
-                api_key=dashscope_api_key,  # 🔥 传递 API Key
+                api_key=dashscope_api_key,  # [HOT] 传递 API Key
                 base_url=backend_url if backend_url else None,  # 传递 base_url
                 temperature=quick_temperature,
                 max_tokens=quick_max_tokens,
                 request_timeout=quick_timeout
             )
-            logger.info(f"✅ [阿里百炼] 已应用用户配置的模型参数")
+            logger.info(f"[OK] [阿里百炼] 已应用用户配置的模型参数")
         elif (self.config["llm_provider"].lower() == "deepseek" or
               "deepseek" in self.config["llm_provider"].lower()):
             # DeepSeek V3配置 - 使用支持token统计的适配器
@@ -509,7 +509,7 @@ class TradingAgentsGraph:
 
             deepseek_base_url = os.getenv('DEEPSEEK_BASE_URL', 'https://api.deepseek.com')
 
-            # 🔧 从配置中读取模型参数（优先使用用户配置，否则使用默认值）
+            # [CONFIG] 从配置中读取模型参数（优先使用用户配置，否则使用默认值）
             quick_config = self.config.get("quick_model_config", {})
             deep_config = self.config.get("deep_model_config", {})
 
@@ -523,8 +523,8 @@ class TradingAgentsGraph:
             deep_temperature = deep_config.get("temperature", 0.7)
             deep_timeout = deep_config.get("timeout", 180)
 
-            logger.info(f"🔧 [DeepSeek-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
-            logger.info(f"🔧 [DeepSeek-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
+            logger.info(f"[CONFIG] [DeepSeek-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
+            logger.info(f"[CONFIG] [DeepSeek-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
 
             # 使用支持token统计的DeepSeek适配器
             self.deep_thinking_llm = ChatDeepSeek(
@@ -544,7 +544,7 @@ class TradingAgentsGraph:
                 timeout=quick_timeout
             )
 
-            logger.info(f"✅ [DeepSeek] 已启用token统计功能并应用用户配置的模型参数")
+            logger.info(f"[OK] [DeepSeek] 已启用token统计功能并应用用户配置的模型参数")
         elif self.config["llm_provider"].lower() == "custom_openai":
             # 自定义OpenAI端点配置
             from tradingagents.llm_adapters.openai_compatible_base import create_openai_compatible_llm
@@ -555,7 +555,7 @@ class TradingAgentsGraph:
 
             custom_base_url = self.config.get("custom_openai_base_url", "https://api.openai.com/v1")
 
-            # 🔧 从配置中读取模型参数（优先使用用户配置，否则使用默认值）
+            # [CONFIG] 从配置中读取模型参数（优先使用用户配置，否则使用默认值）
             quick_config = self.config.get("quick_model_config", {})
             deep_config = self.config.get("deep_model_config", {})
 
@@ -567,9 +567,9 @@ class TradingAgentsGraph:
             deep_temperature = deep_config.get("temperature", 0.7)
             deep_timeout = deep_config.get("timeout", 180)
 
-            logger.info(f"🔧 [自定义OpenAI] 使用端点: {custom_base_url}")
-            logger.info(f"🔧 [自定义OpenAI-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
-            logger.info(f"🔧 [自定义OpenAI-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
+            logger.info(f"[CONFIG] [自定义OpenAI] 使用端点: {custom_base_url}")
+            logger.info(f"[CONFIG] [自定义OpenAI-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
+            logger.info(f"[CONFIG] [自定义OpenAI-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
 
             # 使用OpenAI兼容适配器创建LLM实例
             self.deep_thinking_llm = create_openai_compatible_llm(
@@ -589,12 +589,12 @@ class TradingAgentsGraph:
                 timeout=quick_timeout
             )
 
-            logger.info(f"✅ [自定义OpenAI] 已配置自定义端点并应用用户配置的模型参数")
+            logger.info(f"[OK] [自定义OpenAI] 已配置自定义端点并应用用户配置的模型参数")
         elif self.config["llm_provider"].lower() == "qianfan":
             # 百度千帆（文心一言）配置 - 统一由适配器内部读取与校验 QIANFAN_API_KEY
             from tradingagents.llm_adapters.openai_compatible_base import create_openai_compatible_llm
 
-            # 🔧 从配置中读取模型参数（优先使用用户配置，否则使用默认值）
+            # [CONFIG] 从配置中读取模型参数（优先使用用户配置，否则使用默认值）
             quick_config = self.config.get("quick_model_config", {})
             deep_config = self.config.get("deep_model_config", {})
 
@@ -606,8 +606,8 @@ class TradingAgentsGraph:
             deep_temperature = deep_config.get("temperature", 0.7)
             deep_timeout = deep_config.get("timeout", 180)
 
-            logger.info(f"🔧 [千帆-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
-            logger.info(f"🔧 [千帆-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
+            logger.info(f"[CONFIG] [千帆-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
+            logger.info(f"[CONFIG] [千帆-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
 
             # 使用OpenAI兼容适配器创建LLM实例（基类会使用千帆默认base_url并负责密钥校验）
             self.deep_thinking_llm = create_openai_compatible_llm(
@@ -624,19 +624,19 @@ class TradingAgentsGraph:
                 max_tokens=quick_max_tokens,
                 timeout=quick_timeout
             )
-            logger.info("✅ [千帆] 文心一言适配器已配置成功并应用用户配置的模型参数")
+            logger.info("[OK] [千帆] 文心一言适配器已配置成功并应用用户配置的模型参数")
         elif self.config["llm_provider"].lower() == "zhipu":
             # 智谱AI GLM配置 - 使用专门的ChatZhipuOpenAI适配器
             from tradingagents.llm_adapters.openai_compatible_base import ChatZhipuOpenAI
             
-            # 🔥 优先使用数据库配置的 API Key，否则从环境变量读取
+            # [HOT] 优先使用数据库配置的 API Key，否则从环境变量读取
             zhipu_api_key = self.config.get("quick_api_key") or self.config.get("deep_api_key") or os.getenv('ZHIPU_API_KEY')
             logger.info(f"🔑 [智谱AI] API Key 来源: {'数据库配置' if self.config.get('quick_api_key') or self.config.get('deep_api_key') else '环境变量'}")
             
             if not zhipu_api_key:
                 raise ValueError("使用智谱AI需要在数据库中配置API Key或设置ZHIPU_API_KEY环境变量")
             
-            # 🔧 从配置中读取模型参数（优先使用用户配置，否则使用默认值）
+            # [CONFIG] 从配置中读取模型参数（优先使用用户配置，否则使用默认值）
             quick_config = self.config.get("quick_model_config", {})
             deep_config = self.config.get("deep_model_config", {})
             
@@ -648,15 +648,15 @@ class TradingAgentsGraph:
             deep_temperature = deep_config.get("temperature", 0.7)
             deep_timeout = deep_config.get("timeout", 180)
             
-            logger.info(f"🔧 [智谱AI-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
-            logger.info(f"🔧 [智谱AI-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
+            logger.info(f"[CONFIG] [智谱AI-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
+            logger.info(f"[CONFIG] [智谱AI-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
             
             # 获取 backend_url（如果配置中有的话）
             backend_url = self.config.get("backend_url")
             if backend_url:
-                logger.info(f"🔧 [智谱AI] 使用配置的 backend_url: {backend_url}")
+                logger.info(f"[CONFIG] [智谱AI] 使用配置的 backend_url: {backend_url}")
             else:
-                logger.info(f"🔧 [智谱AI] 未配置 backend_url，使用默认端点")
+                logger.info(f"[CONFIG] [智谱AI] 未配置 backend_url，使用默认端点")
             
             # 使用专门的ChatZhipuOpenAI适配器创建LLM实例
             self.deep_thinking_llm = ChatZhipuOpenAI(
@@ -676,10 +676,10 @@ class TradingAgentsGraph:
                 timeout=quick_timeout
             )
             
-            logger.info("✅ [智谱AI] 已使用专用适配器配置成功并应用用户配置的模型参数")
+            logger.info("[OK] [智谱AI] 已使用专用适配器配置成功并应用用户配置的模型参数")
         else:
-            # 🔧 通用的 OpenAI 兼容厂家支持（用于自定义厂家）
-            logger.info(f"🔧 使用通用 OpenAI 兼容适配器处理自定义厂家: {self.config['llm_provider']}")
+            # [CONFIG] 通用的 OpenAI 兼容厂家支持（用于自定义厂家）
+            logger.info(f"[CONFIG] 使用通用 OpenAI 兼容适配器处理自定义厂家: {self.config['llm_provider']}")
             from tradingagents.llm_adapters.openai_compatible_base import create_openai_compatible_llm
 
             # 获取厂家配置中的 API Key 和 base_url
@@ -696,7 +696,7 @@ class TradingAgentsGraph:
             for env_var in api_key_candidates:
                 custom_api_key = os.getenv(env_var)
                 if custom_api_key:
-                    logger.info(f"✅ 从环境变量 {env_var} 获取到 API Key")
+                    logger.info(f"[OK] 从环境变量 {env_var} 获取到 API Key")
                     break
 
             if not custom_api_key:
@@ -713,9 +713,9 @@ class TradingAgentsGraph:
                     f"使用自定义厂家 {provider_name} 需要在数据库配置中设置 default_base_url"
                 )
 
-            logger.info(f"🔧 [自定义厂家 {provider_name}] 使用端点: {backend_url}")
+            logger.info(f"[CONFIG] [自定义厂家 {provider_name}] 使用端点: {backend_url}")
 
-            # 🔧 从配置中读取模型参数
+            # [CONFIG] 从配置中读取模型参数
             quick_config = self.config.get("quick_model_config", {})
             deep_config = self.config.get("deep_model_config", {})
 
@@ -727,8 +727,8 @@ class TradingAgentsGraph:
             deep_temperature = deep_config.get("temperature", 0.7)
             deep_timeout = deep_config.get("timeout", 180)
 
-            logger.info(f"🔧 [{provider_name}-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
-            logger.info(f"🔧 [{provider_name}-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
+            logger.info(f"[CONFIG] [{provider_name}-快速模型] max_tokens={quick_max_tokens}, temperature={quick_temperature}, timeout={quick_timeout}s")
+            logger.info(f"[CONFIG] [{provider_name}-深度模型] max_tokens={deep_max_tokens}, temperature={deep_temperature}, timeout={deep_timeout}s")
 
             # 使用 custom_openai 适配器创建 LLM 实例
             self.deep_thinking_llm = create_openai_compatible_llm(
@@ -750,7 +750,7 @@ class TradingAgentsGraph:
                 timeout=quick_timeout
             )
 
-            logger.info(f"✅ [自定义厂家 {provider_name}] 已配置自定义端点并应用用户配置的模型参数")
+            logger.info(f"[OK] [自定义厂家 {provider_name}] 已配置自定义端点并应用用户配置的模型参数")
         
         self.toolkit = Toolkit(config=self.config)
 
@@ -775,12 +775,12 @@ class TradingAgentsGraph:
         self.tool_nodes = self._create_tool_nodes()
 
         # Initialize components
-        # 🔥 [修复] 从配置中读取辩论轮次参数
+        # [HOT] [修复] 从配置中读取辩论轮次参数
         self.conditional_logic = ConditionalLogic(
             max_debate_rounds=self.config.get("max_debate_rounds", 1),
             max_risk_discuss_rounds=self.config.get("max_risk_discuss_rounds", 1)
         )
-        logger.info(f"🔧 [ConditionalLogic] 初始化完成:")
+        logger.info(f"[CONFIG] [ConditionalLogic] 初始化完成:")
         logger.info(f"   - max_debate_rounds: {self.conditional_logic.max_debate_rounds}")
         logger.info(f"   - max_risk_discuss_rounds: {self.conditional_logic.max_risk_discuss_rounds}")
 
@@ -880,21 +880,21 @@ class TradingAgentsGraph:
         """
 
         # 添加详细的接收日志
-        logger.debug(f"🔍 [GRAPH DEBUG] ===== TradingAgentsGraph.propagate 接收参数 =====")
-        logger.debug(f"🔍 [GRAPH DEBUG] 接收到的company_name: '{company_name}' (类型: {type(company_name)})")
-        logger.debug(f"🔍 [GRAPH DEBUG] 接收到的trade_date: '{trade_date}' (类型: {type(trade_date)})")
-        logger.debug(f"🔍 [GRAPH DEBUG] 接收到的task_id: '{task_id}'")
+        logger.debug(f"[SEARCH] [GRAPH DEBUG] ===== TradingAgentsGraph.propagate 接收参数 =====")
+        logger.debug(f"[SEARCH] [GRAPH DEBUG] 接收到的company_name: '{company_name}' (类型: {type(company_name)})")
+        logger.debug(f"[SEARCH] [GRAPH DEBUG] 接收到的trade_date: '{trade_date}' (类型: {type(trade_date)})")
+        logger.debug(f"[SEARCH] [GRAPH DEBUG] 接收到的task_id: '{task_id}'")
 
         self.ticker = company_name
-        logger.debug(f"🔍 [GRAPH DEBUG] 设置self.ticker: '{self.ticker}'")
+        logger.debug(f"[SEARCH] [GRAPH DEBUG] 设置self.ticker: '{self.ticker}'")
 
         # Initialize state
-        logger.debug(f"🔍 [GRAPH DEBUG] 创建初始状态，传递参数: company_name='{company_name}', trade_date='{trade_date}'")
+        logger.debug(f"[SEARCH] [GRAPH DEBUG] 创建初始状态，传递参数: company_name='{company_name}', trade_date='{trade_date}'")
         init_agent_state = self.propagator.create_initial_state(
             company_name, trade_date
         )
-        logger.debug(f"🔍 [GRAPH DEBUG] 初始状态中的company_of_interest: '{init_agent_state.get('company_of_interest', 'NOT_FOUND')}'")
-        logger.debug(f"🔍 [GRAPH DEBUG] 初始状态中的trade_date: '{init_agent_state.get('trade_date', 'NOT_FOUND')}'")
+        logger.debug(f"[SEARCH] [GRAPH DEBUG] 初始状态中的company_of_interest: '{init_agent_state.get('company_of_interest', 'NOT_FOUND')}'")
+        logger.debug(f"[SEARCH] [GRAPH DEBUG] 初始状态中的trade_date: '{init_agent_state.get('trade_date', 'NOT_FOUND')}'")
 
         # 初始化计时器
         node_timings = {}  # 记录每个节点的执行时间
@@ -920,7 +920,7 @@ class TradingAgentsGraph:
                         if current_node_name and current_node_start:
                             elapsed = time.time() - current_node_start
                             node_timings[current_node_name] = elapsed
-                            logger.info(f"⏱️ [{current_node_name}] 耗时: {elapsed:.2f}秒")
+                            logger.info(f"[TIME] [{current_node_name}] 耗时: {elapsed:.2f}秒")
 
                         # 开始新节点计时
                         current_node_name = node_name
@@ -964,13 +964,13 @@ class TradingAgentsGraph:
                             if current_node_name and current_node_start:
                                 elapsed = time.time() - current_node_start
                                 node_timings[current_node_name] = elapsed
-                                logger.info(f"⏱️ [{current_node_name}] 耗时: {elapsed:.2f}秒")
-                                logger.info(f"🔍 [TIMING] 节点切换: {current_node_name} → {node_name}")
+                                logger.info(f"[TIME] [{current_node_name}] 耗时: {elapsed:.2f}秒")
+                                logger.info(f"[SEARCH] [TIMING] 节点切换: {current_node_name} → {node_name}")
 
                             # 开始新节点计时
                             current_node_name = node_name
                             current_node_start = time.time()
-                            logger.info(f"🔍 [TIMING] 开始计时: {node_name}")
+                            logger.info(f"[SEARCH] [TIMING] 开始计时: {node_name}")
                             break
 
                     self._send_progress_update(chunk, progress_callback)
@@ -982,7 +982,7 @@ class TradingAgentsGraph:
                             final_state.update(node_update)
             else:
                 # 原有的invoke模式（也需要计时）
-                logger.info("⏱️ 使用 invoke 模式执行分析（无进度回调）")
+                logger.info("[TIME] 使用 invoke 模式执行分析（无进度回调）")
                 # 使用stream模式以便计时，但不发送进度更新
                 trace = []
                 final_state = None
@@ -994,7 +994,7 @@ class TradingAgentsGraph:
                             if current_node_name and current_node_start:
                                 elapsed = time.time() - current_node_start
                                 node_timings[current_node_name] = elapsed
-                                logger.info(f"⏱️ [{current_node_name}] 耗时: {elapsed:.2f}秒")
+                                logger.info(f"[TIME] [{current_node_name}] 耗时: {elapsed:.2f}秒")
 
                             # 开始新节点计时
                             current_node_name = node_name
@@ -1012,20 +1012,20 @@ class TradingAgentsGraph:
         if current_node_name and current_node_start:
             elapsed = time.time() - current_node_start
             node_timings[current_node_name] = elapsed
-            logger.info(f"⏱️ [{current_node_name}] 耗时: {elapsed:.2f}秒")
+            logger.info(f"[TIME] [{current_node_name}] 耗时: {elapsed:.2f}秒")
 
         # 计算总时间
         total_elapsed = time.time() - total_start_time
 
         # 调试日志
-        logger.info(f"🔍 [TIMING DEBUG] 节点计时数量: {len(node_timings)}")
-        logger.info(f"🔍 [TIMING DEBUG] 总耗时: {total_elapsed:.2f}秒")
-        logger.info(f"🔍 [TIMING DEBUG] 节点列表: {list(node_timings.keys())}")
+        logger.info(f"[SEARCH] [TIMING DEBUG] 节点计时数量: {len(node_timings)}")
+        logger.info(f"[SEARCH] [TIMING DEBUG] 总耗时: {total_elapsed:.2f}秒")
+        logger.info(f"[SEARCH] [TIMING DEBUG] 节点列表: {list(node_timings.keys())}")
 
         # 打印详细的时间统计
-        logger.info("🔍 [TIMING DEBUG] 准备调用 _print_timing_summary")
+        logger.info("[SEARCH] [TIMING DEBUG] 准备调用 _print_timing_summary")
         self._print_timing_summary(node_timings, total_elapsed)
-        logger.info("🔍 [TIMING DEBUG] _print_timing_summary 调用完成")
+        logger.info("[SEARCH] [TIMING DEBUG] _print_timing_summary 调用完成")
 
         # 构建性能数据
         performance_data = self._build_performance_data(node_timings, total_elapsed)
@@ -1083,18 +1083,18 @@ class TradingAgentsGraph:
             if not node_name:
                 return
 
-            logger.info(f"🔍 [Progress] 节点名称: {node_name}")
+            logger.info(f"[SEARCH] [Progress] 节点名称: {node_name}")
 
             # 检查是否为结束节点
             if '__end__' in chunk:
-                logger.info(f"📊 [Progress] 检测到__end__节点")
-                progress_callback("📊 生成报告")
+                logger.info(f"[CHART] [Progress] 检测到__end__节点")
+                progress_callback("[CHART] 生成报告")
                 return
 
             # 节点名称映射表（匹配 LangGraph 实际节点名）
             node_mapping = {
                 # 分析师节点
-                'Market Analyst': "📊 市场分析师",
+                'Market Analyst': "[CHART] 市场分析师",
                 'Fundamentals Analyst': "💼 基本面分析师",
                 'News Analyst': "📰 新闻分析师",
                 'Social Analyst': "💬 社交媒体分析师",
@@ -1115,10 +1115,10 @@ class TradingAgentsGraph:
                 # 交易员节点
                 'Trader': "💼 交易员决策",
                 # 风险评估节点
-                'Risky Analyst': "🔥 激进风险评估",
+                'Risky Analyst': "[HOT] 激进风险评估",
                 'Safe Analyst': "🛡️ 保守风险评估",
                 'Neutral Analyst': "⚖️ 中性风险评估",
-                'Risk Judge': "🎯 风险经理",
+                'Risk Judge': "[TARGET] 风险经理",
             }
 
             # 查找映射的消息
@@ -1131,15 +1131,15 @@ class TradingAgentsGraph:
 
             if message:
                 # 发送进度更新
-                logger.info(f"📤 [Progress] 发送进度更新: {message}")
+                logger.info(f"[EXPORT] [Progress] 发送进度更新: {message}")
                 progress_callback(message)
             else:
                 # 未知节点，使用节点名称
-                logger.warning(f"⚠️ [Progress] 未知节点: {node_name}")
-                progress_callback(f"🔍 {node_name}")
+                logger.warning(f"[WARN] [Progress] 未知节点: {node_name}")
+                progress_callback(f"[SEARCH] {node_name}")
 
         except Exception as e:
-            logger.error(f"❌ 进度更新失败: {e}", exc_info=True)
+            logger.error(f"[FAIL] 进度更新失败: {e}", exc_info=True)
 
     def _build_performance_data(self, node_timings: Dict[str, float], total_elapsed: float) -> Dict[str, Any]:
         """构建性能数据结构
@@ -1253,12 +1253,12 @@ class TradingAgentsGraph:
             node_timings: 每个节点的执行时间字典
             total_elapsed: 总执行时间
         """
-        logger.info("🔍 [_print_timing_summary] 方法被调用")
-        logger.info("🔍 [_print_timing_summary] node_timings 数量: " + str(len(node_timings)))
-        logger.info("🔍 [_print_timing_summary] total_elapsed: " + str(total_elapsed))
+        logger.info("[SEARCH] [_print_timing_summary] 方法被调用")
+        logger.info("[SEARCH] [_print_timing_summary] node_timings 数量: " + str(len(node_timings)))
+        logger.info("[SEARCH] [_print_timing_summary] total_elapsed: " + str(total_elapsed))
 
         logger.info("=" * 80)
-        logger.info("⏱️  分析性能统计报告")
+        logger.info("[TIME]  分析性能统计报告")
         logger.info("=" * 80)
 
         # 节点分类（注意：风险管理节点要先于分析师节点判断，因为它们也包含'Analyst'）
@@ -1297,7 +1297,7 @@ class TradingAgentsGraph:
         def print_category(title: str, nodes: List[Tuple[str, float]]):
             if not nodes:
                 return
-            logger.info(f"\n📊 {title}")
+            logger.info(f"\n[CHART] {title}")
             logger.info("-" * 80)
             total_category_time = sum(t for _, t in nodes)
             for node_name, elapsed in sorted(nodes, key=lambda x: x[1], reverse=True):
@@ -1315,15 +1315,15 @@ class TradingAgentsGraph:
 
         # 打印总体统计
         logger.info("\n" + "=" * 80)
-        logger.info(f"🎯 总执行时间: {total_elapsed:.2f}秒 ({total_elapsed/60:.2f}分钟)")
-        logger.info(f"📈 节点总数: {len(node_timings)}")
+        logger.info(f"[TARGET] 总执行时间: {total_elapsed:.2f}秒 ({total_elapsed/60:.2f}分钟)")
+        logger.info(f"[CHART-UP] 节点总数: {len(node_timings)}")
         if node_timings:
             avg_time = sum(node_timings.values()) / len(node_timings)
-            logger.info(f"⏱️  平均节点耗时: {avg_time:.2f}秒")
+            logger.info(f"[TIME]  平均节点耗时: {avg_time:.2f}秒")
             slowest_node = max(node_timings.items(), key=lambda x: x[1])
             logger.info(f"🐌 最慢节点: {slowest_node[0]} ({slowest_node[1]:.2f}秒)")
             fastest_node = min(node_timings.items(), key=lambda x: x[1])
-            logger.info(f"⚡ 最快节点: {fastest_node[0]} ({fastest_node[1]:.2f}秒)")
+            logger.info(f"[FAST] 最快节点: {fastest_node[0]} ({fastest_node[1]:.2f}秒)")
 
         # 打印LLM配置信息
         logger.info(f"\n🤖 LLM配置:")

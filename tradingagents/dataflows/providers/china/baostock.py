@@ -29,13 +29,13 @@ class BaoStockProvider(BaseStockDataProvider):
         try:
             import baostock as bs
             self.bs = bs
-            logger.info("🔧 BaoStock模块加载成功")
+            logger.info("[CONFIG] BaoStock模块加载成功")
             self.connected = True
         except ImportError as e:
-            logger.error(f"❌ BaoStock模块未安装: {e}")
+            logger.error(f"[FAIL] BaoStock模块未安装: {e}")
             self.connected = False
         except Exception as e:
-            logger.error(f"❌ BaoStock初始化失败: {e}")
+            logger.error(f"[FAIL] BaoStock初始化失败: {e}")
             self.connected = False
     
     async def connect(self) -> bool:
@@ -57,10 +57,10 @@ class BaoStockProvider(BaseStockDataProvider):
                 return True
             
             await asyncio.to_thread(test_login)
-            logger.info("✅ BaoStock连接测试成功")
+            logger.info("[OK] BaoStock连接测试成功")
             return True
         except Exception as e:
-            logger.error(f"❌ BaoStock连接测试失败: {e}")
+            logger.error(f"[FAIL] BaoStock连接测试失败: {e}")
             return False
     
     def get_stock_list_sync(self) -> Optional[pd.DataFrame]:
@@ -69,7 +69,7 @@ class BaoStockProvider(BaseStockDataProvider):
             return None
 
         try:
-            logger.info("📋 获取BaoStock股票列表（同步）...")
+            logger.info("[CLIPBOARD] 获取BaoStock股票列表（同步）...")
 
             lg = self.bs.login()
             if lg.error_code != '0':
@@ -87,7 +87,7 @@ class BaoStockProvider(BaseStockDataProvider):
                     data_list.append(rs.get_row_data())
 
                 if not data_list:
-                    logger.warning("⚠️ BaoStock股票列表为空")
+                    logger.warning("[WARN] BaoStock股票列表为空")
                     return None
 
                 # 转换为DataFrame
@@ -97,14 +97,14 @@ class BaoStockProvider(BaseStockDataProvider):
                 # 只保留股票类型（type=1）
                 df = df[df['type'] == '1']
 
-                logger.info(f"✅ BaoStock股票列表获取成功: {len(df)}只股票")
+                logger.info(f"[OK] BaoStock股票列表获取成功: {len(df)}只股票")
                 return df
 
             finally:
                 self.bs.logout()
 
         except Exception as e:
-            logger.error(f"❌ BaoStock获取股票列表失败: {e}")
+            logger.error(f"[FAIL] BaoStock获取股票列表失败: {e}")
             return None
 
     async def get_stock_list(self) -> List[Dict[str, Any]]:
@@ -118,7 +118,7 @@ class BaoStockProvider(BaseStockDataProvider):
             return []
         
         try:
-            logger.info("📋 获取BaoStock股票列表...")
+            logger.info("[CLIPBOARD] 获取BaoStock股票列表...")
             
             def fetch_stock_list():
                 lg = self.bs.login()
@@ -141,7 +141,7 @@ class BaoStockProvider(BaseStockDataProvider):
             data_list, fields = await asyncio.to_thread(fetch_stock_list)
             
             if not data_list:
-                logger.warning("⚠️ BaoStock股票列表为空")
+                logger.warning("[WARN] BaoStock股票列表为空")
                 return []
             
             # 转换为标准格式
@@ -163,11 +163,11 @@ class BaoStockProvider(BaseStockDataProvider):
                             "source": "baostock"
                         })
             
-            logger.info(f"✅ BaoStock股票列表获取成功: {len(stock_list)}只股票")
+            logger.info(f"[OK] BaoStock股票列表获取成功: {len(stock_list)}只股票")
             return stock_list
             
         except Exception as e:
-            logger.error(f"❌ BaoStock获取股票列表失败: {e}")
+            logger.error(f"[FAIL] BaoStock获取股票列表失败: {e}")
             return []
     
     async def get_stock_basic_info(self, code: str) -> Dict[str, Any]:
@@ -202,7 +202,7 @@ class BaoStockProvider(BaseStockDataProvider):
             }
 
         except Exception as e:
-            logger.error(f"❌ BaoStock获取{code}基础信息失败: {e}")
+            logger.error(f"[FAIL] BaoStock获取{code}基础信息失败: {e}")
             return {}
 
     async def get_valuation_data(self, code: str, trade_date: Optional[str] = None) -> Dict[str, Any]:
@@ -228,7 +228,7 @@ class BaoStockProvider(BaseStockDataProvider):
                 start_date = trade_date
                 end_date = trade_date
 
-            logger.debug(f"📊 获取{code}估值数据: {start_date} 到 {end_date}")
+            logger.debug(f"[CHART] 获取{code}估值数据: {start_date} 到 {end_date}")
 
             def fetch_valuation_data():
                 bs_code = self._to_baostock_code(code)
@@ -237,7 +237,7 @@ class BaoStockProvider(BaseStockDataProvider):
                     raise Exception(f"登录失败: {lg.error_msg}")
 
                 try:
-                    # 🔥 获取估值指标：peTTM, pbMRQ, psTTM, pcfNcfTTM
+                    # [HOT] 获取估值指标：peTTM, pbMRQ, psTTM, pcfNcfTTM
                     rs = self.bs.query_history_k_data_plus(
                         code=bs_code,
                         fields="date,code,close,peTTM,pbMRQ,psTTM,pcfNcfTTM",
@@ -261,7 +261,7 @@ class BaoStockProvider(BaseStockDataProvider):
             data_list, fields = await asyncio.to_thread(fetch_valuation_data)
 
             if not data_list:
-                logger.warning(f"⚠️ {code}估值数据为空")
+                logger.warning(f"[WARN] {code}估值数据为空")
                 return {}
 
             # 取最新一条数据
@@ -278,11 +278,11 @@ class BaoStockProvider(BaseStockDataProvider):
                 "pcf_ttm": self._safe_float(latest_row[6]) if len(latest_row) > 6 else None,
             }
 
-            logger.debug(f"✅ {code}估值数据获取成功: PE={valuation_data['pe_ttm']}, PB={valuation_data['pb_mrq']}")
+            logger.debug(f"[OK] {code}估值数据获取成功: PE={valuation_data['pe_ttm']}, PB={valuation_data['pb_mrq']}")
             return valuation_data
 
         except Exception as e:
-            logger.error(f"❌ BaoStock获取{code}估值数据失败: {e}")
+            logger.error(f"[FAIL] BaoStock获取{code}估值数据失败: {e}")
             return {}
     
     async def _get_stock_info_detail(self, code: str) -> Dict[str, Any]:
@@ -364,7 +364,7 @@ class BaoStockProvider(BaseStockDataProvider):
             }
             
         except Exception as e:
-            logger.error(f"❌ BaoStock获取{code}行情失败: {e}")
+            logger.error(f"[FAIL] BaoStock获取{code}行情失败: {e}")
             return {}
     
     async def _get_latest_kline_data(self, code: str) -> Dict[str, Any]:
@@ -555,7 +555,7 @@ class BaoStockProvider(BaseStockDataProvider):
             return None
 
         try:
-            logger.info(f"📊 获取BaoStock历史数据: {code} ({start_date} 到 {end_date})")
+            logger.info(f"[CHART] 获取BaoStock历史数据: {code} ({start_date} 到 {end_date})")
 
             # 转换周期参数
             frequency_map = {
@@ -602,7 +602,7 @@ class BaoStockProvider(BaseStockDataProvider):
             data_list, fields = await asyncio.to_thread(fetch_historical_data)
 
             if not data_list:
-                logger.warning(f"⚠️ BaoStock历史数据为空: {code}")
+                logger.warning(f"[WARN] BaoStock历史数据为空: {code}")
                 return None
 
             # 转换为DataFrame
@@ -628,11 +628,11 @@ class BaoStockProvider(BaseStockDataProvider):
             df['股票代码'] = code
             df['full_symbol'] = self._get_full_symbol(code)
 
-            logger.info(f"✅ BaoStock历史数据获取成功: {code}, {len(df)}条记录")
+            logger.info(f"[OK] BaoStock历史数据获取成功: {code}, {len(df)}条记录")
             return df
 
         except Exception as e:
-            logger.error(f"❌ BaoStock获取{code}历史数据失败: {e}")
+            logger.error(f"[FAIL] BaoStock获取{code}历史数据失败: {e}")
             return None
 
     async def get_financial_data(self, code: str, year: Optional[int] = None,
@@ -668,7 +668,7 @@ class BaoStockProvider(BaseStockDataProvider):
                 profit_data = await self._get_profit_data(code, year, quarter)
                 if profit_data:
                     financial_data['profit_data'] = profit_data
-                    logger.debug(f"✅ {code}盈利能力数据获取成功")
+                    logger.debug(f"[OK] {code}盈利能力数据获取成功")
             except Exception as e:
                 logger.debug(f"获取{code}盈利能力数据失败: {e}")
 
@@ -677,7 +677,7 @@ class BaoStockProvider(BaseStockDataProvider):
                 operation_data = await self._get_operation_data(code, year, quarter)
                 if operation_data:
                     financial_data['operation_data'] = operation_data
-                    logger.debug(f"✅ {code}营运能力数据获取成功")
+                    logger.debug(f"[OK] {code}营运能力数据获取成功")
             except Exception as e:
                 logger.debug(f"获取{code}营运能力数据失败: {e}")
 
@@ -686,7 +686,7 @@ class BaoStockProvider(BaseStockDataProvider):
                 growth_data = await self._get_growth_data(code, year, quarter)
                 if growth_data:
                     financial_data['growth_data'] = growth_data
-                    logger.debug(f"✅ {code}成长能力数据获取成功")
+                    logger.debug(f"[OK] {code}成长能力数据获取成功")
             except Exception as e:
                 logger.debug(f"获取{code}成长能力数据失败: {e}")
 
@@ -695,7 +695,7 @@ class BaoStockProvider(BaseStockDataProvider):
                 balance_data = await self._get_balance_data(code, year, quarter)
                 if balance_data:
                     financial_data['balance_data'] = balance_data
-                    logger.debug(f"✅ {code}偿债能力数据获取成功")
+                    logger.debug(f"[OK] {code}偿债能力数据获取成功")
             except Exception as e:
                 logger.debug(f"获取{code}偿债能力数据失败: {e}")
 
@@ -704,19 +704,19 @@ class BaoStockProvider(BaseStockDataProvider):
                 cash_flow_data = await self._get_cash_flow_data(code, year, quarter)
                 if cash_flow_data:
                     financial_data['cash_flow_data'] = cash_flow_data
-                    logger.debug(f"✅ {code}现金流量数据获取成功")
+                    logger.debug(f"[OK] {code}现金流量数据获取成功")
             except Exception as e:
                 logger.debug(f"获取{code}现金流量数据失败: {e}")
 
             if financial_data:
-                logger.info(f"✅ BaoStock财务数据获取成功: {code}, {len(financial_data)}个数据集")
+                logger.info(f"[OK] BaoStock财务数据获取成功: {code}, {len(financial_data)}个数据集")
             else:
-                logger.warning(f"⚠️ BaoStock财务数据为空: {code}")
+                logger.warning(f"[WARN] BaoStock财务数据为空: {code}")
 
             return financial_data
 
         except Exception as e:
-            logger.error(f"❌ BaoStock获取{code}财务数据失败: {e}")
+            logger.error(f"[FAIL] BaoStock获取{code}财务数据失败: {e}")
             return {}
 
     async def _get_profit_data(self, code: str, year: int, quarter: int) -> Optional[Dict[str, Any]]:

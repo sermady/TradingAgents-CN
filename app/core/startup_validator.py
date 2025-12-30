@@ -224,12 +224,12 @@ class StartupValidator:
             
             if not value:
                 self.result.missing_required.append(config)
-                logger.error(f"❌ 缺少必需配置: {config.key}")
+                logger.error(f"[FAIL] 缺少必需配置: {config.key}")
             elif config.validator and not config.validator(value):
                 self.result.invalid_configs.append((config, "配置值格式不正确"))
-                logger.error(f"❌ 配置格式错误: {config.key}")
+                logger.error(f"[FAIL] 配置格式错误: {config.key}")
             else:
-                logger.debug(f"✅ {config.key}: 已配置")
+                logger.debug(f"[OK] {config.key}: 已配置")
     
     def _validate_recommended_configs(self):
         """验证推荐配置"""
@@ -269,7 +269,7 @@ class StartupValidator:
         ]
         if jwt_secret in insecure_jwt_defaults or len(jwt_secret) < 16:
             self.result.warnings.append(
-                f"⚠️  JWT_SECRET 使用不安全值（长度: {len(jwt_secret)}），生产环境请务必修改！"
+                f"[WARN]  JWT_SECRET 使用不安全值（长度: {len(jwt_secret)}），生产环境请务必修改！"
                 f"生成方式: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
             )
 
@@ -283,7 +283,7 @@ class StartupValidator:
         ]
         if csrf_secret in insecure_csrf_defaults or len(csrf_secret) < 16:
             self.result.warnings.append(
-                f"⚠️  CSRF_SECRET 使用不安全值（长度: {len(csrf_secret)}），生产环境请务必修改！"
+                f"[WARN]  CSRF_SECRET 使用不安全值（长度: {len(csrf_secret)}），生产环境请务必修改！"
                 f"生成方式: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
             )
 

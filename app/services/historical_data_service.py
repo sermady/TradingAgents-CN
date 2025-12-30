@@ -29,18 +29,18 @@ class HistoricalDataService:
             self.db = get_database()
             self.collection = self.db.stock_daily_quotes
 
-            # 🔥 确保索引存在（提升查询和 upsert 性能）
+            # [HOT] 确保索引存在（提升查询和 upsert 性能）
             await self._ensure_indexes()
 
-            logger.info("✅ 历史数据服务初始化成功")
+            logger.info("[OK] 历史数据服务初始化成功")
         except Exception as e:
-            logger.error(f"❌ 历史数据服务初始化失败: {e}")
+            logger.error(f"[FAIL] 历史数据服务初始化失败: {e}")
             raise
 
     async def _ensure_indexes(self):
         """确保必要的索引存在"""
         try:
-            logger.info("📊 检查并创建历史数据索引...")
+            logger.info("[CHART] 检查并创建历史数据索引...")
 
             # 1. 复合唯一索引：股票代码+交易日期+数据源+周期（用于 upsert）
             await self.collection.create_index([
@@ -62,10 +62,10 @@ class HistoricalDataService:
                 ("trade_date", -1)
             ], name="symbol_date_index", background=True)
 
-            logger.info("✅ 历史数据索引检查完成")
+            logger.info("[OK] 历史数据索引检查完成")
         except Exception as e:
             # 索引创建失败不应该阻止服务启动
-            logger.warning(f"⚠️ 创建索引时出现警告（可能已存在）: {e}")
+            logger.warning(f"[WARN] 创建索引时出现警告（可能已存在）: {e}")
     
     async def save_historical_data(
         self,
@@ -93,17 +93,17 @@ class HistoricalDataService:
         
         try:
             if data is None or data.empty:
-                logger.warning(f"⚠️ {symbol} 历史数据为空，跳过保存")
+                logger.warning(f"[WARN] {symbol} 历史数据为空，跳过保存")
                 return 0
 
             from datetime import datetime
             total_start = datetime.now()
 
-            logger.info(f"💾 开始保存 {symbol} 历史数据: {len(data)}条记录 (数据源: {data_source})")
+            logger.info(f"[SAVE] 开始保存 {symbol} 历史数据: {len(data)}条记录 (数据源: {data_source})")
 
-            # ⏱️ 性能监控：单位转换
+            # [TIME] 性能监控：单位转换
             convert_start = datetime.now()
-            # 🔥 在 DataFrame 层面做单位转换（向量化操作，比逐行快得多）
+            # [HOT] 在 DataFrame 层面做单位转换（向量化操作，比逐行快得多）
             if data_source == "tushare":
                 # 成交额：千元 -> 元
                 if 'amount' in data.columns:
@@ -117,15 +117,15 @@ class HistoricalDataService:
                 elif 'vol' in data.columns:
                     data['vol'] = data['vol'] * 100
 
-            # 🔥 港股/美股数据：添加 pre_close 字段（从前一天的 close 获取）
+            # [HOT] 港股/美股数据：添加 pre_close 字段（从前一天的 close 获取）
             if market in ["HK", "US"] and 'pre_close' not in data.columns and 'close' in data.columns:
                 # 使用 shift(1) 将 close 列向下移动一行，得到前一天的收盘价
                 data['pre_close'] = data['close'].shift(1)
-                logger.debug(f"✅ {symbol} 添加 pre_close 字段（从前一天的 close 获取）")
+                logger.debug(f"[OK] {symbol} 添加 pre_close 字段（从前一天的 close 获取）")
 
             convert_duration = (datetime.now() - convert_start).total_seconds()
 
-            # ⏱️ 性能监控：构建操作列表
+            # [TIME] 性能监控：构建操作列表
             prepare_start = datetime.now()
             # 准备批量操作
             operations = []
@@ -164,12 +164,12 @@ class HistoricalDataService:
                 except Exception as e:
                     # 获取日期信息用于错误日志
                     date_str = str(date_index) if hasattr(date_index, '__str__') else 'unknown'
-                    logger.error(f"❌ 处理记录失败 {symbol} {date_str}: {e}")
+                    logger.error(f"[FAIL] 处理记录失败 {symbol} {date_str}: {e}")
                     continue
 
             prepare_duration = (datetime.now() - prepare_start).total_seconds()
 
-            # ⏱️ 性能监控：最后一批写入
+            # [TIME] 性能监控：最后一批写入
             final_write_start = datetime.now()
             # 执行剩余操作
             if operations:
@@ -180,14 +180,14 @@ class HistoricalDataService:
 
             total_duration = (datetime.now() - total_start).total_seconds()
             logger.info(
-                f"✅ {symbol} 历史数据保存完成: {saved_count}条记录，"
+                f"[OK] {symbol} 历史数据保存完成: {saved_count}条记录，"
                 f"总耗时 {total_duration:.2f}秒 "
                 f"(转换: {convert_duration:.3f}秒, 准备: {prepare_duration:.2f}秒, 最后写入: {final_write_duration:.2f}秒)"
             )
             return saved_count
             
         except Exception as e:
-            logger.error(f"❌ 保存历史数据失败 {symbol}: {e}")
+            logger.error(f"[FAIL] 保存历史数据失败 {symbol}: {e}")
             return 0
 
     async def _execute_bulk_write_with_retry(
@@ -214,17 +214,17 @@ class HistoricalDataService:
             try:
                 result = await self.collection.bulk_write(operations, ordered=False)
                 saved_count = result.upserted_count + result.modified_count
-                logger.debug(f"✅ {symbol} 批量保存 {len(operations)} 条记录成功 (新增: {result.upserted_count}, 更新: {result.modified_count})")
+                logger.debug(f"[OK] {symbol} 批量保存 {len(operations)} 条记录成功 (新增: {result.upserted_count}, 更新: {result.modified_count})")
                 return saved_count
 
             except asyncio.TimeoutError as e:
                 retry_count += 1
                 if retry_count < max_retries:
                     wait_time = 3 ** retry_count  # 更长的指数退避：3秒、9秒、27秒、81秒
-                    logger.warning(f"⚠️ {symbol} 批量写入超时 (第{retry_count}/{max_retries}次重试)，等待{wait_time}秒后重试...")
+                    logger.warning(f"[WARN] {symbol} 批量写入超时 (第{retry_count}/{max_retries}次重试)，等待{wait_time}秒后重试...")
                     await asyncio.sleep(wait_time)
                 else:
-                    logger.error(f"❌ {symbol} 批量写入失败，已重试{max_retries}次: {e}")
+                    logger.error(f"[FAIL] {symbol} 批量写入失败，已重试{max_retries}次: {e}")
                     return 0
 
             except Exception as e:
@@ -234,13 +234,13 @@ class HistoricalDataService:
                     retry_count += 1
                     if retry_count < max_retries:
                         wait_time = 3 ** retry_count
-                        logger.warning(f"⚠️ {symbol} 批量写入超时 (第{retry_count}/{max_retries}次重试)，等待{wait_time}秒后重试... 错误: {e}")
+                        logger.warning(f"[WARN] {symbol} 批量写入超时 (第{retry_count}/{max_retries}次重试)，等待{wait_time}秒后重试... 错误: {e}")
                         await asyncio.sleep(wait_time)
                     else:
-                        logger.error(f"❌ {symbol} 批量写入失败，已重试{max_retries}次: {e}")
+                        logger.error(f"[FAIL] {symbol} 批量写入失败，已重试{max_retries}次: {e}")
                         return 0
                 else:
-                    logger.error(f"❌ {symbol} 批量写入失败: {e}")
+                    logger.error(f"[FAIL] {symbol} 批量写入失败: {e}")
                     return 0
 
         return saved_count
@@ -422,11 +422,11 @@ class HistoricalDataService:
             
             results = await cursor.to_list(length=None)
             
-            logger.info(f"📊 查询历史数据: {symbol} 返回 {len(results)} 条记录")
+            logger.info(f"[CHART] 查询历史数据: {symbol} 返回 {len(results)} 条记录")
             return results
             
         except Exception as e:
-            logger.error(f"❌ 查询历史数据失败 {symbol}: {e}")
+            logger.error(f"[FAIL] 查询历史数据失败 {symbol}: {e}")
             return []
     
     async def get_latest_date(self, symbol: str, data_source: str) -> Optional[str]:
@@ -445,7 +445,7 @@ class HistoricalDataService:
             return None
             
         except Exception as e:
-            logger.error(f"❌ 获取最新日期失败 {symbol}: {e}")
+            logger.error(f"[FAIL] 获取最新日期失败 {symbol}: {e}")
             return None
     
     async def get_data_statistics(self) -> Dict[str, Any]:
@@ -489,7 +489,7 @@ class HistoricalDataService:
             }
             
         except Exception as e:
-            logger.error(f"❌ 获取统计信息失败: {e}")
+            logger.error(f"[FAIL] 获取统计信息失败: {e}")
             return {}
 
 

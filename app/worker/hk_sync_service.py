@@ -59,7 +59,7 @@ class HKDataService:
 
     async def initialize(self):
         """初始化同步服务"""
-        logger.info("✅ 港股同步服务初始化完成")
+        logger.info("[OK] 港股同步服务初始化完成")
 
     def _get_hk_stock_list_from_akshare(self) -> List[str]:
         """
@@ -75,17 +75,17 @@ class HKDataService:
             # 检查缓存是否有效
             if (self.hk_stock_list and self._stock_list_cache_time and
                 datetime.now() - self._stock_list_cache_time < timedelta(seconds=self._stock_list_cache_ttl)):
-                logger.debug(f"📦 使用缓存的港股列表: {len(self.hk_stock_list)} 只")
+                logger.debug(f"[PKG] 使用缓存的港股列表: {len(self.hk_stock_list)} 只")
                 return self.hk_stock_list
 
-            logger.info("🔄 从 AKShare 获取港股列表...")
+            logger.info("[SYNC] 从 AKShare 获取港股列表...")
 
             # 获取所有港股实时行情（包含代码和名称）
             # 使用新浪财经接口（更稳定）
             df = ak.stock_hk_spot()
 
             if df is None or df.empty:
-                logger.warning("⚠️ AKShare 返回空数据，使用备用列表")
+                logger.warning("[WARN] AKShare 返回空数据，使用备用列表")
                 return self._get_fallback_stock_list()
 
             # 提取股票代码列表
@@ -94,7 +94,7 @@ class HKDataService:
             # 标准化代码格式（确保是5位数字）
             stock_codes = [code.zfill(5) for code in stock_codes if code]
 
-            logger.info(f"✅ 成功获取 {len(stock_codes)} 只港股")
+            logger.info(f"[OK] 成功获取 {len(stock_codes)} 只港股")
 
             # 更新缓存
             self.hk_stock_list = stock_codes
@@ -103,8 +103,8 @@ class HKDataService:
             return stock_codes
 
         except Exception as e:
-            logger.error(f"❌ 从 AKShare 获取港股列表失败: {e}")
-            logger.info("📋 使用备用港股列表")
+            logger.error(f"[FAIL] 从 AKShare 获取港股列表失败: {e}")
+            logger.info("[CLIPBOARD] 使用备用港股列表")
             return self._get_fallback_stock_list()
 
     def _get_fallback_stock_list(self) -> List[str]:
@@ -159,23 +159,23 @@ class HKDataService:
         # yfinance 数据源使用逐个同步
         provider = self.providers.get(source)
         if not provider:
-            logger.error(f"❌ 不支持的数据源: {source}")
+            logger.error(f"[FAIL] 不支持的数据源: {source}")
             return {"updated": 0, "inserted": 0, "failed": 0}
 
         # 如果强制更新，清除缓存
         if force_update:
             self._stock_list_cache_time = None
-            logger.info("🔄 强制刷新港股列表")
+            logger.info("[SYNC] 强制刷新港股列表")
 
         # 获取港股列表（从 AKShare 或缓存）
         stock_list = self._get_hk_stock_list_from_akshare()
 
         if not stock_list:
-            logger.error("❌ 无法获取港股列表")
+            logger.error("[FAIL] 无法获取港股列表")
             return {"updated": 0, "inserted": 0, "failed": 0}
 
         logger.info(f"🇭🇰 开始同步港股基础信息 (数据源: {source})")
-        logger.info(f"📊 待同步股票数量: {len(stock_list)}")
+        logger.info(f"[CHART] 待同步股票数量: {len(stock_list)}")
 
         operations = []
         failed_count = 0
@@ -186,7 +186,7 @@ class HKDataService:
                 stock_info = provider.get_stock_info(stock_code)
 
                 if not stock_info or not stock_info.get('name'):
-                    logger.warning(f"⚠️ 跳过无效数据: {stock_code}")
+                    logger.warning(f"[WARN] 跳过无效数据: {stock_code}")
                     failed_count += 1
                     continue
 
@@ -199,16 +199,16 @@ class HKDataService:
                 # 批量更新操作
                 operations.append(
                     UpdateOne(
-                        {"code": normalized_info["code"], "source": source},  # 🔥 联合查询条件
+                        {"code": normalized_info["code"], "source": source},  # [HOT] 联合查询条件
                         {"$set": normalized_info},
                         upsert=True
                     )
                 )
 
-                logger.debug(f"✅ 准备同步: {stock_code} ({stock_info.get('name')}) from {source}")
+                logger.debug(f"[OK] 准备同步: {stock_code} ({stock_info.get('name')}) from {source}")
 
             except Exception as e:
-                logger.error(f"❌ 同步失败: {stock_code} from {source}: {e}")
+                logger.error(f"[FAIL] 同步失败: {stock_code} from {source}: {e}")
                 failed_count += 1
 
         # 执行批量操作
@@ -221,13 +221,13 @@ class HKDataService:
                 result["inserted"] = bulk_result.upserted_count
 
                 logger.info(
-                    f"✅ 港股基础信息同步完成 ({source}): "
+                    f"[OK] 港股基础信息同步完成 ({source}): "
                     f"更新 {result['updated']} 条, "
                     f"插入 {result['inserted']} 条, "
                     f"失败 {result['failed']} 条"
                 )
             except Exception as e:
-                logger.error(f"❌ 批量写入失败: {e}")
+                logger.error(f"[FAIL] 批量写入失败: {e}")
                 result["failed"] += len(operations)
 
         return result
@@ -253,10 +253,10 @@ class HKDataService:
             df = ak.stock_hk_spot()
 
             if df is None or df.empty:
-                logger.error("❌ AKShare 返回空数据")
+                logger.error("[FAIL] AKShare 返回空数据")
                 return {"updated": 0, "inserted": 0, "failed": 0}
 
-            logger.info(f"📊 获取到 {len(df)} 只港股数据")
+            logger.info(f"[CHART] 获取到 {len(df)} 只港股数据")
 
             operations = []
             failed_count = 0
@@ -311,7 +311,7 @@ class HKDataService:
                     )
 
                 except Exception as e:
-                    logger.debug(f"⚠️ 处理股票数据失败: {stock_code}: {e}")
+                    logger.debug(f"[WARN] 处理股票数据失败: {stock_code}: {e}")
                     failed_count += 1
 
             # 执行批量操作
@@ -324,19 +324,19 @@ class HKDataService:
                     result["inserted"] = bulk_result.upserted_count
 
                     logger.info(
-                        f"✅ 港股基础信息批量同步完成 (akshare): "
+                        f"[OK] 港股基础信息批量同步完成 (akshare): "
                         f"更新 {result['updated']} 条, "
                         f"插入 {result['inserted']} 条, "
                         f"失败 {result['failed']} 条"
                     )
                 except Exception as e:
-                    logger.error(f"❌ 批量写入失败: {e}")
+                    logger.error(f"[FAIL] 批量写入失败: {e}")
                     result["failed"] += len(operations)
 
             return result
 
         except Exception as e:
-            logger.error(f"❌ AKShare 批量同步失败: {e}")
+            logger.error(f"[FAIL] AKShare 批量同步失败: {e}")
             return {"updated": 0, "inserted": 0, "failed": 0}
 
     def _normalize_stock_info(self, stock_info: Dict, source: str) -> Dict:
@@ -388,7 +388,7 @@ class HKDataService:
         """
         provider = self.providers.get(source)
         if not provider:
-            logger.error(f"❌ 不支持的数据源: {source}")
+            logger.error(f"[FAIL] 不支持的数据源: {source}")
             return {"updated": 0, "inserted": 0, "failed": 0}
         
         logger.info(f"🇭🇰 开始同步港股实时行情 (数据源: {source})")
@@ -402,7 +402,7 @@ class HKDataService:
                 quote = provider.get_real_time_price(stock_code)
                 
                 if not quote or not quote.get('price'):
-                    logger.warning(f"⚠️ 跳过无效行情: {stock_code}")
+                    logger.warning(f"[WARN] 跳过无效行情: {stock_code}")
                     failed_count += 1
                     continue
                 
@@ -431,10 +431,10 @@ class HKDataService:
                     )
                 )
                 
-                logger.debug(f"✅ 准备同步行情: {stock_code} (价格: {normalized_quote['close']} HKD)")
+                logger.debug(f"[OK] 准备同步行情: {stock_code} (价格: {normalized_quote['close']} HKD)")
                 
             except Exception as e:
-                logger.error(f"❌ 同步行情失败: {stock_code}: {e}")
+                logger.error(f"[FAIL] 同步行情失败: {stock_code}: {e}")
                 failed_count += 1
         
         # 执行批量操作
@@ -447,13 +447,13 @@ class HKDataService:
                 result["inserted"] = bulk_result.upserted_count
                 
                 logger.info(
-                    f"✅ 港股行情同步完成: "
+                    f"[OK] 港股行情同步完成: "
                     f"更新 {result['updated']} 条, "
                     f"插入 {result['inserted']} 条, "
                     f"失败 {result['failed']} 条"
                 )
             except Exception as e:
-                logger.error(f"❌ 批量写入失败: {e}")
+                logger.error(f"[FAIL] 批量写入失败: {e}")
                 result["failed"] += len(operations)
         
         return result
@@ -479,10 +479,10 @@ async def run_hk_yfinance_basic_info_sync(force_update: bool = False):
     try:
         service = await get_hk_sync_service()
         result = await service.sync_basic_info_from_source("yfinance", force_update)
-        logger.info(f"✅ 港股基础信息同步完成 (yfinance): {result}")
+        logger.info(f"[OK] 港股基础信息同步完成 (yfinance): {result}")
         return result
     except Exception as e:
-        logger.error(f"❌ 港股基础信息同步失败 (yfinance): {e}")
+        logger.error(f"[FAIL] 港股基础信息同步失败 (yfinance): {e}")
         raise
 
 
@@ -491,10 +491,10 @@ async def run_hk_akshare_basic_info_sync(force_update: bool = False):
     try:
         service = await get_hk_sync_service()
         result = await service.sync_basic_info_from_source("akshare", force_update)
-        logger.info(f"✅ 港股基础信息同步完成 (AKShare): {result}")
+        logger.info(f"[OK] 港股基础信息同步完成 (AKShare): {result}")
         return result
     except Exception as e:
-        logger.error(f"❌ 港股基础信息同步失败 (AKShare): {e}")
+        logger.error(f"[FAIL] 港股基础信息同步失败 (AKShare): {e}")
         raise
 
 
@@ -503,10 +503,10 @@ async def run_hk_yfinance_quotes_sync():
     try:
         service = await get_hk_sync_service()
         result = await service.sync_quotes_from_source("yfinance")
-        logger.info(f"✅ 港股实时行情同步完成: {result}")
+        logger.info(f"[OK] 港股实时行情同步完成: {result}")
         return result
     except Exception as e:
-        logger.error(f"❌ 港股实时行情同步失败: {e}")
+        logger.error(f"[FAIL] 港股实时行情同步失败: {e}")
         raise
 
 
@@ -524,9 +524,9 @@ async def run_hk_status_check():
             "data_sources": list(service.providers.keys()),
             "timestamp": datetime.now().isoformat()
         }
-        logger.info(f"✅ 港股状态检查完成: {result}")
+        logger.info(f"[OK] 港股状态检查完成: {result}")
         return result
     except Exception as e:
-        logger.error(f"❌ 港股状态检查失败: {e}")
+        logger.error(f"[FAIL] 港股状态检查失败: {e}")
         return {"status": "error", "error": str(e)}
 
