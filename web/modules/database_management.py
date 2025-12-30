@@ -11,13 +11,14 @@ from pathlib import Path
 import json
 from datetime import datetime, timedelta
 
-# 添加项目根目录到路径
-project_root = Path(__file__).parent.parent.parent
-sys.path.append(str(project_root))
+# Streamlit应用从项目根目录运行，导入项目模块
+from tradingagents.config.database_manager import get_database_manager
 
-# 导入UI工具函数
-sys.path.append(str(Path(__file__).parent.parent))
-from utils.ui_utils import apply_hide_deploy_button_css
+# 导入本地工具函数
+try:
+    from ..utils.ui_utils import apply_hide_deploy_button_css
+except ImportError:
+    from web.utils.ui_utils import apply_hide_deploy_button_css
 
 try:
     from tradingagents.config.database_manager import get_database_manager

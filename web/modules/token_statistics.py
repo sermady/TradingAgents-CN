@@ -15,18 +15,17 @@ import json
 import os
 from typing import Dict, List, Any
 
-# 添加项目根目录到路径
-import sys
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-# 导入UI工具函数
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent))
-from utils.ui_utils import apply_hide_deploy_button_css
-
+# Streamlit应用运行时需要导入项目模块
+# 注意：streamlit run命令从项目根目录启动，因此需要确保模块可导入
 from tradingagents.config.config_manager import config_manager, token_tracker, UsageRecord
+
+# 导入本地工具函数
+# 使用相对导入避免sys.path操作
+try:
+    from ..utils.ui_utils import apply_hide_deploy_button_css
+except ImportError:
+    # 回退方案：作为独立模块运行时
+    from web.utils.ui_utils import apply_hide_deploy_button_css
 
 def render_token_statistics():
     """渲染Token统计页面"""

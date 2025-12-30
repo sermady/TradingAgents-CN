@@ -10,19 +10,16 @@ import plotly.express as px
 import plotly.graph_objects as go
 from typing import List
 
-# 添加项目根目录到路径
-import sys
-from pathlib import Path
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-# 导入UI工具函数
-sys.path.append(str(Path(__file__).parent.parent))
-from utils.ui_utils import apply_hide_deploy_button_css
-
+# Streamlit应用从项目根目录运行，导入项目模块
 from tradingagents.config.config_manager import (
     config_manager, ModelConfig, PricingConfig
 )
+
+# 导入本地工具函数
+try:
+    from ..utils.ui_utils import apply_hide_deploy_button_css
+except ImportError:
+    from web.utils.ui_utils import apply_hide_deploy_button_css
 
 
 def render_config_management():

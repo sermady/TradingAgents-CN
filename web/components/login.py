@@ -9,45 +9,32 @@ import sys
 from pathlib import Path
 import base64
 
-# 添加项目根目录到Python路径
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-
 # 导入认证管理器 - 使用全局变量确保在整个模块中可用
 auth_manager = None
 
-# 尝试多种导入路径
+# 尝试多种导入路径（优先使用相对导入）
 try:
-    # 尝试相对导入（从 web 目录运行时）
+    # 尝试相对导入（推荐）
     from ..utils.auth_manager import AuthManager, auth_manager as imported_auth_manager
     auth_manager = imported_auth_manager
 except ImportError:
     try:
-        # 尝试从 web.utils 导入（从项目根目录运行时）
+        # 回退1：从 web.utils 导入
         from web.utils.auth_manager import AuthManager, auth_manager as imported_auth_manager
         auth_manager = imported_auth_manager
     except ImportError:
         try:
-            # 尝试直接从 utils 导入
+            # 回退2：直接从 utils 导入（兼容旧方式）
             from utils.auth_manager import AuthManager, auth_manager as imported_auth_manager
             auth_manager = imported_auth_manager
         except ImportError:
-            try:
-                # 尝试绝对路径导入
-                import sys
-                from pathlib import Path
-                web_utils_path = Path(__file__).parent.parent / "utils"
-                sys.path.insert(0, str(web_utils_path))
-                from auth_manager import AuthManager, auth_manager as imported_auth_manager
-                auth_manager = imported_auth_manager
-            except ImportError:
-                # 如果都失败了，创建一个简单的认证管理器
-                class SimpleAuthManager:
-                    def __init__(self):
-                        self.authenticated = False
-                        self.current_user = None
+            # 最终回退：创建一个简单的认证管理器
+            class SimpleAuthManager:
+                def __init__(self):
+                    self.authenticated = False
+                    self.current_user = None
                     
-                    def is_authenticated(self):
+                def is_authenticated(self):
                         return st.session_state.get('authenticated', False)
                     
                     def authenticate(self, username, password):

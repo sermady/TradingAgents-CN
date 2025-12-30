@@ -8,12 +8,13 @@ import logging
 import sys
 from pathlib import Path
 
-# 添加项目根目录到Python路径
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-
+# Streamlit应用从项目根目录运行
+# 使用相对导入
 from web.utils.persistence import load_model_selection, save_model_selection
 from web.utils.auth_manager import auth_manager
+
+# 项目根目录路径（用于读取VERSION等文件）
+project_root = Path(__file__).parent.parent.parent
 
 logger = logging.getLogger(__name__)
 

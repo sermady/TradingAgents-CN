@@ -9,14 +9,7 @@ import sys
 import os
 from pathlib import Path
 
-# 添加项目根目录到路径
-project_root = Path(__file__).parent.parent.parent
-sys.path.append(str(project_root))
-
-# 导入UI工具函数
-sys.path.append(str(Path(__file__).parent.parent))
-from utils.ui_utils import apply_hide_deploy_button_css
-
+# Streamlit应用从项目根目录运行，导入项目模块
 try:
     from tradingagents.dataflows.cache import get_cache
     CACHE_AVAILABLE = True
