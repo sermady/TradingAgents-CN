@@ -1553,8 +1553,9 @@ const refreshLLMConfigs = () => {
 }
 
 // 获取厂家标签类型
-const getProviderTagType = (provider: string) => {
-  const typeMap: Record<string, string> = {
+type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
+const getProviderTagType = (provider: string): TagType => {
+  const typeMap: Record<string, TagType> = {
     'openai': 'primary',
     'google': 'success',
     'anthropic': 'warning',
@@ -1580,8 +1581,8 @@ const getCapabilityLevelText = (level: number) => {
 }
 
 // 🆕 获取能力等级标签类型
-const getCapabilityLevelType = (level: number) => {
-  const typeMap: Record<number, string> = {
+const getCapabilityLevelType = (level: number): TagType | '' => {
+  const typeMap: Record<number, TagType | ''> = {
     1: 'info',
     2: '',
     3: 'success',

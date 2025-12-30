@@ -353,8 +353,9 @@ const exportLogs = async () => {
   }
 }
 
-const getLogTypeColor = (type: string) => {
-  const colors: Record<string, string> = {
+type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger' | ''
+const getLogTypeColor = (type: string): TagType => {
+  const colors: Record<string, TagType> = {
     error: 'danger',
     webapi: 'primary',
     worker: 'success',
