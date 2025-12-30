@@ -329,7 +329,7 @@ import {
 // 响应式数据
 const loading = ref(false)
 const detailDialogVisible = ref(false)
-const selectedLog = ref(null)
+const selectedLog = ref<OperationLog | null>(null)
 const currentPage = ref(1)
 const pageSize = ref(20)
 const totalLogs = ref(0)
@@ -339,7 +339,12 @@ const actionTypeChart = ref()
 const operationTrendChart = ref()
 
 // 筛选表单
-const filterForm = reactive({
+const filterForm = reactive<{
+  dateRange: string[]
+  actionType: string
+  success: string
+  keyword: string
+}>({
   dateRange: [],
   actionType: '',
   success: '',
@@ -375,7 +380,7 @@ const loadLogs = async () => {
       start_date: filterForm.dateRange[0] || undefined,
       end_date: filterForm.dateRange[1] || undefined,
       action_type: filterForm.actionType || undefined,
-      success: filterForm.success !== '' ? filterForm.success : undefined,
+      success: filterForm.success !== '' ? filterForm.success === 'true' : undefined,
       keyword: filterForm.keyword || undefined
     }
 

@@ -210,6 +210,7 @@ import {
   Refresh
 } from '@element-plus/icons-vue'
 import * as cacheApi from '@/api/cache'
+import type { CacheDetailItem } from '@/api/cache'
 
 // 响应式数据
 const statsLoading = ref(false)
@@ -233,7 +234,7 @@ const cacheStats = ref({
 })
 
 // 缓存详情数据
-const cacheDetails = ref([])
+const cacheDetails = ref<CacheDetailItem[]>([])
 
 // 清理天数标记
 const cleanupMarks = {
@@ -268,8 +269,9 @@ const getProgressColor = (percentage: number): string => {
   return '#f56c6c'
 }
 
-const getCacheTypeTag = (type: string): string => {
-  const typeMap = {
+type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
+const getCacheTypeTag = (type: string): TagType => {
+  const typeMap: Record<string, TagType> = {
     'stock': 'primary',
     'news': 'success',
     'analysis': 'warning'
