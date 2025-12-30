@@ -706,7 +706,7 @@ import {
   ArrowDown,
 } from '@element-plus/icons-vue'
 import { analysisApi, type SingleAnalysisRequest } from '@/api/analysis'
-import { paperApi } from '@/api/paper'
+import { paperApi, type PaperPositionItem } from '@/api/paper'
 import { stocksApi } from '@/api/stocks'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
@@ -1573,7 +1573,7 @@ const goSimOrder = async () => {
     const positions = accountRes.data.positions
 
     // 查找当前持仓
-    const currentPosition = positions.find(p => p.code === code)
+    const currentPosition = positions.find((p: PaperPositionItem) => p.code === code)
 
     // 获取当前实时价格
     let currentPrice = 10 // 默认价格

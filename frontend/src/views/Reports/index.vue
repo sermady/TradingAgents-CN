@@ -205,7 +205,7 @@ const loading = ref(false)
 const searchKeyword = ref('')
 const marketFilter = ref('')
 const dateRange = ref<[string, string] | null>(null)
-const selectedReports = ref([])
+const selectedReports = ref<any[]>([])
 const currentPage = ref(1)
 const pageSize = ref(20)
 const totalReports = ref(0)
@@ -397,8 +397,9 @@ const deleteReport = async (report: any) => {
     } else {
       throw new Error(result.message || '删除失败')
     }
-  } catch (error) {
-    if (error.message !== 'cancel') {
+  } catch (error: unknown) {
+    const err = error as { message?: string }
+    if (err.message !== 'cancel') {
       console.error('删除报告失败:', error)
       ElMessage.error('删除报告失败')
     }
@@ -413,8 +414,9 @@ const refreshReports = () => {
   fetchReports()
 }
 
-const getTypeColor = (type: string) => {
-  const colorMap: Record<string, string> = {
+type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
+const getTypeColor = (type: string): TagType => {
+  const colorMap: Record<string, TagType> = {
     single: 'primary',
     batch: 'success',
     portfolio: 'warning'
@@ -431,8 +433,8 @@ const getTypeText = (type: string) => {
   return textMap[type] || type
 }
 
-const getStatusType = (status: string) => {
-  const statusMap: Record<string, string> = {
+const getStatusType = (status: string): TagType => {
+  const statusMap: Record<string, TagType> = {
     completed: 'success',
     processing: 'warning',
     failed: 'danger'

@@ -300,7 +300,7 @@ marked.setOptions({ breaks: true, gfm: true })
 
 // 响应式数据
 const loading = ref(true)
-const report = ref(null)
+const report = ref<any>(null)
 const activeModule = ref('')
 const llmConfigs = ref<LLMConfig[]>([]) // 存储所有模型配置
 

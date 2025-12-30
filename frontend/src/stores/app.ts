@@ -52,19 +52,19 @@ export const useAppStore = defineStore('app', {
 
     currentRoute: null,
 
-    preferences: useStorage('user-preferences', {
-      defaultMarket: 'A股',
-      defaultDepth: '3',  // 3级为标准分析（推荐）
+    preferences: (useStorage('user-preferences', {
+      defaultMarket: 'A股' as const,
+      defaultDepth: '3' as const,
       autoRefresh: true,
       refreshInterval: 30,
       showWelcome: true
     }).value || {
-      defaultMarket: 'A股',
-      defaultDepth: '3',  // 3级为标准分析（推荐）
+      defaultMarket: 'A股' as const,
+      defaultDepth: '3' as const,
       autoRefresh: true,
       refreshInterval: 30,
       showWelcome: true
-    },
+    }) as AppState['preferences'],
 
     version: '0.1.16',
     buildTime: new Date().toISOString(),
@@ -185,7 +185,7 @@ export const useAppStore = defineStore('app', {
     resetPreferences() {
       this.preferences = {
         defaultMarket: 'A股',
-        defaultDepth: '标准',
+        defaultDepth: '3',  // 3级为标准分析
         autoRefresh: true,
         refreshInterval: 30,
         showWelcome: true
@@ -219,8 +219,9 @@ export const useAppStore = defineStore('app', {
         const connected = response.ok
         this.setApiConnected(connected)
         return connected
-      } catch (error) {
-        if (error.name === 'AbortError') {
+      } catch (error: unknown) {
+        const err = error as { name?: string }
+        if (err.name === 'AbortError') {
           console.warn('API连接检查超时')
         } else {
           console.warn('API连接检查失败:', error)
@@ -250,8 +251,9 @@ export const useAppStore = defineStore('app', {
         } else {
           this.setApiConnected(false)
         }
-      } catch (error) {
-        if (error.name === 'AbortError') {
+      } catch (error: unknown) {
+        const err = error as { name?: string }
+        if (err.name === 'AbortError') {
           console.warn('获取API版本超时')
         } else {
           console.warn('获取API版本失败:', error)

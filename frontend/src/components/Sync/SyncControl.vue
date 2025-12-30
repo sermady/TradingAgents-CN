@@ -444,8 +444,9 @@ const showSyncCompletionNotification = (status: string) => {
 }
 
 // 获取状态类型
-const getStatusType = (status?: string) => {
-  const typeMap: Record<string, string> = {
+type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
+const getStatusType = (status?: string): TagType => {
+  const typeMap: Record<string, TagType> = {
     idle: 'info',
     running: 'warning',
     success: 'success',

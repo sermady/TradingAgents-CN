@@ -411,7 +411,8 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await authApi.changePassword({
           old_password: oldPassword,
-          new_password: newPassword
+          new_password: newPassword,
+          confirm_password: newPassword
         })
 
         if (response.success) {
@@ -456,10 +457,11 @@ export const useAuthStore = defineStore('auth', {
             console.log('🔄 Token无效，尝试刷新...')
             await this.refreshAccessToken()
           }
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('❌ 检查认证状态失败:', error)
           // 如果是网络错误或超时，不清除认证信息，只是标记为未认证
-          if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+          const err = error as { code?: string; message?: string }
+          if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
             console.warn('⚠️ 网络超时，保留认证信息但标记为未认证状态')
             this.isAuthenticated = false
           } else {

@@ -235,49 +235,49 @@
               <div class="account-section-title">🇨🇳 A股账户</div>
               <div class="account-item">
                 <div class="account-label">现金</div>
-                <div class="account-value">¥{{ formatMoney(paperAccount.cash?.CNY || paperAccount.cash) }}</div>
+                <div class="account-value">¥{{ formatMoney(getCurrencyValue(paperAccount.cash, 'CNY')) }}</div>
               </div>
               <div class="account-item">
                 <div class="account-label">持仓市值</div>
-                <div class="account-value">¥{{ formatMoney(paperAccount.positions_value?.CNY || paperAccount.positions_value) }}</div>
+                <div class="account-value">¥{{ formatMoney(getCurrencyValue(paperAccount.positions_value, 'CNY')) }}</div>
               </div>
               <div class="account-item">
                 <div class="account-label">总资产</div>
-                <div class="account-value primary">¥{{ formatMoney(paperAccount.equity?.CNY || paperAccount.equity) }}</div>
+                <div class="account-value primary">¥{{ formatMoney(getCurrencyValue(paperAccount.equity, 'CNY')) }}</div>
               </div>
             </div>
 
             <!-- 港股账户 -->
-            <div class="account-section" v-if="paperAccount.cash?.HKD !== undefined">
+            <div class="account-section" v-if="hasMultiCurrency(paperAccount.cash) && getCurrencyValue(paperAccount.cash, 'HKD') > 0">
               <div class="account-section-title">🇭🇰 港股账户</div>
               <div class="account-item">
                 <div class="account-label">现金</div>
-                <div class="account-value">HK${{ formatMoney(paperAccount.cash.HKD) }}</div>
+                <div class="account-value">HK${{ formatMoney(getCurrencyValue(paperAccount.cash, 'HKD')) }}</div>
               </div>
               <div class="account-item">
                 <div class="account-label">持仓市值</div>
-                <div class="account-value">HK${{ formatMoney(paperAccount.positions_value?.HKD || 0) }}</div>
+                <div class="account-value">HK${{ formatMoney(getCurrencyValue(paperAccount.positions_value, 'HKD')) }}</div>
               </div>
               <div class="account-item">
                 <div class="account-label">总资产</div>
-                <div class="account-value primary">HK${{ formatMoney(paperAccount.equity?.HKD || 0) }}</div>
+                <div class="account-value primary">HK${{ formatMoney(getCurrencyValue(paperAccount.equity, 'HKD')) }}</div>
               </div>
             </div>
 
             <!-- 美股账户 -->
-            <div class="account-section" v-if="paperAccount.cash?.USD !== undefined">
+            <div class="account-section" v-if="hasMultiCurrency(paperAccount.cash) && getCurrencyValue(paperAccount.cash, 'USD') > 0">
               <div class="account-section-title">🇺🇸 美股账户</div>
               <div class="account-item">
                 <div class="account-label">现金</div>
-                <div class="account-value">${{ formatMoney(paperAccount.cash.USD) }}</div>
+                <div class="account-value">${{ formatMoney(getCurrencyValue(paperAccount.cash, 'USD')) }}</div>
               </div>
               <div class="account-item">
                 <div class="account-label">持仓市值</div>
-                <div class="account-value">${{ formatMoney(paperAccount.positions_value?.USD || 0) }}</div>
+                <div class="account-value">${{ formatMoney(getCurrencyValue(paperAccount.positions_value, 'USD')) }}</div>
               </div>
               <div class="account-item">
                 <div class="account-label">总资产</div>
-                <div class="account-value primary">${{ formatMoney(paperAccount.equity?.USD || 0) }}</div>
+                <div class="account-value primary">${{ formatMoney(getCurrencyValue(paperAccount.equity, 'USD')) }}</div>
               </div>
             </div>
           </div>
@@ -567,6 +567,18 @@ const loadPaperAccount = async () => {
 // 跳转到模拟交易页面
 const goToPaperTrading = () => {
   router.push('/paper')
+}
+
+// 获取货币值（处理联合类型：number | { CNY, HKD, USD }）
+const getCurrencyValue = (value: number | { CNY: number; HKD: number; USD: number } | undefined, currency: 'CNY' | 'HKD' | 'USD' = 'CNY'): number => {
+  if (value === undefined) return 0
+  if (typeof value === 'number') return value
+  return value[currency] || 0
+}
+
+// 检查是否有多币种
+const hasMultiCurrency = (value: number | { CNY: number; HKD: number; USD: number } | undefined): boolean => {
+  return typeof value === 'object' && value !== null
 }
 
 // 格式化金额
