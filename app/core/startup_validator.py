@@ -212,20 +212,34 @@ class StartupValidator:
     
     def _check_security_configs(self):
         """检查安全配置"""
-        # 检查JWT密钥是否使用默认值
+        # 检查JWT密钥是否使用默认值或弱密钥
         jwt_secret = os.getenv("JWT_SECRET", "")
-        if jwt_secret in ["change-me-in-production", "your-super-secret-jwt-key-change-in-production"]:
+        insecure_jwt_defaults = [
+            "change-me-in-production",
+            "your-super-secret-jwt-key-change-in-production",
+            "",  # 空值也不安全
+            "secret", "password", "123456",  # 常见弱密钥
+        ]
+        if jwt_secret in insecure_jwt_defaults or len(jwt_secret) < 16:
             self.result.warnings.append(
-                "⚠️  JWT_SECRET 使用默认值，生产环境请务必修改！"
+                f"⚠️  JWT_SECRET 使用不安全值（长度: {len(jwt_secret)}），生产环境请务必修改！"
+                f"生成方式: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
             )
-        
-        # 检查CSRF密钥是否使用默认值
+
+        # 检查CSRF密钥是否使用默认值或弱密钥
         csrf_secret = os.getenv("CSRF_SECRET", "")
-        if csrf_secret in ["change-me-csrf-secret", "your-csrf-secret-key-change-in-production"]:
+        insecure_csrf_defaults = [
+            "change-me-csrf-secret",
+            "your-csrf-secret-key-change-in-production",
+            "",  # 空值也不安全
+            "secret", "password", "123456",  # 常见弱密钥
+        ]
+        if csrf_secret in insecure_csrf_defaults or len(csrf_secret) < 16:
             self.result.warnings.append(
-                "⚠️  CSRF_SECRET 使用默认值，生产环境请务必修改！"
+                f"⚠️  CSRF_SECRET 使用不安全值（长度: {len(csrf_secret)}），生产环境请务必修改！"
+                f"生成方式: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
             )
-        
+
         # 检查是否在生产环境使用DEBUG模式
         debug = os.getenv("DEBUG", "true").lower() in ("true", "1", "yes", "on")
         if not debug:

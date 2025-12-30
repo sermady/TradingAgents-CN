@@ -288,14 +288,16 @@ settings = Settings()
 
 # 安全警告：检查是否使用了默认的不安全配置
 _INSECURE_DEFAULTS = {
-    "JWT_SECRET": "change-me-in-production",
-    "CSRF_SECRET": "change-me-csrf-secret",
+    "JWT_SECRET": ["change-me-in-production", "your-super-secret-jwt-key-change-in-production"],
+    "CSRF_SECRET": ["change-me-csrf-secret", "your-csrf-secret-key-change-in-production"],
 }
-for _key, _default in _INSECURE_DEFAULTS.items():
-    if getattr(settings, _key, None) == _default:
+for _key, _defaults in _INSECURE_DEFAULTS.items():
+    _current_value = getattr(settings, _key, None)
+    if _current_value in _defaults:
         warnings.warn(
-            f"[SECURITY WARNING] {_key} is using the default insecure value. "
-            f"Please set {_key} environment variable in production!",
+            f"[SECURITY WARNING] {_key} is using the default insecure value '{_current_value}'. "
+            f"Please set a strong {_key} environment variable in production! "
+            f"Generate with: python -c 'import secrets; print(secrets.token_urlsafe(32))'",
             UserWarning,
             stacklevel=1,
         )

@@ -6,6 +6,7 @@ import os
 import platform
 
 from app.core.logging_context import LoggingContextFilter, trace_id_var
+from app.utils.log_sanitizer import LogSanitizer
 
 # 🔥 在 Windows 上使用 concurrent-log-handler 避免文件占用问题
 _IS_WINDOWS = platform.system() == "Windows"
@@ -38,17 +39,46 @@ def resolve_logging_cfg_path() -> Path:
     return Path(cfg_candidate)
 
 
+class SanitizingFormatter(logging.Formatter):
+    """带脱敏功能的日志格式化器"""
+
+    def format(self, record: logging.LogRecord) -> str:
+        # 调用父类方法获取原始格式化的消息
+        formatted = super().format(record)
+        # 脱敏处理
+        return LogSanitizer.sanitize_string(formatted)
+
+
 class SimpleJsonFormatter(logging.Formatter):
     """Minimal JSON formatter without external deps."""
     def format(self, record: logging.LogRecord) -> str:
         import json
+        # 脱敏日志消息
+        message = record.getMessage()
+        sanitized_message = LogSanitizer.sanitize_string(message)
+
+        # 脱敏额外字段（如果有）
+        extra = {}
+        for key, value in record.__dict__.items():
+            if key not in {'name', 'msg', 'args', 'levelname', 'levelno', 'pathname',
+                           'filename', 'module', 'lineno', 'funcName', 'created', 'msecs',
+                           'relativeCreated', 'thread', 'threadName', 'processName',
+                           'process', 'getMessage', 'exc_info', 'exc_text', 'stack_info'}:
+                if isinstance(value, str):
+                    extra[key] = LogSanitizer.sanitize_string(value)
+                elif isinstance(value, (dict, list)):
+                    extra[key] = LogSanitizer.sanitize_dict(value) if isinstance(value, dict) else LogSanitizer.sanitize_list(value)
+                else:
+                    extra[key] = value
+
         obj = {
             "time": self.formatTime(record, "%Y-%m-%d %H:%M:%S"),
             "name": record.name,
             "level": record.levelname,
             "trace_id": getattr(record, "trace_id", "-"),
-            "message": record.getMessage(),
+            "message": sanitized_message,
         }
+        obj.update(extra)
         return json.dumps(obj, ensure_ascii=False)
 
 
@@ -281,10 +311,12 @@ def setup_logging(log_level: str = "INFO"):
                 },
                 "formatters": {
                     "console_fmt": {
+                        "()": "app.core.logging_config.SanitizingFormatter",
                         "format": fmt_console,
                         "datefmt": "%Y-%m-%d %H:%M:%S",
                     },
                     "file_fmt": {
+                        "()": "app.core.logging_config.SanitizingFormatter",
                         "format": fmt_file,
                         "datefmt": "%Y-%m-%d %H:%M:%S",
                     },
@@ -364,10 +396,12 @@ def setup_logging(log_level: str = "INFO"):
         "filters": {"request_context": {"()": "app.core.logging_context.LoggingContextFilter"}},
         "formatters": {
             "default": {
+                "()": "app.core.logging_config.SanitizingFormatter",
                 "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s trace=%(trace_id)s",
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
             "detailed": {
+                "()": "app.core.logging_config.SanitizingFormatter",
                 "format": "%(asctime)s - %(name)s - %(levelname)s - %(pathname)s:%(lineno)d - %(message)s trace=%(trace_id)s",
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
