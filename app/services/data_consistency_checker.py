@@ -210,7 +210,8 @@ class DataConsistencyChecker:
                         if pd.notna(value) and value != 0:
                             return float(value)
             return None
-        except:
+        except (ValueError, TypeError) as e:
+            # 无法转换为浮点数，返回None
             return None
     
     def _calculate_overall_consistency(

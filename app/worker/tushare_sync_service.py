@@ -212,7 +212,7 @@ class TushareSyncService:
                         code = stock_info.dict().get("code", "unknown")
                     else:
                         code = stock_info.get("code", "unknown")
-                except:
+                except (KeyError, AttributeError) as e:
                     code = "unknown"
 
                 batch_stats["errors"].append({
@@ -800,8 +800,9 @@ class TushareSyncService:
                         last_date_obj = datetime.strptime(latest_date, '%Y-%m-%d')
                         next_date = last_date_obj + timedelta(days=1)
                         return next_date.strftime('%Y-%m-%d')
-                    except:
+                    except (ValueError, TypeError) as date_error:
                         # 如果日期格式不对，直接返回
+                        logger.warning(f"日期计算失败，使用原日期: {date_error}")
                         return latest_date
                 else:
                     # 🔥 没有历史数据时，从上市日期开始全量同步
