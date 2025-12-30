@@ -1,0 +1,1370 @@
+{
+  "total": 273,
+  "endpoints": [
+    {
+      "router": "akshare_init",
+      "method": "GET",
+      "file": "app/routers/akshare_init.py"
+    },
+    {
+      "router": "akshare_init",
+      "method": "GET",
+      "file": "app/routers/akshare_init.py"
+    },
+    {
+      "router": "akshare_init",
+      "method": "POST",
+      "file": "app/routers/akshare_init.py"
+    },
+    {
+      "router": "akshare_init",
+      "method": "POST",
+      "file": "app/routers/akshare_init.py"
+    },
+    {
+      "router": "akshare_init",
+      "method": "GET",
+      "file": "app/routers/akshare_init.py"
+    },
+    {
+      "router": "akshare_init",
+      "method": "POST",
+      "file": "app/routers/akshare_init.py"
+    },
+    {
+      "router": "analysis",
+      "method": "POST",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "GET",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "GET",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "GET",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "GET",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "GET",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "POST",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "POST",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "POST",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "GET",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "POST",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "GET",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "GET",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "GET",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "GET",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "POST",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "POST",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "analysis",
+      "method": "DELETE",
+      "file": "app/routers/analysis.py"
+    },
+    {
+      "router": "auth_db",
+      "method": "POST",
+      "file": "app/routers/auth_db.py"
+    },
+    {
+      "router": "auth_db",
+      "method": "POST",
+      "file": "app/routers/auth_db.py"
+    },
+    {
+      "router": "auth_db",
+      "method": "POST",
+      "file": "app/routers/auth_db.py"
+    },
+    {
+      "router": "auth_db",
+      "method": "GET",
+      "file": "app/routers/auth_db.py"
+    },
+    {
+      "router": "auth_db",
+      "method": "PUT",
+      "file": "app/routers/auth_db.py"
+    },
+    {
+      "router": "auth_db",
+      "method": "POST",
+      "file": "app/routers/auth_db.py"
+    },
+    {
+      "router": "auth_db",
+      "method": "POST",
+      "file": "app/routers/auth_db.py"
+    },
+    {
+      "router": "auth_db",
+      "method": "POST",
+      "file": "app/routers/auth_db.py"
+    },
+    {
+      "router": "auth_db",
+      "method": "GET",
+      "file": "app/routers/auth_db.py"
+    },
+    {
+      "router": "baostock_init",
+      "method": "GET",
+      "file": "app/routers/baostock_init.py"
+    },
+    {
+      "router": "baostock_init",
+      "method": "GET",
+      "file": "app/routers/baostock_init.py"
+    },
+    {
+      "router": "baostock_init",
+      "method": "POST",
+      "file": "app/routers/baostock_init.py"
+    },
+    {
+      "router": "baostock_init",
+      "method": "POST",
+      "file": "app/routers/baostock_init.py"
+    },
+    {
+      "router": "baostock_init",
+      "method": "GET",
+      "file": "app/routers/baostock_init.py"
+    },
+    {
+      "router": "baostock_init",
+      "method": "POST",
+      "file": "app/routers/baostock_init.py"
+    },
+    {
+      "router": "baostock_init",
+      "method": "GET",
+      "file": "app/routers/baostock_init.py"
+    },
+    {
+      "router": "cache",
+      "method": "GET",
+      "file": "app/routers/cache.py"
+    },
+    {
+      "router": "cache",
+      "method": "DELETE",
+      "file": "app/routers/cache.py"
+    },
+    {
+      "router": "cache",
+      "method": "DELETE",
+      "file": "app/routers/cache.py"
+    },
+    {
+      "router": "cache",
+      "method": "GET",
+      "file": "app/routers/cache.py"
+    },
+    {
+      "router": "cache",
+      "method": "GET",
+      "file": "app/routers/cache.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "GET",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "GET",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "PUT",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "DELETE",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "GET",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "DELETE",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "GET",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "PUT",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "DELETE",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "GET",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "PUT",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "DELETE",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "GET",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "DELETE",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "PUT",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "PUT",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "GET",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "GET",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "PUT",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "GET",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "GET",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "GET",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "DELETE",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "GET",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "GET",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "POST",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "PUT",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "config",
+      "method": "DELETE",
+      "file": "app/routers/config.py"
+    },
+    {
+      "router": "database",
+      "method": "GET",
+      "file": "app/routers/database.py"
+    },
+    {
+      "router": "database",
+      "method": "GET",
+      "file": "app/routers/database.py"
+    },
+    {
+      "router": "database",
+      "method": "POST",
+      "file": "app/routers/database.py"
+    },
+    {
+      "router": "database",
+      "method": "POST",
+      "file": "app/routers/database.py"
+    },
+    {
+      "router": "database",
+      "method": "GET",
+      "file": "app/routers/database.py"
+    },
+    {
+      "router": "database",
+      "method": "POST",
+      "file": "app/routers/database.py"
+    },
+    {
+      "router": "database",
+      "method": "POST",
+      "file": "app/routers/database.py"
+    },
+    {
+      "router": "database",
+      "method": "DELETE",
+      "file": "app/routers/database.py"
+    },
+    {
+      "router": "database",
+      "method": "POST",
+      "file": "app/routers/database.py"
+    },
+    {
+      "router": "database",
+      "method": "POST",
+      "file": "app/routers/database.py"
+    },
+    {
+      "router": "database",
+      "method": "POST",
+      "file": "app/routers/database.py"
+    },
+    {
+      "router": "favorites",
+      "method": "GET",
+      "file": "app/routers/favorites.py"
+    },
+    {
+      "router": "favorites",
+      "method": "POST",
+      "file": "app/routers/favorites.py"
+    },
+    {
+      "router": "favorites",
+      "method": "PUT",
+      "file": "app/routers/favorites.py"
+    },
+    {
+      "router": "favorites",
+      "method": "DELETE",
+      "file": "app/routers/favorites.py"
+    },
+    {
+      "router": "favorites",
+      "method": "GET",
+      "file": "app/routers/favorites.py"
+    },
+    {
+      "router": "favorites",
+      "method": "GET",
+      "file": "app/routers/favorites.py"
+    },
+    {
+      "router": "favorites",
+      "method": "POST",
+      "file": "app/routers/favorites.py"
+    },
+    {
+      "router": "financial_data",
+      "method": "GET",
+      "file": "app/routers/financial_data.py"
+    },
+    {
+      "router": "financial_data",
+      "method": "GET",
+      "file": "app/routers/financial_data.py"
+    },
+    {
+      "router": "financial_data",
+      "method": "GET",
+      "file": "app/routers/financial_data.py"
+    },
+    {
+      "router": "financial_data",
+      "method": "POST",
+      "file": "app/routers/financial_data.py"
+    },
+    {
+      "router": "financial_data",
+      "method": "POST",
+      "file": "app/routers/financial_data.py"
+    },
+    {
+      "router": "financial_data",
+      "method": "GET",
+      "file": "app/routers/financial_data.py"
+    },
+    {
+      "router": "financial_data",
+      "method": "GET",
+      "file": "app/routers/financial_data.py"
+    },
+    {
+      "router": "health",
+      "method": "GET",
+      "file": "app/routers/health.py"
+    },
+    {
+      "router": "health",
+      "method": "GET",
+      "file": "app/routers/health.py"
+    },
+    {
+      "router": "health",
+      "method": "GET",
+      "file": "app/routers/health.py"
+    },
+    {
+      "router": "historical_data",
+      "method": "GET",
+      "file": "app/routers/historical_data.py"
+    },
+    {
+      "router": "historical_data",
+      "method": "POST",
+      "file": "app/routers/historical_data.py"
+    },
+    {
+      "router": "historical_data",
+      "method": "GET",
+      "file": "app/routers/historical_data.py"
+    },
+    {
+      "router": "historical_data",
+      "method": "GET",
+      "file": "app/routers/historical_data.py"
+    },
+    {
+      "router": "historical_data",
+      "method": "GET",
+      "file": "app/routers/historical_data.py"
+    },
+    {
+      "router": "historical_data",
+      "method": "GET",
+      "file": "app/routers/historical_data.py"
+    },
+    {
+      "router": "internal_messages",
+      "method": "POST",
+      "file": "app/routers/internal_messages.py"
+    },
+    {
+      "router": "internal_messages",
+      "method": "POST",
+      "file": "app/routers/internal_messages.py"
+    },
+    {
+      "router": "internal_messages",
+      "method": "GET",
+      "file": "app/routers/internal_messages.py"
+    },
+    {
+      "router": "internal_messages",
+      "method": "GET",
+      "file": "app/routers/internal_messages.py"
+    },
+    {
+      "router": "internal_messages",
+      "method": "GET",
+      "file": "app/routers/internal_messages.py"
+    },
+    {
+      "router": "internal_messages",
+      "method": "GET",
+      "file": "app/routers/internal_messages.py"
+    },
+    {
+      "router": "internal_messages",
+      "method": "GET",
+      "file": "app/routers/internal_messages.py"
+    },
+    {
+      "router": "internal_messages",
+      "method": "GET",
+      "file": "app/routers/internal_messages.py"
+    },
+    {
+      "router": "internal_messages",
+      "method": "GET",
+      "file": "app/routers/internal_messages.py"
+    },
+    {
+      "router": "internal_messages",
+      "method": "GET",
+      "file": "app/routers/internal_messages.py"
+    },
+    {
+      "router": "logs",
+      "method": "GET",
+      "file": "app/routers/logs.py"
+    },
+    {
+      "router": "logs",
+      "method": "POST",
+      "file": "app/routers/logs.py"
+    },
+    {
+      "router": "logs",
+      "method": "POST",
+      "file": "app/routers/logs.py"
+    },
+    {
+      "router": "logs",
+      "method": "GET",
+      "file": "app/routers/logs.py"
+    },
+    {
+      "router": "logs",
+      "method": "DELETE",
+      "file": "app/routers/logs.py"
+    },
+    {
+      "router": "model_capabilities",
+      "method": "GET",
+      "file": "app/routers/model_capabilities.py"
+    },
+    {
+      "router": "model_capabilities",
+      "method": "GET",
+      "file": "app/routers/model_capabilities.py"
+    },
+    {
+      "router": "model_capabilities",
+      "method": "GET",
+      "file": "app/routers/model_capabilities.py"
+    },
+    {
+      "router": "model_capabilities",
+      "method": "GET",
+      "file": "app/routers/model_capabilities.py"
+    },
+    {
+      "router": "model_capabilities",
+      "method": "POST",
+      "file": "app/routers/model_capabilities.py"
+    },
+    {
+      "router": "model_capabilities",
+      "method": "POST",
+      "file": "app/routers/model_capabilities.py"
+    },
+    {
+      "router": "model_capabilities",
+      "method": "POST",
+      "file": "app/routers/model_capabilities.py"
+    },
+    {
+      "router": "model_capabilities",
+      "method": "GET",
+      "file": "app/routers/model_capabilities.py"
+    },
+    {
+      "router": "multi_market_stocks",
+      "method": "GET",
+      "file": "app/routers/multi_market_stocks.py"
+    },
+    {
+      "router": "multi_market_stocks",
+      "method": "GET",
+      "file": "app/routers/multi_market_stocks.py"
+    },
+    {
+      "router": "multi_market_stocks",
+      "method": "GET",
+      "file": "app/routers/multi_market_stocks.py"
+    },
+    {
+      "router": "multi_market_stocks",
+      "method": "GET",
+      "file": "app/routers/multi_market_stocks.py"
+    },
+    {
+      "router": "multi_market_stocks",
+      "method": "GET",
+      "file": "app/routers/multi_market_stocks.py"
+    },
+    {
+      "router": "multi_period_sync",
+      "method": "POST",
+      "file": "app/routers/multi_period_sync.py"
+    },
+    {
+      "router": "multi_period_sync",
+      "method": "POST",
+      "file": "app/routers/multi_period_sync.py"
+    },
+    {
+      "router": "multi_period_sync",
+      "method": "POST",
+      "file": "app/routers/multi_period_sync.py"
+    },
+    {
+      "router": "multi_period_sync",
+      "method": "POST",
+      "file": "app/routers/multi_period_sync.py"
+    },
+    {
+      "router": "multi_period_sync",
+      "method": "POST",
+      "file": "app/routers/multi_period_sync.py"
+    },
+    {
+      "router": "multi_period_sync",
+      "method": "POST",
+      "file": "app/routers/multi_period_sync.py"
+    },
+    {
+      "router": "multi_period_sync",
+      "method": "GET",
+      "file": "app/routers/multi_period_sync.py"
+    },
+    {
+      "router": "multi_period_sync",
+      "method": "GET",
+      "file": "app/routers/multi_period_sync.py"
+    },
+    {
+      "router": "multi_period_sync",
+      "method": "GET",
+      "file": "app/routers/multi_period_sync.py"
+    },
+    {
+      "router": "multi_period_sync",
+      "method": "GET",
+      "file": "app/routers/multi_period_sync.py"
+    },
+    {
+      "router": "multi_source_sync",
+      "method": "GET",
+      "file": "app/routers/multi_source_sync.py"
+    },
+    {
+      "router": "multi_source_sync",
+      "method": "GET",
+      "file": "app/routers/multi_source_sync.py"
+    },
+    {
+      "router": "multi_source_sync",
+      "method": "GET",
+      "file": "app/routers/multi_source_sync.py"
+    },
+    {
+      "router": "multi_source_sync",
+      "method": "POST",
+      "file": "app/routers/multi_source_sync.py"
+    },
+    {
+      "router": "multi_source_sync",
+      "method": "POST",
+      "file": "app/routers/multi_source_sync.py"
+    },
+    {
+      "router": "multi_source_sync",
+      "method": "GET",
+      "file": "app/routers/multi_source_sync.py"
+    },
+    {
+      "router": "multi_source_sync",
+      "method": "GET",
+      "file": "app/routers/multi_source_sync.py"
+    },
+    {
+      "router": "multi_source_sync",
+      "method": "DELETE",
+      "file": "app/routers/multi_source_sync.py"
+    },
+    {
+      "router": "news_data",
+      "method": "GET",
+      "file": "app/routers/news_data.py"
+    },
+    {
+      "router": "news_data",
+      "method": "POST",
+      "file": "app/routers/news_data.py"
+    },
+    {
+      "router": "news_data",
+      "method": "GET",
+      "file": "app/routers/news_data.py"
+    },
+    {
+      "router": "news_data",
+      "method": "GET",
+      "file": "app/routers/news_data.py"
+    },
+    {
+      "router": "news_data",
+      "method": "GET",
+      "file": "app/routers/news_data.py"
+    },
+    {
+      "router": "news_data",
+      "method": "POST",
+      "file": "app/routers/news_data.py"
+    },
+    {
+      "router": "news_data",
+      "method": "POST",
+      "file": "app/routers/news_data.py"
+    },
+    {
+      "router": "news_data",
+      "method": "DELETE",
+      "file": "app/routers/news_data.py"
+    },
+    {
+      "router": "news_data",
+      "method": "GET",
+      "file": "app/routers/news_data.py"
+    },
+    {
+      "router": "notifications",
+      "method": "GET",
+      "file": "app/routers/notifications.py"
+    },
+    {
+      "router": "notifications",
+      "method": "GET",
+      "file": "app/routers/notifications.py"
+    },
+    {
+      "router": "notifications",
+      "method": "POST",
+      "file": "app/routers/notifications.py"
+    },
+    {
+      "router": "notifications",
+      "method": "POST",
+      "file": "app/routers/notifications.py"
+    },
+    {
+      "router": "notifications",
+      "method": "GET",
+      "file": "app/routers/notifications.py"
+    },
+    {
+      "router": "operation_logs",
+      "method": "GET",
+      "file": "app/routers/operation_logs.py"
+    },
+    {
+      "router": "operation_logs",
+      "method": "GET",
+      "file": "app/routers/operation_logs.py"
+    },
+    {
+      "router": "operation_logs",
+      "method": "GET",
+      "file": "app/routers/operation_logs.py"
+    },
+    {
+      "router": "operation_logs",
+      "method": "POST",
+      "file": "app/routers/operation_logs.py"
+    },
+    {
+      "router": "operation_logs",
+      "method": "POST",
+      "file": "app/routers/operation_logs.py"
+    },
+    {
+      "router": "operation_logs",
+      "method": "GET",
+      "file": "app/routers/operation_logs.py"
+    },
+    {
+      "router": "paper",
+      "method": "GET",
+      "file": "app/routers/paper.py"
+    },
+    {
+      "router": "paper",
+      "method": "POST",
+      "file": "app/routers/paper.py"
+    },
+    {
+      "router": "paper",
+      "method": "GET",
+      "file": "app/routers/paper.py"
+    },
+    {
+      "router": "paper",
+      "method": "GET",
+      "file": "app/routers/paper.py"
+    },
+    {
+      "router": "paper",
+      "method": "POST",
+      "file": "app/routers/paper.py"
+    },
+    {
+      "router": "queue",
+      "method": "GET",
+      "file": "app/routers/queue.py"
+    },
+    {
+      "router": "reports",
+      "method": "GET",
+      "file": "app/routers/reports.py"
+    },
+    {
+      "router": "reports",
+      "method": "GET",
+      "file": "app/routers/reports.py"
+    },
+    {
+      "router": "reports",
+      "method": "GET",
+      "file": "app/routers/reports.py"
+    },
+    {
+      "router": "reports",
+      "method": "DELETE",
+      "file": "app/routers/reports.py"
+    },
+    {
+      "router": "reports",
+      "method": "GET",
+      "file": "app/routers/reports.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "GET",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "PUT",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "GET",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "POST",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "POST",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "POST",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "GET",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "GET",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "GET",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "GET",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "GET",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "GET",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "GET",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "POST",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "POST",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "scheduler",
+      "method": "DELETE",
+      "file": "app/routers/scheduler.py"
+    },
+    {
+      "router": "screening",
+      "method": "GET",
+      "file": "app/routers/screening.py"
+    },
+    {
+      "router": "screening",
+      "method": "POST",
+      "file": "app/routers/screening.py"
+    },
+    {
+      "router": "screening",
+      "method": "POST",
+      "file": "app/routers/screening.py"
+    },
+    {
+      "router": "screening",
+      "method": "GET",
+      "file": "app/routers/screening.py"
+    },
+    {
+      "router": "screening",
+      "method": "GET",
+      "file": "app/routers/screening.py"
+    },
+    {
+      "router": "screening",
+      "method": "POST",
+      "file": "app/routers/screening.py"
+    },
+    {
+      "router": "screening",
+      "method": "GET",
+      "file": "app/routers/screening.py"
+    },
+    {
+      "router": "social_media",
+      "method": "POST",
+      "file": "app/routers/social_media.py"
+    },
+    {
+      "router": "social_media",
+      "method": "POST",
+      "file": "app/routers/social_media.py"
+    },
+    {
+      "router": "social_media",
+      "method": "GET",
+      "file": "app/routers/social_media.py"
+    },
+    {
+      "router": "social_media",
+      "method": "GET",
+      "file": "app/routers/social_media.py"
+    },
+    {
+      "router": "social_media",
+      "method": "GET",
+      "file": "app/routers/social_media.py"
+    },
+    {
+      "router": "social_media",
+      "method": "GET",
+      "file": "app/routers/social_media.py"
+    },
+    {
+      "router": "social_media",
+      "method": "GET",
+      "file": "app/routers/social_media.py"
+    },
+    {
+      "router": "social_media",
+      "method": "GET",
+      "file": "app/routers/social_media.py"
+    },
+    {
+      "router": "sse",
+      "method": "GET",
+      "file": "app/routers/sse.py"
+    },
+    {
+      "router": "sse",
+      "method": "GET",
+      "file": "app/routers/sse.py"
+    },
+    {
+      "router": "stocks",
+      "method": "GET",
+      "file": "app/routers/stocks.py"
+    },
+    {
+      "router": "stocks",
+      "method": "GET",
+      "file": "app/routers/stocks.py"
+    },
+    {
+      "router": "stocks",
+      "method": "GET",
+      "file": "app/routers/stocks.py"
+    },
+    {
+      "router": "stocks",
+      "method": "GET",
+      "file": "app/routers/stocks.py"
+    },
+    {
+      "router": "stock_data",
+      "method": "GET",
+      "file": "app/routers/stock_data.py"
+    },
+    {
+      "router": "stock_data",
+      "method": "GET",
+      "file": "app/routers/stock_data.py"
+    },
+    {
+      "router": "stock_data",
+      "method": "GET",
+      "file": "app/routers/stock_data.py"
+    },
+    {
+      "router": "stock_data",
+      "method": "GET",
+      "file": "app/routers/stock_data.py"
+    },
+    {
+      "router": "stock_data",
+      "method": "GET",
+      "file": "app/routers/stock_data.py"
+    },
+    {
+      "router": "stock_data",
+      "method": "GET",
+      "file": "app/routers/stock_data.py"
+    },
+    {
+      "router": "stock_data",
+      "method": "GET",
+      "file": "app/routers/stock_data.py"
+    },
+    {
+      "router": "stock_sync",
+      "method": "POST",
+      "file": "app/routers/stock_sync.py"
+    },
+    {
+      "router": "stock_sync",
+      "method": "POST",
+      "file": "app/routers/stock_sync.py"
+    },
+    {
+      "router": "stock_sync",
+      "method": "GET",
+      "file": "app/routers/stock_sync.py"
+    },
+    {
+      "router": "sync",
+      "method": "POST",
+      "file": "app/routers/sync.py"
+    },
+    {
+      "router": "sync",
+      "method": "GET",
+      "file": "app/routers/sync.py"
+    },
+    {
+      "router": "system_config",
+      "method": "GET",
+      "file": "app/routers/system_config.py"
+    },
+    {
+      "router": "system_config",
+      "method": "GET",
+      "file": "app/routers/system_config.py"
+    },
+    {
+      "router": "tags",
+      "method": "GET",
+      "file": "app/routers/tags.py"
+    },
+    {
+      "router": "tags",
+      "method": "POST",
+      "file": "app/routers/tags.py"
+    },
+    {
+      "router": "tags",
+      "method": "PUT",
+      "file": "app/routers/tags.py"
+    },
+    {
+      "router": "tags",
+      "method": "DELETE",
+      "file": "app/routers/tags.py"
+    },
+    {
+      "router": "tushare_init",
+      "method": "GET",
+      "file": "app/routers/tushare_init.py"
+    },
+    {
+      "router": "tushare_init",
+      "method": "GET",
+      "file": "app/routers/tushare_init.py"
+    },
+    {
+      "router": "tushare_init",
+      "method": "POST",
+      "file": "app/routers/tushare_init.py"
+    },
+    {
+      "router": "tushare_init",
+      "method": "POST",
+      "file": "app/routers/tushare_init.py"
+    },
+    {
+      "router": "tushare_init",
+      "method": "POST",
+      "file": "app/routers/tushare_init.py"
+    },
+    {
+      "router": "usage_statistics",
+      "method": "GET",
+      "file": "app/routers/usage_statistics.py"
+    },
+    {
+      "router": "usage_statistics",
+      "method": "GET",
+      "file": "app/routers/usage_statistics.py"
+    },
+    {
+      "router": "usage_statistics",
+      "method": "GET",
+      "file": "app/routers/usage_statistics.py"
+    },
+    {
+      "router": "usage_statistics",
+      "method": "GET",
+      "file": "app/routers/usage_statistics.py"
+    },
+    {
+      "router": "usage_statistics",
+      "method": "GET",
+      "file": "app/routers/usage_statistics.py"
+    },
+    {
+      "router": "usage_statistics",
+      "method": "DELETE",
+      "file": "app/routers/usage_statistics.py"
+    },
+    {
+      "router": "websocket_notifications",
+      "method": "GET",
+      "file": "app/routers/websocket_notifications.py"
+    }
+  ]
+}
