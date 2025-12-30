@@ -16,6 +16,9 @@ __pycache__/
 .env.db
 .env.mongodb*
 
+# Docker本地覆盖配置 (包含敏感凭据)
+docker-compose.override.yml
+
 # 前端构建和依赖
 frontend/dist
 frontend/node_modules

@@ -286,6 +286,20 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+# 安全警告：检查是否使用了默认的不安全配置
+_INSECURE_DEFAULTS = {
+    "JWT_SECRET": "change-me-in-production",
+    "CSRF_SECRET": "change-me-csrf-secret",
+}
+for _key, _default in _INSECURE_DEFAULTS.items():
+    if getattr(settings, _key, None) == _default:
+        warnings.warn(
+            f"[SECURITY WARNING] {_key} is using the default insecure value. "
+            f"Please set {_key} environment variable in production!",
+            UserWarning,
+            stacklevel=1,
+        )
+
 # 自动将代理配置设置到环境变量
 # 这样 requests 库可以直接读取 os.environ['NO_PROXY']
 if settings.HTTP_PROXY:

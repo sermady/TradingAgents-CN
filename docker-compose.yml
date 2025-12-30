@@ -66,14 +66,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      args:
+        # 构建时注入API地址 - Vite环境变量必须在构建时设置
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
     image: tradingagents-frontend:v1.0.0-preview
     container_name: tradingagents-frontend
     ports:
       - "3000:80"
     environment:
       TZ: "Asia/Shanghai"
-      # 后端API地址
-      VITE_API_BASE_URL: "http://localhost:8000"
     depends_on:
       backend:
         condition: service_healthy
