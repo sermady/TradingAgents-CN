@@ -4,6 +4,7 @@
 
 import time
 import asyncio
+import json
 import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -57,8 +58,11 @@ class ConfigService:
             # 按排序顺序排列
             categories.sort(key=lambda x: x.sort_order)
             return categories
+        except (ConnectionError, OperationError) as e:
+            logger.error(f"数据库连接/操作失败: {e}")
+            return []
         except Exception as e:
-            print(f"❌ 获取市场分类失败: {e}")
+            logger.error(f"获取市场分类失败: {e}")
             return []
 
     async def _create_default_market_categories(self) -> List[MarketCategory]:
@@ -128,8 +132,11 @@ class ConfigService:
 
             await categories_collection.insert_one(category.model_dump())
             return True
+        except (ValidationError, DuplicateKeyError) as e:
+            logger.error(f"添加市场分类失败 - 数据验证/重复: {e}")
+            return False
         except Exception as e:
-            print(f"❌ 添加市场分类失败: {e}")
+            logger.error(f"添加市场分类失败: {e}")
             return False
 
     async def update_market_category(self, category_id: str, updates: Dict[str, Any]) -> bool:
@@ -4059,7 +4066,7 @@ class ConfigService:
                         "success": False,
                         "message": f"{display_name} API请求失败: {error_msg}"
                     }
-                except:
+                except (json.JSONDecodeError, ValueError) as e:
                     print(f"❌ HTTP 错误: {response.status_code}")
                     return {
                         "success": False,
@@ -4330,7 +4337,7 @@ class ConfigService:
                         "success": False,
                         "message": f"{display_name} API测试失败: {error_msg}"
                     }
-                except:
+                except (json.JSONDecodeError, ValueError) as e:
                     logger.error(f"❌ [{display_name}] API测试失败")
                     logger.error(f"   请求URL: {url}")
                     logger.error(f"   状态码: {response.status_code}")
