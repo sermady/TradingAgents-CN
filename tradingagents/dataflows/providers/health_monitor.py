@@ -44,9 +44,11 @@ class DataSourceHealthMonitor:
         self.metrics: Dict[str, HealthMetrics] = {}
         self.check_interval = 300  # 5分钟检查一次
         self.failure_threshold = 3  # 连续失败3次标记为不可用
+        self.max_consecutive_failures = 10  # 连续失败10次后暂停检查
         self.response_time_threshold = 30.0  # 响应时间超过30秒认为有问题
         self._monitoring_task: Optional[asyncio.Task] = None
         self._metrics_lock = threading.Lock()
+        self._skip_check_sources = set()  # 跳过检查的数据源（连续失败太多）
         
     async def start_monitoring(self):
         """启动健康监控"""
@@ -62,7 +64,7 @@ class DataSourceHealthMonitor:
                 await self._monitoring_task
             except asyncio.CancelledError:
                 pass
-            logger.info("⏹️ 数据源健康监控已停止")
+            logger.info("[STOP] 数据源健康监控已停止")
     
     async def _monitoring_loop(self):
         """监控循环"""
@@ -73,27 +75,65 @@ class DataSourceHealthMonitor:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error(f"[FAIL] 健康监控循环异常: {e}")
+                logger.error("[FAIL] 健康监控循环异常", exc_info=True)
                 await asyncio.sleep(60)  # 出错后等待1分钟再试
     
     async def check_all_sources(self):
-        """检查所有数据源健康状态"""
+        """检查所有启用的数据源健康状态"""
         logger.info("[SEARCH] 开始数据源健康检查...")
         
-        # 检查Tushare
-        await self._check_tushare_health()
+        # 获取启用的数据源列表
+        enabled_sources = await self._get_enabled_sources()
         
-        # 检查AKShare  
-        await self._check_akshare_health()
+        # 只检查启用的数据源（且未被暂停检查）
+        if "tushare" in enabled_sources and "tushare" not in self._skip_check_sources:
+            await self._check_tushare_health()
+        elif "tushare" in self._skip_check_sources:
+            logger.info(f"[SKIP] 跳过Tushare健康检查（连续失败过多）")
         
-        # 检查BaoStock
-        await self._check_baostock_health()
+        if "akshare" in enabled_sources and "akshare" not in self._skip_check_sources:
+            await self._check_akshare_health()
+        elif "akshare" in self._skip_check_sources:
+            logger.info(f"[SKIP] 跳过AKShare健康检查（连续失败过多）")
         
-        # 检查MongoDB
+        if "baostock" in enabled_sources and "baostock" not in self._skip_check_sources:
+            await self._check_baostock_health()
+        elif "baostock" in self._skip_check_sources:
+            logger.info(f"[SKIP] 跳过BaoStock健康检查（连续失败过多）")
+        
+        # MongoDB 总是检查（系统核心组件）
         await self._check_mongodb_health()
         
         # 输出健康报告
         await self._generate_health_report()
+    
+    async def _get_enabled_sources(self):
+        """获取启用的数据源列表"""
+        try:
+            # 导入DataSourceManager来检查启用状态
+            from tradingagents.dataflows.data_source_manager import DataSourceManager
+            
+            manager = DataSourceManager()
+            available_sources = manager.get_available_sources()
+            
+            # 转换为字符串列表
+            enabled_sources = []
+            from tradingagents.dataflows.data_source_manager import ChinaDataSource
+            
+            for source in available_sources:
+                if source == ChinaDataSource.TUSHARE:
+                    enabled_sources.append("tushare")
+                elif source == ChinaDataSource.AKSHARE:
+                    enabled_sources.append("akshare")
+                elif source == ChinaDataSource.BAOSTOCK:
+                    enabled_sources.append("baostock")
+            
+            logger.info(f"[CONFIG] 启用的数据源: {enabled_sources}")
+            return enabled_sources
+            
+        except Exception as e:
+            logger.warning(f"[WARN] 无法获取数据源启用状态，默认检查所有数据源: {e}")
+            return ["tushare", "akshare", "baostock"]
     
     async def _check_tushare_health(self):
         """检查Tushare健康状态"""
@@ -104,6 +144,7 @@ class DataSourceHealthMonitor:
             def _check_sync() -> tuple[bool, Optional[str]]:
                 # 尝试导入和测试Tushare（同步阻塞，必须放到线程）
                 import tushare as ts
+                import os
                 from tradingagents.config.providers_config import get_provider_config
 
                 config = get_provider_config("tushare")
@@ -114,6 +155,8 @@ class DataSourceHealthMonitor:
 
                 # 设置token并测试连接
                 ts.set_token(token)
+                
+                # 使用官方 Tushare API 地址
                 api = ts.pro_api()
 
                 # 简单测试API调用
@@ -171,9 +214,14 @@ class DataSourceHealthMonitor:
                     if lg.error_code != '0':
                         return False, f"登录失败: {lg.error_msg}"
 
-                    rs = bs.query_sh_k_list()
+                    # 使用正确的API方法：query_stock_basic
+                    rs = bs.query_stock_basic()
                     if rs.error_code == '0':
-                        return True, None
+                        # 尝试读取一条数据验证
+                        if rs.next():
+                            return True, None
+                        else:
+                            return False, "查询成功但无数据返回"
                     return False, f"查询失败: {rs.error_msg}"
                 finally:
                     try:
@@ -239,6 +287,12 @@ class DataSourceHealthMonitor:
                 else:
                     metrics.avg_response_time = (metrics.avg_response_time + response_time) / 2
 
+                # 如果数据源恢复成功，从跳过列表中移除
+                if source_name in self._skip_check_sources:
+                    with self._metrics_lock:
+                        self._skip_check_sources.discard(source_name)
+                    logger.info(f"[RECOVER] 数据源 {source_name} 恢复健康，恢复健康检查")
+
                 # 更新状态
                 if metrics.failure_count == 0:
                     metrics.status = DataSourceStatus.HEALTHY
@@ -259,6 +313,12 @@ class DataSourceHealthMonitor:
                 # 更新状态
                 if metrics.consecutive_failures >= self.failure_threshold:
                     metrics.status = DataSourceStatus.UNAVAILABLE
+                    
+                    # 如果连续失败太多次，暂停检查该数据源
+                    if metrics.consecutive_failures >= self.max_consecutive_failures:
+                        with self._metrics_lock:
+                            self._skip_check_sources.add(source_name)
+                        logger.info(f"[SKIP] 数据源 {source_name} 连续失败 {metrics.consecutive_failures} 次，暂停健康检查")
                 else:
                     metrics.status = DataSourceStatus.DEGRADED
     
@@ -266,12 +326,18 @@ class DataSourceHealthMonitor:
         """生成健康报告"""
         logger.info("[CHART] 数据源健康报告:")
         
+        # 首先显示被跳过检查的数据源
+        if self._skip_check_sources:
+            logger.info("  [SKIP] 跳过的数据源（连续失败过多）:")
+            for source_name in self._skip_check_sources:
+                logger.info(f"    - {source_name.upper()}: 暂停健康检查")
+        
         for source_name, metrics in self.metrics.items():
             status_emoji = {
-                DataSourceStatus.HEALTHY: "🟢",
-                DataSourceStatus.DEGRADED: "🟡", 
+                DataSourceStatus.HEALTHY: "[OK]",
+                DataSourceStatus.DEGRADED: "[WARN]",
                 DataSourceStatus.UNAVAILABLE: "[REDIS]",
-                DataSourceStatus.UNKNOWN: "⚪"
+                DataSourceStatus.UNKNOWN: "[UNKNOWN]"
             }
             
             success_rate = 0
